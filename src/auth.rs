@@ -12,7 +12,7 @@ pub const APP_SLUG: &str = "waffler";
 pub const CLIENT_ID: &str = "waffler";
 pub const SCOPES: &str = "openid profile email";
 /// Waffler developer registry API base URL.
-pub const REGISTRY_API: &str = "https://registry.sywapps.com/v1/developer";
+pub const REGISTRY_API: &str = "https://registry.waffler.sywapps.com/v1/developer";
 
 /// Fixed local port for the OAuth2 redirect. Register exactly this URI in Authentik:
 ///   http://127.0.0.1:17653/callback

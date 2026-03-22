@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use crate::auth;
 use crate::commands::load_manifest;
 
-const REGISTRY_PACKAGES_API: &str = "https://registry.sywapps.com/v1/packages";
+const REGISTRY_PACKAGES_API: &str = "https://registry.waffler.sywapps.com/v1/packages";
 
 #[derive(Args)]
 pub struct PublishArgs {

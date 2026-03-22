@@ -411,7 +411,9 @@ pub async fn refresh_credentials(
     Ok(Credentials {
         access_token,
         // Keep the old refresh token if the server didn't rotate it
-        refresh_token: token_resp.refresh_token.or_else(|| creds.refresh_token.clone()),
+        refresh_token: token_resp
+            .refresh_token
+            .or_else(|| creds.refresh_token.clone()),
         id_token: token_resp.id_token.or_else(|| creds.id_token.clone()),
         expires_at,
         developer: creds.developer.clone(),

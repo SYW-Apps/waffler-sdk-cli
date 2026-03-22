@@ -48,9 +48,7 @@ pub async fn run(args: PackArgs) -> Result<()> {
         let client = reqwest::Client::new();
         match auth::load_and_refresh(&client).await {
             Err(e) => {
-                bail!(
-                    "{e}\nUse --no-auth to skip ownership validation."
-                );
+                bail!("{e}\nUse --no-auth to skip ownership validation.");
             }
             Ok(creds) => {
                 if !creds.can_publish(&manifest.namespace) {

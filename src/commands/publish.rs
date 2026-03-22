@@ -29,11 +29,8 @@ pub struct PublishArgs {
 }
 
 pub async fn run(args: PublishArgs) -> Result<()> {
-    let creds = auth::load_credentials()
-        .ok_or_else(|| anyhow::anyhow!("Not logged in. Run `waffler login` first."))?;
-    if creds.is_expired() {
-        bail!("Auth token expired. Run `waffler login` to refresh.");
-    }
+    let client = reqwest::Client::new();
+    let creds = auth::load_and_refresh(&client).await?;
 
     let zip_path = if let Some(zip) = args.zip {
         // Use the provided ZIP directly

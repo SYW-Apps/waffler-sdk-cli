@@ -5,7 +5,7 @@ use reqwest::multipart;
 use std::path::PathBuf;
 
 use crate::auth;
-use crate::commands::{build, load_manifest};
+use crate::commands::load_manifest;
 
 const REGISTRY_PACKAGES_API: &str = "https://registry.sywapps.com/v1/packages";
 

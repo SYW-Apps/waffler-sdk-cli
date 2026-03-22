@@ -108,7 +108,7 @@ pub fn generate_segment_manifests(
         }
 
         let rel = dir.strip_prefix(namespace_root).unwrap_or(dir);
-        let rel_dot = rel.to_string_lossy().replace('\\', ".").replace('/', ".");
+        let rel_dot = rel.to_string_lossy().replace(['\\', '/'], ".");
         let stable_id = deterministic_uuid(&format!("{}.{}", pkg_namespace, rel_dot));
 
         let entity_type = infer_entity_type(dir, pkg_namespace, namespace_root);

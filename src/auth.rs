@@ -249,8 +249,6 @@ struct UserInfoResponse {
 
 #[derive(Debug, Deserialize)]
 pub struct DeveloperProfile {
-    pub username: String,
-    pub email: String,
     pub namespaces: Vec<String>,
 }
 
@@ -266,7 +264,6 @@ struct RegistryError {
 
 #[derive(Debug, Deserialize)]
 pub struct NamespaceAvailability {
-    pub tag: String,
     pub available: bool,
     pub owner: Option<String>,
 }

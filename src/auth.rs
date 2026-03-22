@@ -362,6 +362,87 @@ pub async fn check_namespace(client: &reqwest::Client, tag: &str) -> Result<Name
         .context("Could not parse availability response")
 }
 
+// ─── Token refresh ────────────────────────────────────────────────────────────
+
+/// Exchange a refresh token for a new access token.
+/// Returns updated credentials with the new tokens; the refresh token is
+/// preserved from the old credentials if the server does not rotate it.
+pub async fn refresh_credentials(
+    client: &reqwest::Client,
+    creds: &Credentials,
+) -> Result<Credentials> {
+    let refresh_token = creds
+        .refresh_token
+        .as_deref()
+        .context("No refresh token stored — please run `waffler login` again.")?;
+
+    let discovery = discover_endpoints(client).await?;
+
+    let token_resp: TokenResponse = client
+        .post(&discovery.token_endpoint)
+        .form(&[
+            ("grant_type", "refresh_token"),
+            ("client_id", CLIENT_ID),
+            ("refresh_token", refresh_token),
+        ])
+        .send()
+        .await
+        .context("Token refresh request failed")?
+        .json()
+        .await
+        .context("Could not parse token refresh response")?;
+
+    if let Some(err) = token_resp.error {
+        bail!(
+            "Token refresh failed: {} — {}",
+            err,
+            token_resp.error_description.as_deref().unwrap_or("")
+        );
+    }
+
+    let access_token = token_resp
+        .access_token
+        .context("Refresh response missing access_token")?;
+
+    let expires_at = token_resp
+        .expires_in
+        .map(|s| chrono::Utc::now().timestamp() + s as i64);
+
+    Ok(Credentials {
+        access_token,
+        // Keep the old refresh token if the server didn't rotate it
+        refresh_token: token_resp.refresh_token.or_else(|| creds.refresh_token.clone()),
+        id_token: token_resp.id_token.or_else(|| creds.id_token.clone()),
+        expires_at,
+        developer: creds.developer.clone(),
+    })
+}
+
+/// Load credentials from disk, automatically refreshing if expired.
+/// Saves the updated credentials back to disk after a successful refresh.
+/// Returns an error if not logged in or if refresh fails (prompts re-login).
+pub async fn load_and_refresh(client: &reqwest::Client) -> Result<Credentials> {
+    let creds = load_credentials()
+        .ok_or_else(|| anyhow::anyhow!("Not logged in. Run `waffler login` first."))?;
+
+    if !creds.is_expired() {
+        return Ok(creds);
+    }
+
+    match refresh_credentials(client, &creds).await {
+        Ok(new_creds) => {
+            save_credentials(&new_creds)?;
+            Ok(new_creds)
+        }
+        Err(e) => {
+            bail!(
+                "Session expired and could not be refreshed: {e}\n\
+                 Run `waffler login` to re-authenticate."
+            );
+        }
+    }
+}
+
 // ─── Public login entry point ─────────────────────────────────────────────────
 
 /// Authorization Code + PKCE login flow.

@@ -135,17 +135,16 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
 
     // 7. Namespace ownership check
     if args.check_ownership {
-        match auth::load_credentials() {
-            None => {
+        let client = reqwest::Client::new();
+        match auth::load_and_refresh(&client).await {
+            Err(_) => {
                 warnings.push(
-                    "Not logged in — cannot verify namespace ownership. Run `waffler login`."
+                    "Not logged in or session could not be refreshed — cannot verify namespace ownership. Run `waffler login`."
                         .into(),
                 );
             }
-            Some(creds) => {
-                if creds.is_expired() {
-                    warnings.push("Auth token expired — re-run `waffler login` to refresh.".into());
-                } else if !creds.can_publish(&manifest.namespace) {
+            Ok(creds) => {
+                if !creds.can_publish(&manifest.namespace) {
                     let owned = if creds.developer.namespaces.is_empty() {
                         "none".to_string()
                     } else {

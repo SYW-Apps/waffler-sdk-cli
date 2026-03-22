@@ -45,16 +45,14 @@ pub async fn run(args: PackArgs) -> Result<()> {
 
     // ─── Namespace ownership check ────────────────────────────────────────────
     if !args.no_auth {
-        match auth::load_credentials() {
-            None => {
+        let client = reqwest::Client::new();
+        match auth::load_and_refresh(&client).await {
+            Err(e) => {
                 bail!(
-                    "Not logged in. Run `waffler login` first, or use --no-auth to skip ownership validation."
+                    "{e}\nUse --no-auth to skip ownership validation."
                 );
             }
-            Some(creds) => {
-                if creds.is_expired() {
-                    bail!("Auth token expired. Run `waffler login` to refresh.");
-                }
+            Ok(creds) => {
                 if !creds.can_publish(&manifest.namespace) {
                     let root_tag = manifest
                         .namespace

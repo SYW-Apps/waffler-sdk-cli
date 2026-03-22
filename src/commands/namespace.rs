@@ -141,10 +141,8 @@ async fn cmd_check(tag: String) -> Result<()> {
 async fn cmd_claim(tag: String) -> Result<()> {
     validate_tag_format(&tag)?;
 
-    let mut creds = require_login()?;
-    if creds.is_expired() {
-        bail!("Auth token expired. Run `waffler login` to refresh.");
-    }
+    let client = reqwest::Client::new();
+    let mut creds = auth::load_and_refresh(&client).await?;
 
     if creds.developer.namespaces.contains(&tag) {
         println!(
@@ -161,7 +159,6 @@ async fn cmd_claim(tag: String) -> Result<()> {
         style(&tag).yellow()
     );
 
-    let client = reqwest::Client::new();
     let namespaces = auth::claim_namespace(&client, &creds.access_token, &tag).await?;
 
     creds.developer.namespaces = namespaces;
@@ -185,10 +182,8 @@ async fn cmd_claim(tag: String) -> Result<()> {
 async fn cmd_release(tag: String, yes: bool) -> Result<()> {
     validate_tag_format(&tag)?;
 
-    let mut creds = require_login()?;
-    if creds.is_expired() {
-        bail!("Auth token expired. Run `waffler login` to refresh.");
-    }
+    let client = reqwest::Client::new();
+    let mut creds = auth::load_and_refresh(&client).await?;
 
     if !creds.developer.namespaces.contains(&tag) {
         bail!("You don't own tag '{tag}'.");
@@ -208,7 +203,6 @@ async fn cmd_release(tag: String, yes: bool) -> Result<()> {
         }
     }
 
-    let client = reqwest::Client::new();
     let namespaces = auth::release_namespace(&client, &creds.access_token, &tag).await?;
 
     creds.developer.namespaces = namespaces;

@@ -1,0 +1,12 @@
+C:\Users\ShutY\source\Waffler\sdk\cli\target\debug\deps\tracing-8091bc5344e63368.d: C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\lib.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\macros.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\dispatcher.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\field.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\instrument.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\level_filters.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\span.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\subscriber.rs
+
+C:\Users\ShutY\source\Waffler\sdk\cli\target\debug\deps\libtracing-8091bc5344e63368.rmeta: C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\lib.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\macros.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\dispatcher.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\field.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\instrument.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\level_filters.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\span.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\subscriber.rs
+
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\lib.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\macros.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\dispatcher.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\field.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\instrument.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\level_filters.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\span.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-0.1.44\src\subscriber.rs:

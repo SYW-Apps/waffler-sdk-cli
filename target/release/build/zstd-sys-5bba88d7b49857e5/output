@@ -1,0 +1,1124 @@
+cargo:rerun-if-env-changed=ZSTD_SYS_USE_PKG_CONFIG
+cargo:rerun-if-env-changed=CC_FORCE_DISABLE
+CC_FORCE_DISABLE = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_ENABLE_DEBUG_OUTPUT
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+debug.c
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+entropy_common.c
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+error_private.c
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+fse_decompress.c
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+pool.c
+threading.c
+fse_compress.c
+zstd_common.c
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+huf_compress.c
+zstd_compress.c
+hist.c
+zstd_compress_literals.c
+zstd_compress_sequences.c
+zstd_compress_superblock.c
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+zstd_double_fast.c
+zstd_fast.c
+zstd_lazy.c
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+zstd_ldm.c
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=CRATE_CC_NO_DEFAULTS
+CRATE_CC_NO_DEFAULTS = None
+cargo:rerun-if-env-changed=CFLAGS
+CFLAGS = None
+cargo:rerun-if-env-changed=HOST_CFLAGS
+HOST_CFLAGS = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64_pc_windows_msvc
+CFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=CFLAGS_x86_64-pc-windows-msvc
+CFLAGS_x86_64-pc-windows-msvc = None
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+zstd_opt.c
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+zstdmt_compress.c
+zstd_preSplit.c
+huf_decompress.c
+zstd_ddict.c
+zstd_decompress.c
+zstd_decompress_block.c
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+cargo:warning=cl : Command line warning D9002 : ignoring unknown option '-fvisibility=hidden'
+                   
+0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+exit code: 0
+cargo:rerun-if-env-changed=AR_x86_64-pc-windows-msvc
+AR_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=AR_x86_64_pc_windows_msvc
+AR_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_AR
+HOST_AR = None
+cargo:rerun-if-env-changed=AR
+AR = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=ARFLAGS
+ARFLAGS = None
+cargo:rerun-if-env-changed=HOST_ARFLAGS
+HOST_ARFLAGS = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64_pc_windows_msvc
+ARFLAGS_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=ARFLAGS_x86_64-pc-windows-msvc
+ARFLAGS_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=VCINSTALLDIR
+VCINSTALLDIR = None
+cargo:rerun-if-env-changed=VSTEL_MSBuildProjectFullPath
+VSTEL_MSBuildProjectFullPath = None
+cargo:rerun-if-env-changed=VCToolsVersion
+VCToolsVersion = None
+cargo:rerun-if-env-changed=VSCMD_ARG_VCVARS_SPECTRE
+VSCMD_ARG_VCVARS_SPECTRE = None
+cargo:rerun-if-env-changed=WindowsSdkDir
+WindowsSdkDir = None
+cargo:rerun-if-env-changed=WindowsSDKVersion
+WindowsSDKVersion = None
+cargo:rerun-if-env-changed=LIB
+LIB = None
+PATH = Some(C:\Users\ShutY\source\Waffler\sdk\cli\target\release;C:\Users\ShutY\source\Waffler\sdk\cli\target\release\deps;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\dotnet\;C:\Users\ShutY\.cargo\bin;C:\Users\ShutY\AppData\Local\Microsoft\WindowsApps;C:\Users\ShutY\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\ShutY\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Users\ShutY\AppData\Local\SpacetimeDB;C:\Users\ShutY\.local\bin;C:\Users\ShutY\bin;C:\Users\ShutY\.dotnet\tools;C:\Users\ShutY\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin)
+cargo:rerun-if-env-changed=INCLUDE
+INCLUDE = None
+cargo:rerun-if-env-changed=CC_x86_64-pc-windows-msvc
+CC_x86_64-pc-windows-msvc = None
+cargo:rerun-if-env-changed=CC_x86_64_pc_windows_msvc
+CC_x86_64_pc_windows_msvc = None
+cargo:rerun-if-env-changed=HOST_CC
+HOST_CC = None
+cargo:rerun-if-env-changed=CC
+CC = None
+cargo:rustc-link-lib=static=zstd
+cargo:rustc-link-search=native=C:\Users\ShutY\source\Waffler\sdk\cli\target\release\build\zstd-sys-5bba88d7b49857e5\out
+cargo:root=C:\Users\ShutY\source\Waffler\sdk\cli\target\release\build\zstd-sys-5bba88d7b49857e5\out
+cargo:include=C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\zstd-sys-2.0.16+zstd.1.5.7\zstd/lib

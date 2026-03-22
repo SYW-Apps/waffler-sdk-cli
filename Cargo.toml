@@ -1,0 +1,48 @@
+[package]
+name = "waffler-cli"
+version = "0.1.0"
+edition = "2021"
+description = "Waffler Package Developer SDK — build, pack, scaffold, and publish Waffler packages"
+authors = ["SYW Apps"]
+
+[[bin]]
+name = "waffler"
+path = "src/main.rs"
+
+[dependencies]
+# CLI
+clap = { version = "4", features = ["derive", "color"] }
+anyhow = "1"
+
+# Async
+tokio = { version = "1", features = ["full"] }
+
+# HTTP (for OAuth2 device flow)
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Interactive terminal
+dialoguer = { version = "0.11", features = ["fuzzy-select"] }
+indicatif = "0.17"
+console = "0.15"
+
+# File system
+zip = "2"
+walkdir = "2"
+
+# UUID / hashing
+sha1 = "0.10"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+rand = "0.8"
+open = "5"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Platform dirs
+dirs = "5"

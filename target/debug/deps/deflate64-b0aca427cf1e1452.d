@@ -1,0 +1,11 @@
+C:\Users\ShutY\source\Waffler\sdk\cli\target\debug\deps\deflate64-b0aca427cf1e1452.d: C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\lib.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\buffer.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\huffman_tree.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\inflater_managed.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\input_buffer.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\output_window.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\stream.rs
+
+C:\Users\ShutY\source\Waffler\sdk\cli\target\debug\deps\libdeflate64-b0aca427cf1e1452.rmeta: C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\lib.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\buffer.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\huffman_tree.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\inflater_managed.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\input_buffer.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\output_window.rs C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\stream.rs
+
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\lib.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\buffer.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\huffman_tree.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\inflater_managed.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\input_buffer.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\output_window.rs:
+C:\Users\ShutY\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\deflate64-0.1.11\src\stream.rs:

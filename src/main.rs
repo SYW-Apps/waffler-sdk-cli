@@ -1,7 +1,7 @@
 mod auth;
+mod commands;
 mod segment;
 mod zip_builder;
-mod commands;
 
 use clap::{Parser, Subcommand};
 use console::style;

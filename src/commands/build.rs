@@ -32,20 +32,36 @@ pub async fn run(args: BuildArgs) -> Result<()> {
     );
 
     match language {
-        "rust" => build_rust(&args.path, &manifest.id, manifest.features.native_module, args.release)?,
+        "rust" => build_rust(
+            &args.path,
+            &manifest.id,
+            manifest.features.native_module,
+            args.release,
+        )?,
         "node" => build_node(&args.path)?,
         "python" => build_python(&args.path)?,
         "waffler_native" => {
-            println!("  {} Entities-only package — nothing to compile.", style("i").cyan());
+            println!(
+                "  {} Entities-only package — nothing to compile.",
+                style("i").cyan()
+            );
         }
-        other => bail!("Unsupported build language: '{}'. Check the `build.language` field in package.json.", other),
+        other => bail!(
+            "Unsupported build language: '{}'. Check the `build.language` field in package.json.",
+            other
+        ),
     }
 
     println!("{} Build complete.", style("✓").green().bold());
     Ok(())
 }
 
-pub fn build_rust(pkg_dir: &std::path::Path, crate_name: &str, is_wasm: bool, release: bool) -> Result<()> {
+pub fn build_rust(
+    pkg_dir: &std::path::Path,
+    crate_name: &str,
+    is_wasm: bool,
+    release: bool,
+) -> Result<()> {
     let mut cmd = std::process::Command::new("cargo");
     cmd.arg("build").arg("-p").arg(crate_name);
 
@@ -93,6 +109,9 @@ pub fn build_node(pkg_dir: &std::path::Path) -> Result<()> {
 
 pub fn build_python(_pkg_dir: &std::path::Path) -> Result<()> {
     // Python packages are typically distributed as scripts; no compilation step.
-    println!("  {} Python packages: no compilation step (scripts are bundled as-is).", style("i").cyan());
+    println!(
+        "  {} Python packages: no compilation step (scripts are bundled as-is).",
+        style("i").cyan()
+    );
     Ok(())
 }

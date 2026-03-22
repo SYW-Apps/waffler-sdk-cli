@@ -69,10 +69,7 @@ enum ExecutionMode {
 pub async fn run(args: ScaffoldArgs) -> Result<()> {
     let theme = dialoguer::theme::ColorfulTheme::default();
 
-    println!(
-        "\n{} Waffler Package Scaffold\n",
-        style("✦").cyan().bold()
-    );
+    println!("\n{} Waffler Package Scaffold\n", style("✦").cyan().bold());
 
     // ─── Developer info ───────────────────────────────────────────────────────
     let dev_namespace: Option<String> = auth::load_credentials()
@@ -178,27 +175,28 @@ pub async fn run(args: ScaffoldArgs) -> Result<()> {
     };
 
     // ─── Language (only for custom logic) ────────────────────────────────────
-    let (language, exec_mode): (Option<Language>, Option<ExecutionMode>) = if pkg_type == PackageType::CustomLogic {
-        println!();
-        let lang_choices = [
-            Language::Rust,
-            Language::NodeTypeScript,
-            Language::Python,
-            Language::Go,
-            Language::DotNet,
-            Language::Java,
-        ];
-        let lang_labels: Vec<&str> = lang_choices.iter().map(|l| l.label()).collect();
-        let lang_idx = Select::with_theme(&theme)
-            .with_prompt("Language")
-            .items(&lang_labels)
-            .default(0)
-            .interact()?;
-        let lang = lang_choices[lang_idx];
-
-        let mode = if lang.supports_wasm() {
+    let (language, exec_mode): (Option<Language>, Option<ExecutionMode>) =
+        if pkg_type == PackageType::CustomLogic {
             println!();
-            let mode_idx = Select::with_theme(&theme)
+            let lang_choices = [
+                Language::Rust,
+                Language::NodeTypeScript,
+                Language::Python,
+                Language::Go,
+                Language::DotNet,
+                Language::Java,
+            ];
+            let lang_labels: Vec<&str> = lang_choices.iter().map(|l| l.label()).collect();
+            let lang_idx = Select::with_theme(&theme)
+                .with_prompt("Language")
+                .items(&lang_labels)
+                .default(0)
+                .interact()?;
+            let lang = lang_choices[lang_idx];
+
+            let mode = if lang.supports_wasm() {
+                println!();
+                let mode_idx = Select::with_theme(&theme)
                 .with_prompt("Execution mode")
                 .items(&[
                     "WASM Module        — runs inside Waffler's sandbox (recommended, secure)",
@@ -206,28 +204,32 @@ pub async fn run(args: ScaffoldArgs) -> Result<()> {
                 ])
                 .default(0)
                 .interact()?;
-            if mode_idx == 0 {
-                ExecutionMode::WasmModule
+                if mode_idx == 0 {
+                    ExecutionMode::WasmModule
+                } else {
+                    ExecutionMode::ExternalProcess
+                }
             } else {
+                // Node/Python/Java can only run as external processes
+                println!(
+                    "\n  {} {} packages run as external processes.",
+                    style("i").cyan(),
+                    lang.label()
+                );
                 ExecutionMode::ExternalProcess
-            }
+            };
+
+            (Some(lang), Some(mode))
         } else {
-            // Node/Python/Java can only run as external processes
-            println!(
-                "\n  {} {} packages run as external processes.",
-                style("i").cyan(),
-                lang.label()
-            );
-            ExecutionMode::ExternalProcess
+            (None, None)
         };
 
-        (Some(lang), Some(mode))
-    } else {
-        (None, None)
-    };
-
     // ─── Confirm & generate ───────────────────────────────────────────────────
-    let pkg_slug = namespace.split('.').last().unwrap_or("package").to_lowercase();
+    let pkg_slug = namespace
+        .split('.')
+        .last()
+        .unwrap_or("package")
+        .to_lowercase();
     let output_dir = args.output.join(&pkg_slug);
 
     println!();
@@ -237,8 +239,12 @@ pub async fn run(args: ScaffoldArgs) -> Result<()> {
     println!("  Publisher:   {}", publisher);
     let type_label = match (pkg_type, language, exec_mode) {
         (PackageType::EntitiesOnly, _, _) => "Entities only".into(),
-        (_, Some(lang), Some(ExecutionMode::WasmModule)) => format!("{} → WASM Module", lang.label()),
-        (_, Some(lang), Some(ExecutionMode::ExternalProcess)) => format!("{} → External Process", lang.label()),
+        (_, Some(lang), Some(ExecutionMode::WasmModule)) => {
+            format!("{} → WASM Module", lang.label())
+        }
+        (_, Some(lang), Some(ExecutionMode::ExternalProcess)) => {
+            format!("{} → External Process", lang.label())
+        }
         _ => "Custom logic".into(),
     };
     println!("  Type:        {}", type_label);
@@ -280,7 +286,10 @@ pub async fn run(args: ScaffoldArgs) -> Result<()> {
     println!("  Next steps:");
     match (pkg_type, language, exec_mode) {
         (PackageType::EntitiesOnly, _, _) => {
-            println!("    1. Add entity files (type.json, blueprint.json) to namespace/{}/", namespace.replace('.', "/"));
+            println!(
+                "    1. Add entity files (type.json, blueprint.json) to namespace/{}/",
+                namespace.replace('.', "/")
+            );
             println!("    2. Run `waffler pack` to create the installable ZIP");
         }
         (_, Some(Language::Rust), Some(ExecutionMode::WasmModule)) => {
@@ -405,7 +414,8 @@ fn build_manifest_json(
     let mut features = serde_json::json!({ "logic": false });
     let mut module_field = serde_json::Value::Null;
     let mut process_field = serde_json::Value::Null;
-    let build_language_owned = language.map(|l| l.build_id().to_string())
+    let build_language_owned = language
+        .map(|l| l.build_id().to_string())
         .unwrap_or_else(|| "waffler_native".to_string());
     let build_language = build_language_owned.as_str();
 

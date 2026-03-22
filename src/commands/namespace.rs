@@ -94,9 +94,7 @@ async fn cmd_list(refresh: bool) -> Result<()> {
         println!("  {} {}.*", style("·").dim(), style(tag).yellow().bold());
     }
     println!();
-    println!(
-        "  These tags allow publishing packages under the matching namespace prefix."
-    );
+    println!("  These tags allow publishing packages under the matching namespace prefix.");
 
     Ok(())
 }

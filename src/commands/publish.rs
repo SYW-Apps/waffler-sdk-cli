@@ -37,9 +37,7 @@ pub async fn run(args: PublishArgs) -> Result<()> {
 
     let zip_path = if let Some(zip) = args.zip {
         // Use the provided ZIP directly
-        let zip = zip
-            .canonicalize()
-            .context("ZIP file not found")?;
+        let zip = zip.canonicalize().context("ZIP file not found")?;
         println!(
             "{} Using pre-built ZIP: {}",
             style("→").cyan().bold(),
@@ -51,10 +49,7 @@ pub async fn run(args: PublishArgs) -> Result<()> {
         build_and_pack(&args.path, args.no_build, &creds).await?
     };
 
-    let registry_base = args
-        .registry
-        .as_deref()
-        .unwrap_or(REGISTRY_PACKAGES_API);
+    let registry_base = args.registry.as_deref().unwrap_or(REGISTRY_PACKAGES_API);
 
     upload_zip(&zip_path, registry_base, &creds.access_token).await
 }
@@ -80,7 +75,11 @@ async fn build_and_pack(
 
     // Ownership check
     if !creds.can_publish(&manifest.namespace) {
-        let root_tag = manifest.namespace.split('.').next().unwrap_or(&manifest.namespace);
+        let root_tag = manifest
+            .namespace
+            .split('.')
+            .next()
+            .unwrap_or(&manifest.namespace);
         bail!(
             "Namespace '{}' is not covered by any of your developer tags ({}).\n\
              Run `waffler namespace claim {}` to claim that tag first.",
@@ -120,7 +119,10 @@ async fn build_and_pack(
     );
     let zip_path = tmp_dir.join(&zip_name);
     if !zip_path.exists() {
-        bail!("Pack step did not produce expected ZIP: {}", zip_path.display());
+        bail!(
+            "Pack step did not produce expected ZIP: {}",
+            zip_path.display()
+        );
     }
 
     Ok(zip_path)
@@ -172,9 +174,15 @@ async fn upload_zip(zip_path: &PathBuf, registry_base: &str, token: &str) -> Res
     if status.is_success() {
         // Parse the response JSON for details
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&body) {
-            let ns = json.get("namespace").and_then(|v| v.as_str()).unwrap_or(&namespace);
+            let ns = json
+                .get("namespace")
+                .and_then(|v| v.as_str())
+                .unwrap_or(&namespace);
             let ver = json.get("version").and_then(|v| v.as_str()).unwrap_or("?");
-            let vis = json.get("visibility").and_then(|v| v.as_str()).unwrap_or("public");
+            let vis = json
+                .get("visibility")
+                .and_then(|v| v.as_str())
+                .unwrap_or("public");
             println!(
                 "\n{} Published {}{} {} ({})",
                 style("✓").green().bold(),
@@ -190,7 +198,11 @@ async fn upload_zip(zip_path: &PathBuf, registry_base: &str, token: &str) -> Res
         // Try to extract a structured error message
         let message = serde_json::from_str::<serde_json::Value>(&body)
             .ok()
-            .and_then(|v| v.get("message").and_then(|m| m.as_str()).map(str::to_string))
+            .and_then(|v| {
+                v.get("message")
+                    .and_then(|m| m.as_str())
+                    .map(str::to_string)
+            })
             .unwrap_or(body);
         bail!("Registry returned {}: {}", status, message);
     }
@@ -207,8 +219,7 @@ fn extract_namespace_from_zip(zip_bytes: &[u8]) -> Result<String> {
         .context("package.json not found in ZIP")?;
     let mut content = String::new();
     file.read_to_string(&mut content)?;
-    let json: serde_json::Value =
-        serde_json::from_str(&content).context("Invalid package.json")?;
+    let json: serde_json::Value = serde_json::from_str(&content).context("Invalid package.json")?;
     json.get("namespace")
         .and_then(|v| v.as_str())
         .map(str::to_string)

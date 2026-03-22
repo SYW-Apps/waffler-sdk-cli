@@ -53,8 +53,7 @@ impl Credentials {
     /// Returns true if this developer is allowed to publish under the given namespace.
     pub fn can_publish(&self, package_namespace: &str) -> bool {
         self.developer.namespaces.iter().any(|tag| {
-            package_namespace == tag
-                || package_namespace.starts_with(&format!("{}.", tag))
+            package_namespace == tag || package_namespace.starts_with(&format!("{}.", tag))
         })
     }
 }
@@ -104,11 +103,10 @@ async fn discover_endpoints(client: &reqwest::Client) -> Result<OidcDiscovery> {
         AUTH_SERVER, APP_SLUG
     );
 
-    let resp = client
-        .get(&url)
-        .send()
-        .await
-        .with_context(|| format!("Cannot reach {AUTH_SERVER} — check your network connection"))?;
+    let resp =
+        client.get(&url).send().await.with_context(|| {
+            format!("Cannot reach {AUTH_SERVER} — check your network connection")
+        })?;
 
     if resp.status() == 404 {
         bail!(
@@ -162,10 +160,16 @@ async fn wait_for_callback() -> Result<(String, String)> {
             )
         })?;
 
-    let (mut stream, _) = listener.accept().await.context("Failed to accept callback connection")?;
+    let (mut stream, _) = listener
+        .accept()
+        .await
+        .context("Failed to accept callback connection")?;
 
     let mut buf = vec![0u8; 8192];
-    let n = stream.read(&mut buf).await.context("Failed to read callback request")?;
+    let n = stream
+        .read(&mut buf)
+        .await
+        .context("Failed to read callback request")?;
     let request = std::str::from_utf8(&buf[..n]).unwrap_or("");
 
     // Parse the request line: GET /callback?code=xxx&state=yyy HTTP/1.1
@@ -195,10 +199,7 @@ h1{color:#22c55e;font-size:2rem}p{color:#94a3b8}</style></head>
 fn parse_callback_params(raw_request: &str) -> Result<(String, String)> {
     // First line: GET /callback?code=...&state=... HTTP/1.1
     let first_line = raw_request.lines().next().unwrap_or("");
-    let path = first_line
-        .split_whitespace()
-        .nth(1)
-        .unwrap_or("");
+    let path = first_line.split_whitespace().nth(1).unwrap_or("");
 
     let query = path.split_once('?').map(|(_, q)| q).unwrap_or("");
 
@@ -304,10 +305,9 @@ pub async fn claim_namespace(
 
     if !resp.status().is_success() {
         let status = resp.status();
-        let err: RegistryError = resp
-            .json()
-            .await
-            .unwrap_or(RegistryError { message: format!("HTTP {status}") });
+        let err: RegistryError = resp.json().await.unwrap_or(RegistryError {
+            message: format!("HTTP {status}"),
+        });
         bail!("{}", err.message);
     }
 
@@ -333,10 +333,9 @@ pub async fn release_namespace(
 
     if !resp.status().is_success() {
         let status = resp.status();
-        let err: RegistryError = resp
-            .json()
-            .await
-            .unwrap_or(RegistryError { message: format!("HTTP {status}") });
+        let err: RegistryError = resp.json().await.unwrap_or(RegistryError {
+            message: format!("HTTP {status}"),
+        });
         bail!("{}", err.message);
     }
 
@@ -348,10 +347,7 @@ pub async fn release_namespace(
 }
 
 /// Check whether a tag is available and who owns it if not.
-pub async fn check_namespace(
-    client: &reqwest::Client,
-    tag: &str,
-) -> Result<NamespaceAvailability> {
+pub async fn check_namespace(client: &reqwest::Client, tag: &str) -> Result<NamespaceAvailability> {
     let resp = client
         .get(format!("{}/namespaces/available", REGISTRY_API))
         .query(&[("tag", tag)])

@@ -33,7 +33,11 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
         Err(e) => bail!("Cannot load manifest: {}", e),
     };
 
-    println!("  Package: {} ({})", style(&manifest.display_name).bold(), manifest.namespace);
+    println!(
+        "  Package: {} ({})",
+        style(&manifest.display_name).bold(),
+        manifest.namespace
+    );
 
     // 2. Required fields
     if manifest.namespace.is_empty() {
@@ -52,24 +56,35 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
         errors.push(format!("manifest: namespace '{}' contains spaces", ns));
     }
     if ns.starts_with('.') || ns.ends_with('.') {
-        errors.push(format!("manifest: namespace '{}' has leading/trailing dot", ns));
+        errors.push(format!(
+            "manifest: namespace '{}' has leading/trailing dot",
+            ns
+        ));
     }
 
     // 4. Feature + config consistency
     if manifest.features.native_module && manifest.module.is_none() {
-        errors.push("manifest: `features.native_module` is true but `module` config is missing".into());
+        errors.push(
+            "manifest: `features.native_module` is true but `module` config is missing".into(),
+        );
     }
     if manifest.features.service && manifest.process.is_none() {
         errors.push("manifest: `features.service` is true but `process` config is missing".into());
     }
     if manifest.build.is_none() {
-        warnings.push("manifest: `build.language` is not set — consider adding it for waffler-cli tooling".into());
+        warnings.push(
+            "manifest: `build.language` is not set — consider adding it for waffler-cli tooling"
+                .into(),
+        );
     }
 
     // 5. namespace/ directory
     let namespace_dir = args.path.join("namespace");
     if !namespace_dir.exists() {
-        warnings.push("No `namespace/` directory found. Entities will not be auto-discovered on install.".into());
+        warnings.push(
+            "No `namespace/` directory found. Entities will not be auto-discovered on install."
+                .into(),
+        );
     } else {
         // Check namespace path matches manifest
         let ns_path: PathBuf = manifest.namespace.split('.').collect();
@@ -88,11 +103,18 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
         {
-            let ext = entry.path().extension().and_then(|e| e.to_str()).unwrap_or("");
+            let ext = entry
+                .path()
+                .extension()
+                .and_then(|e| e.to_str())
+                .unwrap_or("");
             if ext != "json" {
                 warnings.push(format!(
                     "namespace/: Non-JSON file will be excluded from package: {:?}",
-                    entry.path().strip_prefix(&args.path).unwrap_or(entry.path())
+                    entry
+                        .path()
+                        .strip_prefix(&args.path)
+                        .unwrap_or(entry.path())
                 ));
             }
         }
@@ -115,7 +137,10 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
     if args.check_ownership {
         match auth::load_credentials() {
             None => {
-                warnings.push("Not logged in — cannot verify namespace ownership. Run `waffler login`.".into());
+                warnings.push(
+                    "Not logged in — cannot verify namespace ownership. Run `waffler login`."
+                        .into(),
+                );
             }
             Some(creds) => {
                 if creds.is_expired() {
@@ -158,7 +183,11 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
             if warnings.is_empty() {
                 String::new()
             } else {
-                format!(" ({} warning{})", warnings.len(), if warnings.len() == 1 { "" } else { "s" })
+                format!(
+                    " ({} warning{})",
+                    warnings.len(),
+                    if warnings.len() == 1 { "" } else { "s" }
+                )
             }
         );
         Ok(())

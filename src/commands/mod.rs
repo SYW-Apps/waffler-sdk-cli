@@ -4,8 +4,8 @@ pub mod logout;
 pub mod namespace;
 pub mod pack;
 pub mod publish;
-pub mod update;
 pub mod scaffold;
+pub mod update;
 pub mod validate;
 pub mod whoami;
 
@@ -65,8 +65,7 @@ pub struct ProcessConfig {
 
 pub fn load_manifest(package_dir: &Path) -> Result<PackageManifest> {
     let path = package_dir.join("package.json");
-    let content =
-        std::fs::read_to_string(&path).map_err(|_| anyhow::anyhow!("package.json not found in {:?}", package_dir))?;
-    serde_json::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("Invalid package.json: {}", e))
+    let content = std::fs::read_to_string(&path)
+        .map_err(|_| anyhow::anyhow!("package.json not found in {:?}", package_dir))?;
+    serde_json::from_str(&content).map_err(|e| anyhow::anyhow!("Invalid package.json: {}", e))
 }

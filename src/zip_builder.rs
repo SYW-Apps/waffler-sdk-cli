@@ -70,8 +70,8 @@ impl ZipBuilder {
         let file = std::fs::File::create(output_path)
             .with_context(|| format!("Cannot create ZIP file: {:?}", output_path))?;
         let mut zip = zip::ZipWriter::new(file);
-        let options = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated);
+        let options =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
         for entry in &self.entries {
             zip.start_file(&entry.zip_path, options)

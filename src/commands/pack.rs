@@ -28,7 +28,9 @@ pub struct PackArgs {
 }
 
 pub async fn run(args: PackArgs) -> Result<()> {
-    let pkg_dir = args.path.canonicalize()
+    let pkg_dir = args
+        .path
+        .canonicalize()
         .map_err(|_| anyhow::anyhow!("Package directory not found: {:?}", args.path))?;
 
     let manifest = load_manifest(&pkg_dir)?;
@@ -54,7 +56,11 @@ pub async fn run(args: PackArgs) -> Result<()> {
                     bail!("Auth token expired. Run `waffler login` to refresh.");
                 }
                 if !creds.can_publish(&manifest.namespace) {
-                    let root_tag = manifest.namespace.split('.').next().unwrap_or(&manifest.namespace);
+                    let root_tag = manifest
+                        .namespace
+                        .split('.')
+                        .next()
+                        .unwrap_or(&manifest.namespace);
                     let owned = if creds.developer.namespaces.is_empty() {
                         "none".to_string()
                     } else {
@@ -77,7 +83,11 @@ pub async fn run(args: PackArgs) -> Result<()> {
         }
     }
 
-    let language = manifest.build.as_ref().map(|b| b.language.as_str()).unwrap_or("rust");
+    let language = manifest
+        .build
+        .as_ref()
+        .map(|b| b.language.as_str())
+        .unwrap_or("rust");
 
     // ─── Build ────────────────────────────────────────────────────────────────
     if !args.no_build && language != "waffler_native" {
@@ -109,10 +119,15 @@ pub async fn run(args: PackArgs) -> Result<()> {
         let candidates = [
             pkg_dir.join(module_path),
             find_workspace_root(&pkg_dir)
-                .map(|r| r.join("target/wasm32-unknown-unknown/release").join(module_path))
+                .map(|r| {
+                    r.join("target/wasm32-unknown-unknown/release")
+                        .join(module_path)
+                })
                 .unwrap_or_default(),
         ];
-        candidates.into_iter().find(|p| !p.as_os_str().is_empty() && p.exists())
+        candidates
+            .into_iter()
+            .find(|p| !p.as_os_str().is_empty() && p.exists())
     } else if manifest.features.service {
         let exe_name = manifest
             .process
@@ -127,7 +142,9 @@ pub async fn run(args: PackArgs) -> Result<()> {
                 .map(|r| r.join("target/release").join(&exe_file))
                 .unwrap_or_default(),
         ];
-        candidates.into_iter().find(|p| !p.as_os_str().is_empty() && p.exists())
+        candidates
+            .into_iter()
+            .find(|p| !p.as_os_str().is_empty() && p.exists())
     } else {
         None
     };
@@ -143,10 +160,8 @@ pub async fn run(args: PackArgs) -> Result<()> {
     if namespace_src.exists() {
         // Copy to a temp staging dir and generate segment.json files there
         // so we don't pollute the source tree
-        let staging_ns = std::env::temp_dir().join(format!(
-            "waffler_pack_{}_ns",
-            manifest.id.replace('.', "_")
-        ));
+        let staging_ns =
+            std::env::temp_dir().join(format!("waffler_pack_{}_ns", manifest.id.replace('.', "_")));
         if staging_ns.exists() {
             std::fs::remove_dir_all(&staging_ns)?;
         }
@@ -188,7 +203,13 @@ pub async fn run(args: PackArgs) -> Result<()> {
         }
 
         // www/ (built UI assets)
-        for ui_dir in ["webapp/dist", "webapp/build", "ui/dist", "ui/build", "web/dist"] {
+        for ui_dir in [
+            "webapp/dist",
+            "webapp/build",
+            "ui/dist",
+            "ui/build",
+            "web/dist",
+        ] {
             let dist = pkg_dir.join(ui_dir);
             if dist.exists() {
                 builder.add_dir(&dist, "www")?;
@@ -261,7 +282,10 @@ fn find_workspace_root(start: &std::path::Path) -> Option<PathBuf> {
 
 fn copy_dir(src: &std::path::Path, dst: &std::path::Path) -> Result<()> {
     std::fs::create_dir_all(dst)?;
-    for entry in walkdir::WalkDir::new(src).into_iter().filter_map(|e| e.ok()) {
+    for entry in walkdir::WalkDir::new(src)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         let rel = entry.path().strip_prefix(src).unwrap_or(entry.path());
         let dst_path = dst.join(rel);
         if entry.file_type().is_dir() {

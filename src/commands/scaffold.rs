@@ -136,8 +136,8 @@ pub async fn run(args: ScaffoldArgs) -> Result<()> {
         .default(
             namespace
                 .split('.')
-                .last()
-                .map(|s| to_title_case(s))
+                .next_back()
+                .map(to_title_case)
                 .unwrap_or_default(),
         )
         .interact_text()?;
@@ -227,7 +227,7 @@ pub async fn run(args: ScaffoldArgs) -> Result<()> {
     // ─── Confirm & generate ───────────────────────────────────────────────────
     let pkg_slug = namespace
         .split('.')
-        .last()
+        .next_back()
         .unwrap_or("package")
         .to_lowercase();
     let output_dir = args.output.join(&pkg_slug);
@@ -309,6 +309,7 @@ pub async fn run(args: ScaffoldArgs) -> Result<()> {
 
 // ─── Scaffold file generation ─────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 fn generate_scaffold(
     output_dir: &std::path::Path,
     namespace: &str,

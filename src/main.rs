@@ -43,6 +43,12 @@ enum Commands {
 
     /// Manage your developer namespace tags
     Namespace(commands::namespace::NamespaceArgs),
+
+    /// Build, pack, and publish the package to the registry
+    Publish(commands::publish::PublishArgs),
+
+    /// Check for and install CLI updates from GitHub
+    Update(commands::update::UpdateArgs),
 }
 
 #[tokio::main]
@@ -58,6 +64,8 @@ async fn main() {
         Commands::Logout => commands::logout::run().await,
         Commands::Whoami => commands::whoami::run().await,
         Commands::Namespace(args) => commands::namespace::run(args).await,
+        Commands::Publish(args) => commands::publish::run(args).await,
+        Commands::Update(args) => commands::update::run(args).await,
     };
 
     if let Err(e) = result {

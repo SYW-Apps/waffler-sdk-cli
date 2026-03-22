@@ -11,14 +11,14 @@ path = "src/main.rs"
 
 [dependencies]
 # CLI
-clap = { version = "4", features = ["derive", "color"] }
+clap = { version = "4", features = ["derive", "color", "env"] }
 anyhow = "1"
 
 # Async
 tokio = { version = "1", features = ["full"] }
 
 # HTTP (for OAuth2 device flow)
-reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+reqwest = { version = "0.12", features = ["json", "multipart", "rustls-tls"], default-features = false }
 
 # Serialization
 serde = { version = "1", features = ["derive"] }
@@ -40,6 +40,9 @@ hex = "0.4"
 base64 = "0.22"
 rand = "0.8"
 open = "5"
+
+# Self-update
+self_update = { version = "0.41", features = ["archive-tar", "archive-zip", "compression-flate2", "compression-zip-deflate"] }
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }

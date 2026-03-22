@@ -3,6 +3,8 @@ pub mod login;
 pub mod logout;
 pub mod namespace;
 pub mod pack;
+pub mod publish;
+pub mod update;
 pub mod scaffold;
 pub mod validate;
 pub mod whoami;

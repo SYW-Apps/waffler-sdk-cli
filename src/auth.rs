@@ -7,9 +7,9 @@ use std::path::PathBuf;
 
 pub const AUTH_SERVER: &str = "https://auth.sywapps.com";
 /// Authentik application slug — must match the slug configured in the Authentik dashboard.
-pub const APP_SLUG: &str = "waffler-sdk";
+pub const APP_SLUG: &str = "waffler";
 /// OAuth2 public client ID — must match the Client ID in the Authentik provider.
-pub const CLIENT_ID: &str = "waffler-sdk-cli";
+pub const CLIENT_ID: &str = "waffler";
 pub const SCOPES: &str = "openid profile email";
 /// Waffler developer registry API base URL.
 pub const REGISTRY_API: &str = "https://registry.sywapps.com/v1/developer";

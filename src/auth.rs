@@ -10,7 +10,7 @@ pub const AUTH_SERVER: &str = "https://auth.sywapps.com";
 pub const APP_SLUG: &str = "waffler";
 /// OAuth2 public client ID — must match the Client ID in the Authentik provider.
 pub const CLIENT_ID: &str = "waffler";
-pub const SCOPES: &str = "openid profile email";
+pub const SCOPES: &str = "openid profile email offline_access";
 /// Waffler developer registry API base URL.
 pub const REGISTRY_API: &str = "https://registry.waffler.sywapps.com/v1/developer";
 

@@ -1,6 +1,6 @@
 [package]
 name = "waffler-cli"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "Waffler Package Developer SDK — build, pack, scaffold, and publish Waffler packages"
 authors = ["SYW Apps"]

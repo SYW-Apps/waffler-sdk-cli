@@ -89,12 +89,19 @@ pub async fn run(args: PackArgs) -> Result<()> {
     if !args.no_build && language != "waffler_native" {
         println!("  {} Building ({})...", style("→").cyan(), language);
         match language {
-            "rust" => build::build_rust(
-                &pkg_dir,
-                &manifest.id,
-                manifest.features.native_module,
-                true, // always release for packing
-            )?,
+            "rust" => {
+                let crate_name = manifest
+                    .build
+                    .as_ref()
+                    .and_then(|b| b.crate_name.as_deref())
+                    .unwrap_or(&manifest.id);
+                build::build_rust(
+                    &pkg_dir,
+                    crate_name,
+                    manifest.features.native_module,
+                    true, // always release for packing
+                )?;
+            }
             "node" => build::build_node(&pkg_dir)?,
             "python" => build::build_python(&pkg_dir)?,
             other => bail!("Unsupported build language: '{}'", other),

@@ -32,12 +32,19 @@ pub async fn run(args: BuildArgs) -> Result<()> {
     );
 
     match language {
-        "rust" => build_rust(
-            &args.path,
-            &manifest.id,
-            manifest.features.native_module,
-            args.release,
-        )?,
+        "rust" => {
+            let crate_name = manifest
+                .build
+                .as_ref()
+                .and_then(|b| b.crate_name.as_deref())
+                .unwrap_or(&manifest.id);
+            build_rust(
+                &args.path,
+                crate_name,
+                manifest.features.native_module,
+                args.release,
+            )?;
+        }
         "node" => build_node(&args.path)?,
         "python" => build_python(&args.path)?,
         "waffler_native" => {

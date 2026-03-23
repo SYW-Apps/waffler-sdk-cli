@@ -48,6 +48,10 @@ pub struct ManifestFeatures {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BuildConfig {
     pub language: String,
+    /// Overrides the cargo package name passed to `cargo build -p`.
+    /// Use this when the Cargo.toml `[package] name` differs from the manifest `id`.
+    #[serde(default)]
+    pub crate_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -160,18 +160,18 @@ pub async fn run(args: PackArgs) -> Result<()> {
 
     // ─── Process namespace/ tree ──────────────────────────────────────────────
     let namespace_src = pkg_dir.join("namespace");
-    if namespace_src.exists() {
+    let staging_ns: Option<PathBuf> = if namespace_src.exists() {
         // Copy to a temp staging dir and generate segment.json files there
         // so we don't pollute the source tree
-        let staging_ns =
+        let staging =
             std::env::temp_dir().join(format!("waffler_pack_{}_ns", manifest.id.replace('.', "_")));
-        if staging_ns.exists() {
-            std::fs::remove_dir_all(&staging_ns)?;
+        if staging.exists() {
+            std::fs::remove_dir_all(&staging)?;
         }
-        copy_dir(&namespace_src, &staging_ns)?;
+        copy_dir(&namespace_src, &staging)?;
 
         let generated = segment::generate_segment_manifests(
-            &staging_ns,
+            &staging,
             &manifest.namespace,
             &manifest.display_name,
         )?;
@@ -181,79 +181,78 @@ pub async fn run(args: PackArgs) -> Result<()> {
             generated.len(),
             if generated.len() == 1 { "" } else { "s" }
         );
+        Some(staging)
+    } else {
+        None
+    };
 
-        // Build the ZIP
-        let zip_name = format!(
-            "waffler_pkg_{}_{}.zip",
-            manifest.id.replace('.', "_"),
-            manifest.version
-        );
-        let zip_out = args
-            .output
-            .as_deref()
-            .map(|p| p.join(&zip_name))
-            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default().join(&zip_name));
+    // ─── Build ZIP ────────────────────────────────────────────────────────────
+    let zip_name = format!(
+        "waffler_pkg_{}_{}.zip",
+        manifest.id.replace('.', "_"),
+        manifest.version
+    );
+    let zip_out = args
+        .output
+        .as_deref()
+        .map(|p| p.join(&zip_name))
+        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default().join(&zip_name));
 
-        let mut builder = ZipBuilder::new();
+    let mut builder = ZipBuilder::new();
 
-        // package.json at root
-        builder.add_file(&pkg_dir.join("package.json"), "package.json");
+    // package.json at root
+    builder.add_file(&pkg_dir.join("package.json"), "package.json");
 
-        // Artifact at root
-        if let Some(ref artifact) = artifact_path {
-            let fname = artifact.file_name().unwrap_or_default().to_string_lossy();
-            builder.add_file(artifact, &fname);
+    // Compiled artifact at root (WASM module or native binary)
+    if let Some(ref artifact) = artifact_path {
+        let fname = artifact.file_name().unwrap_or_default().to_string_lossy();
+        builder.add_file(artifact, &fname);
+    }
+
+    // assets/www/ — built UI assets from webapp/ui/web subdirectory.
+    // Placed under assets/ so the installer can extract arbitrary content
+    // alongside assets/bin/, assets/config/, etc.
+    for ui_dir in ["webapp/dist", "webapp/build", "ui/dist", "ui/build", "web/dist"] {
+        let dist = pkg_dir.join(ui_dir);
+        if dist.exists() {
+            builder.add_dir(&dist, "assets/www")?;
+            println!(
+                "  {} Bundling UI ({}) → assets/www/",
+                style("→").cyan(),
+                ui_dir
+            );
+            break;
         }
+    }
 
-        // www/ (built UI assets)
-        for ui_dir in [
-            "webapp/dist",
-            "webapp/build",
-            "ui/dist",
-            "ui/build",
-            "web/dist",
-        ] {
-            let dist = pkg_dir.join(ui_dir);
-            if dist.exists() {
-                builder.add_dir(&dist, "www")?;
-                break;
-            }
-        }
+    // assets/ — additional bundled content declared directly in the source
+    // (external process binaries, configuration, raw data files, etc.).
+    // These are merged on top of any assets/www/ added above.
+    let assets_src = pkg_dir.join("assets");
+    if assets_src.exists() {
+        builder.add_dir(&assets_src, "assets")?;
+        println!("  {} Bundling assets/ directory", style("→").cyan());
+    }
 
-        // namespace/ tree (from staging copy with generated segment.json)
-        builder.add_dir(&staging_ns, "namespace")?;
+    // namespace/ tree (from staging copy with generated segment.json files)
+    if let Some(ref staging) = staging_ns {
+        builder.add_dir(staging, "namespace")?;
+    }
 
-        builder.write(&zip_out)?;
+    builder.write(&zip_out)?;
 
-        // Clean up staging
-        let _ = std::fs::remove_dir_all(&staging_ns);
+    // Clean up namespace staging dir
+    if let Some(staging) = staging_ns {
+        let _ = std::fs::remove_dir_all(&staging);
+    }
 
+    if namespace_src.exists() {
         println!(
             "\n{} Package created: {}",
             style("✓").green().bold(),
             style(zip_out.display()).white().bold()
         );
     } else {
-        // No namespace/ — still build a ZIP with just package.json + artifact
-        let zip_name = format!(
-            "waffler_pkg_{}_{}.zip",
-            manifest.id.replace('.', "_"),
-            manifest.version
-        );
-        let zip_out = args
-            .output
-            .as_deref()
-            .map(|p| p.join(&zip_name))
-            .unwrap_or_else(|| std::env::current_dir().unwrap_or_default().join(&zip_name));
-
-        let mut builder = ZipBuilder::new();
-        builder.add_file(&pkg_dir.join("package.json"), "package.json");
-        if let Some(ref artifact) = artifact_path {
-            let fname = artifact.file_name().unwrap_or_default().to_string_lossy();
-            builder.add_file(artifact, &fname);
-        }
-        builder.write(&zip_out)?;
-
         println!(
             "\n{} Package created (no namespace/): {}",
             style("⚠").yellow().bold(),

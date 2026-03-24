@@ -3,7 +3,10 @@
 /// Output format:
 ///   package.json          ← manifest at ZIP root
 ///   <artifact>.wasm/.exe  ← compiled artifact at ZIP root (optional)
-///   www/                  ← built UI assets (optional)
+///   assets/               ← arbitrary bundled content extracted into install_path/ (optional)
+///     www/                  built UI/SPA assets (from webapp/ui/web dist)
+///     bin/                  external process binaries (if declared in source assets/)
+///     <anything>/           any other files needed at runtime
 ///   namespace/            ← namespace tree, merged into lib_dir on install
 ///     <ns_path>/
 ///       segment.json

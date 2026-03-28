@@ -440,6 +440,37 @@ fn build_manifest_json(
         _ => {}
     }
 
+    // Default permission groups: one required group covering the package's own namespace,
+    // and one optional group for external service access (developer fills in the paths).
+    let permissions = serde_json::json!({
+        "groups": [
+            {
+                "id": "core_access",
+                "label": "Core access",
+                "description": "Access to built-in services required for this package to function.",
+                "required": true,
+                "rules": [
+                    {
+                        "pattern": { "kind": "Command", "path": "system:*" },
+                        "effect": "Allow"
+                    }
+                ]
+            },
+            {
+                "id": "optional_services",
+                "label": "Optional service access (example)",
+                "description": "Remove or replace with the specific services your package needs. Users can decline this group.",
+                "required": false,
+                "rules": [
+                    {
+                        "pattern": { "kind": "Command", "path": "replace_me_service:*" },
+                        "effect": "Allow"
+                    }
+                ]
+            }
+        ]
+    });
+
     let mut manifest = serde_json::json!({
         "id": pkg_id,
         "namespace": namespace,
@@ -451,7 +482,7 @@ fn build_manifest_json(
         "features": features,
         "build": { "language": build_language },
         "supported_os": ["windows", "linux", "darwin"],
-        "permissions": { "requested": [] },
+        "permissions": permissions,
         "capabilities": []
     });
 

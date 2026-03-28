@@ -120,7 +120,42 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
         }
     }
 
-    // 6. Native module: .wasm file (only relevant if already built)
+    // 6. Permission groups: validate structure
+    {
+        let groups = &manifest.permissions.groups;
+        let mut seen_ids = std::collections::HashSet::new();
+        for group in groups {
+            if group.id.is_empty() {
+                errors.push("permissions.groups: a group has an empty `id`".into());
+            } else if !seen_ids.insert(group.id.clone()) {
+                errors.push(format!("permissions.groups: duplicate group id '{}'", group.id));
+            }
+            if group.label.is_empty() {
+                errors.push(format!("permissions.groups[{}]: `label` is empty", group.id));
+            }
+            for (i, rule) in group.rules.iter().enumerate() {
+                if rule.pattern.path.is_empty() {
+                    errors.push(format!(
+                        "permissions.groups[{}].rules[{}]: `pattern.path` is empty",
+                        group.id, i
+                    ));
+                }
+            }
+            if group.rules.is_empty() {
+                warnings.push(format!(
+                    "permissions.groups[{}]: no rules defined — group will have no effect",
+                    group.id
+                ));
+            }
+        }
+        if groups.is_empty() {
+            warnings.push(
+                "permissions.groups is empty — package will have no bus permissions. Add groups if your package calls other services.".into()
+            );
+        }
+    }
+
+    // 7. Native module: .wasm file (only relevant if already built)
     if manifest.features.native_module {
         if let Some(module) = &manifest.module {
             let wasm_path = args.path.join(&module.module_path);

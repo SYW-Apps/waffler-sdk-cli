@@ -212,7 +212,13 @@ pub async fn run(args: PackArgs) -> Result<()> {
     // assets/www/ — built UI assets from webapp/ui/web subdirectory.
     // Placed under assets/ so the installer can extract arbitrary content
     // alongside assets/bin/, assets/config/, etc.
-    for ui_dir in ["webapp/dist", "webapp/build", "ui/dist", "ui/build", "web/dist"] {
+    for ui_dir in [
+        "webapp/dist",
+        "webapp/build",
+        "ui/dist",
+        "ui/build",
+        "web/dist",
+    ] {
         let dist = pkg_dir.join(ui_dir);
         if dist.exists() {
             builder.add_dir(&dist, "assets/www")?;

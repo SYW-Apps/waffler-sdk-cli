@@ -31,6 +31,44 @@ pub struct PackageManifest {
     pub module: Option<ModuleConfig>,
     #[serde(default)]
     pub process: Option<ProcessConfig>,
+    #[serde(default)]
+    pub permissions: ManifestPermissions,
+}
+
+/// Minimal permissions block — only the fields the CLI needs to validate.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ManifestPermissions {
+    #[serde(default)]
+    pub groups: Vec<PermissionGroup>,
+}
+
+/// One approval-unit shown to the user at install time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PermissionGroup {
+    pub id: String,
+    pub label: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub required: bool,
+    #[serde(default)]
+    pub rules: Vec<PermissionRule>,
+}
+
+/// A single rule within a permission group — only the `pattern.path` is checked by the CLI.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PermissionRule {
+    pub pattern: PermissionPattern,
+    #[serde(default)]
+    pub effect: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PermissionPattern {
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub path: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

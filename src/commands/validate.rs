@@ -128,10 +128,16 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
             if group.id.is_empty() {
                 errors.push("permissions.groups: a group has an empty `id`".into());
             } else if !seen_ids.insert(group.id.clone()) {
-                errors.push(format!("permissions.groups: duplicate group id '{}'", group.id));
+                errors.push(format!(
+                    "permissions.groups: duplicate group id '{}'",
+                    group.id
+                ));
             }
             if group.label.is_empty() {
-                errors.push(format!("permissions.groups[{}]: `label` is empty", group.id));
+                errors.push(format!(
+                    "permissions.groups[{}]: `label` is empty",
+                    group.id
+                ));
             }
             for (i, rule) in group.rules.iter().enumerate() {
                 if rule.pattern.path.is_empty() {

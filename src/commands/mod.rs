@@ -26,6 +26,8 @@ pub struct PackageManifest {
     #[serde(default)]
     pub features: ManifestFeatures,
     #[serde(default)]
+    pub aliases: Vec<String>,
+    #[serde(default)]
     pub build: Option<BuildConfig>,
     #[serde(default)]
     pub module: Option<ModuleConfig>,

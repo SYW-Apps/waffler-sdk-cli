@@ -63,12 +63,44 @@ pub async fn run(args: BuildArgs) -> Result<()> {
     Ok(())
 }
 
+/// Returns true if `name` is a valid Cargo package name.
+/// Cargo requires: ASCII letters, digits, `-`, or `_`; must not start with a digit.
+fn is_valid_cargo_name(name: &str) -> bool {
+    if name.is_empty() {
+        return false;
+    }
+    let mut chars = name.chars();
+    let first = chars.next().unwrap();
+    if first.is_ascii_digit() {
+        return false;
+    }
+    std::iter::once(first)
+        .chain(chars)
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
 pub fn build_rust(
     pkg_dir: &std::path::Path,
     crate_name: &str,
     is_wasm: bool,
     release: bool,
 ) -> Result<()> {
+    if !is_valid_cargo_name(crate_name) {
+        let suggestion = crate_name.replace('.', "_");
+        bail!(
+            "Invalid Cargo package name: '{crate_name}'\n\
+             \n\
+             Cargo only allows ASCII letters, digits, '-', and '_' in package names.\n\
+             Waffler package ids may contain dots, but the underlying Cargo crate name cannot.\n\
+             \n\
+             Fix: add a `crate_name` field to the `build` section of your package.json:\n\
+             \n\
+             \"build\": {{ \"language\": \"rust\", \"crate_name\": \"{suggestion}\" }}\n\
+             \n\
+             The value must match the `name` in your Cargo.toml [package] section."
+        );
+    }
+
     let mut cmd = std::process::Command::new("cargo");
     cmd.arg("build").arg("-p").arg(crate_name);
 

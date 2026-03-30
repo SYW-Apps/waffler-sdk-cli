@@ -95,12 +95,14 @@ pub async fn run(args: PackArgs) -> Result<()> {
                     .as_ref()
                     .and_then(|b| b.crate_name.as_deref())
                     .unwrap_or(&manifest.id);
-                build::build_rust(
-                    &pkg_dir,
-                    crate_name,
-                    manifest.features.native_module,
-                    true, // always release for packing
-                )?;
+                // DLL modules use native target, not wasm32-unknown-unknown
+                let is_wasm = manifest.features.native_module
+                    && manifest
+                        .module
+                        .as_ref()
+                        .map(|m| m.runtime != "dll")
+                        .unwrap_or(true);
+                build::build_rust(&pkg_dir, crate_name, is_wasm, true)?;
             }
             "node" => build::build_node(&pkg_dir)?,
             "python" => build::build_python(&pkg_dir)?,
@@ -116,21 +118,38 @@ pub async fn run(args: PackArgs) -> Result<()> {
             .as_ref()
             .map(|m| m.module_path.as_str())
             .unwrap_or_default();
+        let is_dll = manifest
+            .module
+            .as_ref()
+            .map(|m| m.runtime == "dll")
+            .unwrap_or(false);
 
-        // WASM artifacts land in target/wasm32-unknown-unknown/release/ relative to workspace root
-        // Try multiple candidate locations
-        let candidates = [
-            pkg_dir.join(module_path),
-            find_workspace_root(&pkg_dir)
-                .map(|r| {
-                    r.join("target/wasm32-unknown-unknown/release")
-                        .join(module_path)
-                })
-                .unwrap_or_default(),
-        ];
-        candidates
-            .into_iter()
-            .find(|p| !p.as_os_str().is_empty() && p.exists())
+        if is_dll {
+            // DLL artifacts land in target/release/ (native build)
+            let candidates = [
+                pkg_dir.join(module_path),
+                find_workspace_root(&pkg_dir)
+                    .map(|r| r.join("target/release").join(module_path))
+                    .unwrap_or_default(),
+            ];
+            candidates
+                .into_iter()
+                .find(|p| !p.as_os_str().is_empty() && p.exists())
+        } else {
+            // WASM artifacts land in target/wasm32-unknown-unknown/release/
+            let candidates = [
+                pkg_dir.join(module_path),
+                find_workspace_root(&pkg_dir)
+                    .map(|r| {
+                        r.join("target/wasm32-unknown-unknown/release")
+                            .join(module_path)
+                    })
+                    .unwrap_or_default(),
+            ];
+            candidates
+                .into_iter()
+                .find(|p| !p.as_os_str().is_empty() && p.exists())
+        }
     } else if manifest.features.service {
         let exe_name = manifest
             .process

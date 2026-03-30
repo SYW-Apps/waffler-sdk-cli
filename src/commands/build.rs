@@ -38,12 +38,14 @@ pub async fn run(args: BuildArgs) -> Result<()> {
                 .as_ref()
                 .and_then(|b| b.crate_name.as_deref())
                 .unwrap_or(&manifest.id);
-            build_rust(
-                &args.path,
-                crate_name,
-                manifest.features.native_module,
-                args.release,
-            )?;
+            // DLL modules use native target, not wasm32-unknown-unknown
+            let is_wasm = manifest.features.native_module
+                && manifest
+                    .module
+                    .as_ref()
+                    .map(|m| m.runtime != "dll")
+                    .unwrap_or(true);
+            build_rust(&args.path, crate_name, is_wasm, args.release)?;
         }
         "node" => build_node(&args.path)?,
         "python" => build_python(&args.path)?,

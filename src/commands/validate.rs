@@ -4,7 +4,7 @@ use console::style;
 use std::path::PathBuf;
 
 use crate::auth;
-use crate::commands::load_manifest;
+use crate::commands::{load_manifest, RuntimeVariant};
 
 #[derive(Args)]
 pub struct ValidateArgs {
@@ -164,22 +164,24 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
     // 7. Native module: artifact file check (only relevant if already built)
     if manifest.features.native_module {
         if let Some(module) = &manifest.module {
+            let variant = manifest.get_runtime_variant()?.unwrap_or(RuntimeVariant::Native);
             let artifact_path = args.path.join(&module.module_path);
+
             if !artifact_path.exists() {
-                let label = if module.runtime == "dll" { "DLL" } else { "WASM" };
+                let label = if variant.is_native() { "Native" } else { "WASM" };
                 warnings.push(format!(
                     "{} module `{}` not found — run `waffler build` first",
                     label, module.module_path
                 ));
             }
 
-            // Always emit a warning for DLL modules so operators are aware of the risk.
-            if module.runtime == "dll" {
+            // Always emit a warning for Native/DLL modules so operators are aware of the risk.
+            if variant.is_native() {
                 warnings.push(
-                    "DLL runtime: this module runs in-process with waffler_core. \
-                     A crash inside the DLL (segfault, abort) will terminate the entire \
+                    "Native runtime: this module runs in-process with waffler_core. \
+                     A crash inside the module (segfault, abort) will terminate the entire \
                      waffler_core process. Panics are caught via catch_unwind, but not all \
-                     crashes can be intercepted. Only load DLLs from trusted publishers."
+                     crashes can be intercepted. Only load native plugins from trusted publishers."
                         .into(),
                 );
             }

@@ -9,9 +9,42 @@ pub mod update;
 pub mod validate;
 pub mod whoami;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeVariant {
+    Native,
+    Wasm,
+    Wasi,
+    WasiService,
+    Process,
+}
+
+impl RuntimeVariant {
+    pub fn from_str(s: &str) -> Result<Self> {
+        match s {
+            "native" | "dll" => Ok(Self::Native),
+            "wasm" => Ok(Self::Wasm),
+            "wasi" => Ok(Self::Wasi),
+            "wasi_service" => Ok(Self::WasiService),
+            "process" => Ok(Self::Process),
+            other => bail!(
+                "Unknown package variant: '{}'. Available variants: native, wasm, wasi, wasi_service, process",
+                other
+            ),
+        }
+    }
+
+    pub fn is_wasm_related(&self) -> bool {
+        matches!(self, Self::Wasm | Self::Wasi | Self::WasiService)
+    }
+
+    pub fn is_native(&self) -> bool {
+        matches!(self, Self::Native)
+    }
+}
 
 /// Minimal package manifest fields needed by CLI commands.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,6 +68,18 @@ pub struct PackageManifest {
     pub process: Option<ProcessConfig>,
     #[serde(default)]
     pub permissions: ManifestPermissions,
+}
+
+impl PackageManifest {
+    pub fn get_runtime_variant(&self) -> Result<Option<RuntimeVariant>> {
+        if let Some(m) = &self.module {
+            Ok(Some(RuntimeVariant::from_str(&m.runtime)?))
+        } else if let Some(p) = &self.process {
+            Ok(Some(RuntimeVariant::from_str(&p.runtime)?))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 /// Minimal permissions block — only the fields the CLI needs to validate.

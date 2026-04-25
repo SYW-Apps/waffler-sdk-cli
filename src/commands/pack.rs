@@ -118,7 +118,9 @@ pub async fn run(args: PackArgs) -> Result<()> {
             .map(|m| m.module_path.as_str())
             .unwrap_or_default();
 
-        let variant = manifest.get_runtime_variant()?.unwrap_or(RuntimeVariant::Native);
+        let variant = manifest
+            .get_runtime_variant()?
+            .unwrap_or(RuntimeVariant::Native);
 
         if variant.is_native() {
             // Native artifacts land in target/release/ (native build)

@@ -60,6 +60,36 @@ pub async fn run(args: BuildArgs) -> Result<()> {
         ),
     }
 
+    // ─── Build UI Plugins ─────────────────────────────────────────────────────
+    let ui_root = args.path.join(".ui");
+    if ui_root.exists() {
+        println!("  {} Building UI plugins in .ui/ ...", style("→").cyan());
+        let entries = std::fs::read_dir(&ui_root)?;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() && path.join("package.json").exists() {
+                let name = entry.file_name().to_string_lossy().to_string();
+                println!("    {} Building UI plugin: {} ...", style("→").cyan(), name);
+                
+                let npm_install = std::process::Command::new("npm")
+                    .args(["install"])
+                    .current_dir(&path)
+                    .status()?;
+                if !npm_install.success() {
+                    bail!("npm install failed for UI plugin: {}", name);
+                }
+
+                let npm_build = std::process::Command::new("npm")
+                    .args(["run", "build"])
+                    .current_dir(&path)
+                    .status()?;
+                if !npm_build.success() {
+                    bail!("npm build failed for UI plugin: {}", name);
+                }
+            }
+        }
+    }
+
     println!("{} Build complete.", style("✓").green().bold());
     Ok(())
 }

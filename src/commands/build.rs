@@ -70,7 +70,7 @@ pub async fn run(args: BuildArgs) -> Result<()> {
             if path.is_dir() && path.join("package.json").exists() {
                 let name = entry.file_name().to_string_lossy().to_string();
                 println!("    {} Building UI plugin: {} ...", style("→").cyan(), name);
-                
+
                 let npm_install = std::process::Command::new("npm")
                     .args(["install"])
                     .current_dir(&path)

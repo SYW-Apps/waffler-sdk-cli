@@ -262,7 +262,10 @@ pub async fn run(args: PackArgs) -> Result<()> {
     let ui_src = pkg_dir.join(".ui");
     if ui_src.exists() {
         builder.add_dir(&ui_src, ".ui")?;
-        println!("  {} Bundling .ui/ directory (UI Plugins)", style("→").cyan());
+        println!(
+            "  {} Bundling .ui/ directory (UI Plugins)",
+            style("→").cyan()
+        );
     }
 
     // namespace/ tree (from staging copy with generated segment.json files)

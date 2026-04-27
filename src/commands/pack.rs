@@ -257,6 +257,14 @@ pub async fn run(args: PackArgs) -> Result<()> {
         println!("  {} Bundling assets/ directory", style("→").cyan());
     }
 
+    // .ui/ — built UI plugins (multi-plugin support).
+    // Bundled at the root so they stay local to the package installation.
+    let ui_src = pkg_dir.join(".ui");
+    if ui_src.exists() {
+        builder.add_dir(&ui_src, ".ui")?;
+        println!("  {} Bundling .ui/ directory (UI Plugins)", style("→").cyan());
+    }
+
     // namespace/ tree (from staging copy with generated segment.json files)
     if let Some(ref staging) = staging_ns {
         builder.add_dir(staging, "namespace")?;

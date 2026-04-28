@@ -178,7 +178,7 @@ pub async fn run(args: PackArgs) -> Result<()> {
     // ─── Process namespace/ tree ──────────────────────────────────────────────
     let namespace_src = pkg_dir.join("namespace");
     let staging_ns: Option<PathBuf> = if namespace_src.exists() {
-        // Copy to a temp staging dir and generate segment.json files there
+        // Copy to a temp staging dir and generate .ns files there
         // so we don't pollute the source tree
         let staging =
             std::env::temp_dir().join(format!("waffler_pack_{}_ns", manifest.id.replace('.', "_")));
@@ -193,7 +193,7 @@ pub async fn run(args: PackArgs) -> Result<()> {
             &manifest.display_name,
         )?;
         println!(
-            "  {} Generated {} segment.json file{}",
+            "  {} Generated {} .ns file{}",
             style("✓").green(),
             generated.len(),
             if generated.len() == 1 { "" } else { "s" }

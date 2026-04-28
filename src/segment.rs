@@ -1,21 +1,10 @@
-/// Deterministic segment.json generation for namespace tree directories.
+/// Deterministic .ns generation for namespace tree directories.
 ///
 /// UUIDs are generated from SHA1 of the full namespace path so they are stable
 /// across builds — the same entity always gets the same UUID.
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 use std::path::Path;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SegmentManifest {
-    pub id: String,
-    #[serde(rename = "type")]
-    pub entity_type: String,
-    pub display_name: String,
-    pub created_at: String,
-    pub tags: Vec<String>,
-}
 
 /// Generate a deterministic UUID v5-ish from the entity's full namespace path.
 /// Stable: same path → same UUID, always.
@@ -46,7 +35,7 @@ pub fn deterministic_uuid(namespace_path: &str) -> String {
 /// - Depth 1 (e.g. `syw/`)                         → `organization`
 /// - Depth 2 (e.g. `syw/network/`)                 → `folder` (unless it IS the package ns)
 /// - Depth == package namespace depth AND matches   → `package`
-/// - Deeper than package ns, contains type.json     → `schema`
+/// - Deeper than package ns, contains type.json     → `type`
 /// - Deeper than package ns, contains blueprint.json → `blueprint`
 /// - Otherwise                                      → `folder`
 pub fn infer_entity_type(dir: &Path, pkg_namespace: &str, namespace_root: &Path) -> String {
@@ -77,15 +66,15 @@ pub fn infer_entity_type(dir: &Path, pkg_namespace: &str, namespace_root: &Path)
             return "blueprint".into();
         }
         if dir.join("type.json").exists() {
-            return "schema".into();
+            return "type".into();
         }
     }
 
     "folder".into()
 }
 
-/// Generate segment.json for every directory under `namespace_root` that doesn't
-/// already have one. Skips dev-authored segment.json files.
+/// Generate .ns for every directory under `namespace_root` that doesn't
+/// already have one. Skips dev-authored .ns and legacy segment.json files.
 pub fn generate_segment_manifests(
     namespace_root: &Path,
     pkg_namespace: &str,
@@ -100,10 +89,11 @@ pub fn generate_segment_manifests(
         .filter(|e| e.file_type().is_dir() && e.path() != namespace_root)
     {
         let dir = entry.path();
-        let seg_path = dir.join("segment.json");
+        let ns_path = dir.join(".ns");
+        let legacy_path = dir.join("segment.json");
 
-        // Respect dev-authored segment.json files
-        if seg_path.exists() {
+        // Respect existing manifests
+        if ns_path.exists() || legacy_path.exists() {
             continue;
         }
 
@@ -112,26 +102,26 @@ pub fn generate_segment_manifests(
         let stable_id = deterministic_uuid(&format!("{}.{}", pkg_namespace, rel_dot));
 
         let entity_type = infer_entity_type(dir, pkg_namespace, namespace_root);
+        let name = dir
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
 
         let display_name = if entity_type == "package" {
             pkg_display_name.to_string()
         } else {
-            dir.file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string()
+            name.clone()
         };
 
-        let manifest = SegmentManifest {
-            id: stable_id,
-            entity_type,
-            display_name,
-            created_at: now.clone(),
-            tags: vec![],
-        };
+        // Format: id|name|display_name|type|created_at[|tags_csv]
+        let content = format!(
+            "{}|{}|{}|{}|{}",
+            stable_id, name, display_name, entity_type, now
+        );
 
-        std::fs::write(&seg_path, serde_json::to_string_pretty(&manifest)?)?;
-        generated.push(seg_path);
+        std::fs::write(&ns_path, content)?;
+        generated.push(ns_path);
     }
 
     Ok(generated)

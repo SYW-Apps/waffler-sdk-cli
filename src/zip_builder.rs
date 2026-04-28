@@ -9,9 +9,9 @@
 ///     <anything>/           any other files needed at runtime
 ///   namespace/            ← namespace tree, merged into lib_dir on install
 ///     <ns_path>/
-///       segment.json
+///       .ns
 ///       <Entity>/
-///         segment.json
+///         .ns
 ///         type.json | blueprint.json
 use anyhow::{Context, Result};
 use std::io::Write;

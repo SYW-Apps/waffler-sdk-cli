@@ -257,15 +257,57 @@ pub async fn run(args: PackArgs) -> Result<()> {
         println!("  {} Bundling assets/ directory", style("→").cyan());
     }
 
-    // .ui/ — built UI plugins (multi-plugin support).
-    // Bundled at the root so they stay local to the package installation.
+    // .ui/ - built UI plugins (multi-plugin support).
+    //
+    // Only ship the built artifacts (.ui/<plugin>/dist/), NOT the source tree
+    // (src/, package.json, vite.config.ts, tsconfig.json, node_modules, etc.).
+    // The plugin source lives in the package's git repo for development;
+    // the runtime only needs the compiled plugin.mjs (+ any sibling assets).
+    //
+    // Layout:
+    //   .ui/<plugin_name>/dist/plugin.mjs  -> kept
+    //   .ui/<plugin_name>/{src,package.json,...}  -> dropped
+    //   .ui/dist/plugin.mjs (legacy single-plugin layout) -> kept
     let ui_src = pkg_dir.join(".ui");
     if ui_src.exists() {
-        builder.add_dir(&ui_src, ".ui")?;
-        println!(
-            "  {} Bundling .ui/ directory (UI Plugins)",
-            style("→").cyan()
-        );
+        let mut bundled_any = false;
+        // Walk one level: .ui/<entry>
+        for entry in std::fs::read_dir(&ui_src)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            let entry_name = entry.file_name().to_string_lossy().into_owned();
+
+            if entry_path.is_file() {
+                // Stray file directly under .ui/ - keep as-is.
+                builder.add_file(&entry_path, &format!(".ui/{}", entry_name));
+                bundled_any = true;
+                continue;
+            }
+
+            if !entry_path.is_dir() {
+                continue;
+            }
+
+            // Legacy layout: .ui/dist/plugin.mjs (single-plugin package).
+            if entry_name == "dist" {
+                builder.add_dir(&entry_path, ".ui/dist")?;
+                bundled_any = true;
+                continue;
+            }
+
+            // Standard layout: .ui/<plugin>/dist/<files>. Ship only the dist subtree.
+            let plugin_dist = entry_path.join("dist");
+            if plugin_dist.exists() {
+                builder.add_dir(&plugin_dist, &format!(".ui/{}/dist", entry_name))?;
+                bundled_any = true;
+            }
+        }
+        if bundled_any {
+            println!(
+                "  {} Bundling .ui/*/dist (UI Plugin artifacts only)",
+                style("→").cyan()
+            );
+        }
     }
 
     // namespace/ tree (from staging copy with generated segment.json files)

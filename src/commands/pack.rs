@@ -110,6 +110,24 @@ pub async fn run(args: PackArgs) -> Result<()> {
         println!("  {} Build complete.", style("✓").green());
     }
 
+    // ─── Build webapp frontend(s) ─────────────────────────────────────────────
+    // Any package with a webapp/ subdir containing vite.config.ts gets a fresh
+    // npm run build before pack, so assets/www/ in the zip always reflects the
+    // current source. Run unconditionally — webapps depend on file: links to
+    // sibling packages (e.g. @waffler/ui) whose changes wouldn't otherwise
+    // invalidate dist/.
+    if !args.no_build {
+        build_webapp_frontend(&pkg_dir)?;
+    }
+
+    // ─── Build UI plugin(s) ──────────────────────────────────────────────────
+    // Any .ui/<name>/ subdir with vite.config.ts gets npm run build. Same
+    // rationale as webapp — file: deps to @waffler/ui mean stale dist after
+    // any host code change.
+    if !args.no_build {
+        build_ui_plugins(&pkg_dir)?;
+    }
+
     // ─── Locate artifacts ─────────────────────────────────────────────────────
     let artifact_path: Option<PathBuf> = if manifest.features.native_module {
         let module_path = manifest
@@ -356,6 +374,104 @@ fn find_workspace_root(start: &std::path::Path) -> Option<PathBuf> {
             return None;
         }
     }
+}
+
+/// Run `npm install` (if missing) + `npm run build` in <pkg_dir>/webapp/ if it
+/// has a vite.config.ts. Mirrors the Build-WebappFrontend helper that lived in
+/// run_sim.ps1 — folding it into pack means the CLI alone produces a complete
+/// zip without external orchestration.
+fn build_webapp_frontend(pkg_dir: &std::path::Path) -> Result<()> {
+    let webapp = pkg_dir.join("webapp");
+    let vite_cfg = webapp.join("vite.config.ts");
+    let pkg_json = webapp.join("package.json");
+    if !vite_cfg.exists() || !pkg_json.exists() {
+        return Ok(());
+    }
+
+    println!(
+        "  {} Building webapp frontend in {} ...",
+        style("→").cyan(),
+        style(webapp.display()).dim()
+    );
+
+    if !webapp.join("node_modules").exists() {
+        run_npm(&webapp, &["install", "--no-audit", "--no-fund"])
+            .map_err(|e| anyhow::anyhow!("npm install failed in webapp: {e}"))?;
+    }
+
+    run_npm(&webapp, &["run", "build"])
+        .map_err(|e| anyhow::anyhow!("npm run build failed in webapp: {e}"))?;
+
+    println!("  {} Webapp build complete", style("✓").green());
+    Ok(())
+}
+
+/// For each <pkg_dir>/.ui/<name>/ that has a vite.config.ts, run npm install
+/// (if missing) + npm run build. Always rebuilds — same rationale as webapp.
+fn build_ui_plugins(pkg_dir: &std::path::Path) -> Result<()> {
+    let ui_root = pkg_dir.join(".ui");
+    if !ui_root.exists() {
+        return Ok(());
+    }
+
+    let mut built = 0;
+    for entry in std::fs::read_dir(&ui_root)? {
+        let entry = entry?;
+        let plugin_dir = entry.path();
+        if !plugin_dir.is_dir() {
+            continue;
+        }
+        let vite_cfg = plugin_dir.join("vite.config.ts");
+        let pkg_json = plugin_dir.join("package.json");
+        if !vite_cfg.exists() || !pkg_json.exists() {
+            continue;
+        }
+
+        let name = plugin_dir
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+
+        println!(
+            "  {} Building UI plugin '{}' ...",
+            style("→").cyan(),
+            style(&name).bold()
+        );
+
+        if !plugin_dir.join("node_modules").exists() {
+            run_npm(&plugin_dir, &["install", "--no-audit", "--no-fund"])
+                .map_err(|e| anyhow::anyhow!("npm install failed for UI plugin '{name}': {e}"))?;
+        }
+
+        run_npm(&plugin_dir, &["run", "build"])
+            .map_err(|e| anyhow::anyhow!("npm run build failed for UI plugin '{name}': {e}"))?;
+
+        built += 1;
+    }
+
+    if built > 0 {
+        println!(
+            "  {} {} UI plugin{} built",
+            style("✓").green(),
+            built,
+            if built == 1 { "" } else { "s" }
+        );
+    }
+    Ok(())
+}
+
+/// Spawn npm with cross-platform binary resolution (npm.cmd on Windows).
+fn run_npm(cwd: &std::path::Path, args: &[&str]) -> Result<()> {
+    let npm_bin = if cfg!(windows) { "npm.cmd" } else { "npm" };
+    let status = std::process::Command::new(npm_bin)
+        .args(args)
+        .current_dir(cwd)
+        .status()
+        .map_err(|e| anyhow::anyhow!("Failed to spawn {npm_bin}: {e}. Is Node.js installed?"))?;
+    if !status.success() {
+        bail!("npm {} exited with status {}", args.join(" "), status);
+    }
+    Ok(())
 }
 
 fn copy_dir(src: &std::path::Path, dst: &std::path::Path) -> Result<()> {

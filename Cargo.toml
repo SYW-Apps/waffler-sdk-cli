@@ -49,3 +49,12 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Platform dirs
 dirs = "5"
+
+# ── UI dev server ─────────────────────────────────────────────────────────────
+axum = { version = "0.7", features = ["macros"] }
+tower = { version = "0.4" }
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+futures = "0.3"
+notify = "6"
+regex = "1"

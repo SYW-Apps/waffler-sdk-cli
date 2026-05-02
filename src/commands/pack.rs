@@ -86,7 +86,12 @@ pub async fn run(args: PackArgs) -> Result<()> {
         .unwrap_or("rust");
 
     // ─── Build ────────────────────────────────────────────────────────────────
-    if !args.no_build && language != "waffler_native" {
+    // "none" / "blueprint" / "interpreter" / "waffler_native" all skip the
+    // compile step.  Use these for packages that ship only blueprints, data
+    // schemas, type definitions, or other interpreter-mode artifacts (e.g.
+    // `db.shared`, `syw.system`).
+    let no_build_languages = ["none", "blueprint", "interpreter", "waffler_native"];
+    if !args.no_build && !no_build_languages.contains(&language) {
         println!("  {} Building ({})...", style("→").cyan(), language);
         match language {
             "rust" => {

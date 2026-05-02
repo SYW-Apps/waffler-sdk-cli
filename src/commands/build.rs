@@ -48,14 +48,19 @@ pub async fn run(args: BuildArgs) -> Result<()> {
         }
         "node" => build_node(&args.path)?,
         "python" => build_python(&args.path)?,
-        "waffler_native" => {
+        // Aliases for "no compile step" — used by packages that ship only
+        // blueprints, data schemas, type definitions, or other interpreter-
+        // mode artifacts.  All four spellings are accepted; pick whichever
+        // reads best in your manifest.
+        "none" | "blueprint" | "interpreter" | "waffler_native" => {
             println!(
-                "  {} Entities-only package — nothing to compile.",
+                "  {} Interpreter-only package — nothing to compile.",
                 style("i").cyan()
             );
         }
         other => bail!(
-            "Unsupported build language: '{}'. Check the `build.language` field in package.json.",
+            "Unsupported build language: '{}'. Check the `build.language` field in package.json. \
+             Valid values: rust, node, python, none.",
             other
         ),
     }

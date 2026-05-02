@@ -516,7 +516,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Waffler host import bindings — provides http_request, capability registration, etc.
-waffler-native-module = {{ path = "../../sdk/rust/waffler-native-module" }}
+waffler-wasi-module = {{ path = "../../sdk/rust/waffler-wasi-module" }}
 serde = {{ version = "1.0", features = ["derive"] }}
 serde_json = "1.0"
 "#,

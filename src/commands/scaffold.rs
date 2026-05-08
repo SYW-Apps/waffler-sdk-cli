@@ -451,7 +451,7 @@ fn build_manifest_json(
                 "required": true,
                 "rules": [
                     {
-                        "pattern": { "kind": "Command", "path": "system:*" },
+                        "pattern": { "system": "bus", "target_kind": "Command", "target": "system:*" },
                         "effect": "Allow"
                     }
                 ]
@@ -463,7 +463,7 @@ fn build_manifest_json(
                 "required": false,
                 "rules": [
                     {
-                        "pattern": { "kind": "Command", "path": "replace_me_service:*" },
+                        "pattern": { "system": "bus", "target_kind": "Command", "target": "replace_me_service:*" },
                         "effect": "Allow"
                     }
                 ]
@@ -516,7 +516,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Waffler host import bindings — provides http_request, capability registration, etc.
-waffler-native-module = {{ path = "../../sdk/rust/waffler-native-module" }}
+waffler-wasi-module = {{ path = "../../sdk/rust/waffler-wasi-module" }}
 serde = {{ version = "1.0", features = ["derive"] }}
 serde_json = "1.0"
 "#,

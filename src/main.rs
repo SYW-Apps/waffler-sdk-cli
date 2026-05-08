@@ -49,6 +49,12 @@ enum Commands {
 
     /// Check for and install CLI updates from GitHub
     Update(commands::update::UpdateArgs),
+
+    /// UI plugin development tooling (dev server, scaffold, validate)
+    Ui(commands::ui::UiArgs),
+
+    /// Integration test scaffolding and tooling
+    Test(commands::test::TestArgs),
 }
 
 #[tokio::main]
@@ -66,6 +72,8 @@ async fn main() {
         Commands::Namespace(args) => commands::namespace::run(args).await,
         Commands::Publish(args) => commands::publish::run(args).await,
         Commands::Update(args) => commands::update::run(args).await,
+        Commands::Ui(args) => commands::ui::run(args).await,
+        Commands::Test(args) => commands::test::run(args).await,
     };
 
     if let Err(e) = result {

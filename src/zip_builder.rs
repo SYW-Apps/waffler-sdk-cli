@@ -42,10 +42,25 @@ impl ZipBuilder {
     }
 
     /// Add all files under `dir` prefixed by `zip_prefix` in the ZIP.
-    /// Skips files matching `exclude_names` (e.g. dev-only files).
+    /// Skips files in dev-only / build-output dirs that should never ship.
     pub fn add_dir(&mut self, dir: &Path, zip_prefix: &str) -> anyhow::Result<&mut Self> {
+        // Path components that, if present anywhere in a file's relative path,
+        // cause the file to be skipped. Keeps node_modules and build caches out
+        // of bundled zips (otherwise a single .ui plugin can add 100k+ files).
+        const SKIP_COMPONENTS: &[&str] = &[
+            "node_modules",
+            ".git",
+            ".cache",
+            "target",
+        ];
         for entry in walkdir::WalkDir::new(dir)
             .into_iter()
+            .filter_entry(|e| {
+                e.file_name()
+                    .to_str()
+                    .map(|n| !SKIP_COMPONENTS.contains(&n))
+                    .unwrap_or(true)
+            })
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
         {

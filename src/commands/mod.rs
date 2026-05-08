@@ -5,6 +5,8 @@ pub mod namespace;
 pub mod pack;
 pub mod publish;
 pub mod scaffold;
+pub mod test;
+pub mod ui;
 pub mod update;
 pub mod validate;
 pub mod whoami;

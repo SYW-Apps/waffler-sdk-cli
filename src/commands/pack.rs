@@ -86,7 +86,12 @@ pub async fn run(args: PackArgs) -> Result<()> {
         .unwrap_or("rust");
 
     // ─── Build ────────────────────────────────────────────────────────────────
-    if !args.no_build && language != "waffler_native" {
+    // "none" / "blueprint" / "interpreter" / "waffler_native" all skip the
+    // compile step.  Use these for packages that ship only blueprints, data
+    // schemas, type definitions, or other interpreter-mode artifacts (e.g.
+    // `db.shared`, `syw.system`).
+    let no_build_languages = ["none", "blueprint", "interpreter", "waffler_native"];
+    if !args.no_build && !no_build_languages.contains(&language) {
         println!("  {} Building ({})...", style("→").cyan(), language);
         match language {
             "rust" => {
@@ -108,6 +113,24 @@ pub async fn run(args: PackArgs) -> Result<()> {
             other => bail!("Unsupported build language: '{}'", other),
         }
         println!("  {} Build complete.", style("✓").green());
+    }
+
+    // ─── Build webapp frontend(s) ─────────────────────────────────────────────
+    // Any package with a webapp/ subdir containing vite.config.ts gets a fresh
+    // npm run build before pack, so assets/www/ in the zip always reflects the
+    // current source. Run unconditionally — webapps depend on file: links to
+    // sibling packages (e.g. @waffler/ui) whose changes wouldn't otherwise
+    // invalidate dist/.
+    if !args.no_build {
+        build_webapp_frontend(&pkg_dir)?;
+    }
+
+    // ─── Build UI plugin(s) ──────────────────────────────────────────────────
+    // Any .ui/<name>/ subdir with vite.config.ts gets npm run build. Same
+    // rationale as webapp — file: deps to @waffler/ui mean stale dist after
+    // any host code change.
+    if !args.no_build {
+        build_ui_plugins(&pkg_dir)?;
     }
 
     // ─── Locate artifacts ─────────────────────────────────────────────────────
@@ -257,15 +280,57 @@ pub async fn run(args: PackArgs) -> Result<()> {
         println!("  {} Bundling assets/ directory", style("→").cyan());
     }
 
-    // .ui/ — built UI plugins (multi-plugin support).
-    // Bundled at the root so they stay local to the package installation.
+    // .ui/ - built UI plugins (multi-plugin support).
+    //
+    // Only ship the built artifacts (.ui/<plugin>/dist/), NOT the source tree
+    // (src/, package.json, vite.config.ts, tsconfig.json, node_modules, etc.).
+    // The plugin source lives in the package's git repo for development;
+    // the runtime only needs the compiled plugin.mjs (+ any sibling assets).
+    //
+    // Layout:
+    //   .ui/<plugin_name>/dist/plugin.mjs  -> kept
+    //   .ui/<plugin_name>/{src,package.json,...}  -> dropped
+    //   .ui/dist/plugin.mjs (legacy single-plugin layout) -> kept
     let ui_src = pkg_dir.join(".ui");
     if ui_src.exists() {
-        builder.add_dir(&ui_src, ".ui")?;
-        println!(
-            "  {} Bundling .ui/ directory (UI Plugins)",
-            style("→").cyan()
-        );
+        let mut bundled_any = false;
+        // Walk one level: .ui/<entry>
+        for entry in std::fs::read_dir(&ui_src)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            let entry_name = entry.file_name().to_string_lossy().into_owned();
+
+            if entry_path.is_file() {
+                // Stray file directly under .ui/ - keep as-is.
+                builder.add_file(&entry_path, &format!(".ui/{}", entry_name));
+                bundled_any = true;
+                continue;
+            }
+
+            if !entry_path.is_dir() {
+                continue;
+            }
+
+            // Legacy layout: .ui/dist/plugin.mjs (single-plugin package).
+            if entry_name == "dist" {
+                builder.add_dir(&entry_path, ".ui/dist")?;
+                bundled_any = true;
+                continue;
+            }
+
+            // Standard layout: .ui/<plugin>/dist/<files>. Ship only the dist subtree.
+            let plugin_dist = entry_path.join("dist");
+            if plugin_dist.exists() {
+                builder.add_dir(&plugin_dist, &format!(".ui/{}/dist", entry_name))?;
+                bundled_any = true;
+            }
+        }
+        if bundled_any {
+            println!(
+                "  {} Bundling .ui/*/dist (UI Plugin artifacts only)",
+                style("→").cyan()
+            );
+        }
     }
 
     // namespace/ tree (from staging copy with generated segment.json files)
@@ -314,6 +379,104 @@ fn find_workspace_root(start: &std::path::Path) -> Option<PathBuf> {
             return None;
         }
     }
+}
+
+/// Run `npm install` (if missing) + `npm run build` in <pkg_dir>/webapp/ if it
+/// has a vite.config.ts. Mirrors the Build-WebappFrontend helper that lived in
+/// run_sim.ps1 — folding it into pack means the CLI alone produces a complete
+/// zip without external orchestration.
+fn build_webapp_frontend(pkg_dir: &std::path::Path) -> Result<()> {
+    let webapp = pkg_dir.join("webapp");
+    let vite_cfg = webapp.join("vite.config.ts");
+    let pkg_json = webapp.join("package.json");
+    if !vite_cfg.exists() || !pkg_json.exists() {
+        return Ok(());
+    }
+
+    println!(
+        "  {} Building webapp frontend in {} ...",
+        style("→").cyan(),
+        style(webapp.display()).dim()
+    );
+
+    if !webapp.join("node_modules").exists() {
+        run_npm(&webapp, &["install", "--no-audit", "--no-fund"])
+            .map_err(|e| anyhow::anyhow!("npm install failed in webapp: {e}"))?;
+    }
+
+    run_npm(&webapp, &["run", "build"])
+        .map_err(|e| anyhow::anyhow!("npm run build failed in webapp: {e}"))?;
+
+    println!("  {} Webapp build complete", style("✓").green());
+    Ok(())
+}
+
+/// For each <pkg_dir>/.ui/<name>/ that has a vite.config.ts, run npm install
+/// (if missing) + npm run build. Always rebuilds — same rationale as webapp.
+fn build_ui_plugins(pkg_dir: &std::path::Path) -> Result<()> {
+    let ui_root = pkg_dir.join(".ui");
+    if !ui_root.exists() {
+        return Ok(());
+    }
+
+    let mut built = 0;
+    for entry in std::fs::read_dir(&ui_root)? {
+        let entry = entry?;
+        let plugin_dir = entry.path();
+        if !plugin_dir.is_dir() {
+            continue;
+        }
+        let vite_cfg = plugin_dir.join("vite.config.ts");
+        let pkg_json = plugin_dir.join("package.json");
+        if !vite_cfg.exists() || !pkg_json.exists() {
+            continue;
+        }
+
+        let name = plugin_dir
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+
+        println!(
+            "  {} Building UI plugin '{}' ...",
+            style("→").cyan(),
+            style(&name).bold()
+        );
+
+        if !plugin_dir.join("node_modules").exists() {
+            run_npm(&plugin_dir, &["install", "--no-audit", "--no-fund"])
+                .map_err(|e| anyhow::anyhow!("npm install failed for UI plugin '{name}': {e}"))?;
+        }
+
+        run_npm(&plugin_dir, &["run", "build"])
+            .map_err(|e| anyhow::anyhow!("npm run build failed for UI plugin '{name}': {e}"))?;
+
+        built += 1;
+    }
+
+    if built > 0 {
+        println!(
+            "  {} {} UI plugin{} built",
+            style("✓").green(),
+            built,
+            if built == 1 { "" } else { "s" }
+        );
+    }
+    Ok(())
+}
+
+/// Spawn npm with cross-platform binary resolution (npm.cmd on Windows).
+fn run_npm(cwd: &std::path::Path, args: &[&str]) -> Result<()> {
+    let npm_bin = if cfg!(windows) { "npm.cmd" } else { "npm" };
+    let status = std::process::Command::new(npm_bin)
+        .args(args)
+        .current_dir(cwd)
+        .status()
+        .map_err(|e| anyhow::anyhow!("Failed to spawn {npm_bin}: {e}. Is Node.js installed?"))?;
+    if !status.success() {
+        bail!("npm {} exited with status {}", args.join(" "), status);
+    }
+    Ok(())
 }
 
 fn copy_dir(src: &std::path::Path, dst: &std::path::Path) -> Result<()> {

@@ -451,7 +451,7 @@ fn build_manifest_json(
                 "required": true,
                 "rules": [
                     {
-                        "pattern": { "kind": "Command", "path": "system:*" },
+                        "pattern": { "system": "bus", "target_kind": "Command", "target": "system:*" },
                         "effect": "Allow"
                     }
                 ]
@@ -463,7 +463,7 @@ fn build_manifest_json(
                 "required": false,
                 "rules": [
                     {
-                        "pattern": { "kind": "Command", "path": "replace_me_service:*" },
+                        "pattern": { "system": "bus", "target_kind": "Command", "target": "replace_me_service:*" },
                         "effect": "Allow"
                     }
                 ]

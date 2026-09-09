@@ -1,0 +1,37 @@
+id: publish-portal
+name: Publish Portal
+description: >-
+  The `pack` and `publish` commands: argument parsing, and rendering what happened.
+
+
+  IT CONTAINS NO PUBLISHING LOGIC, deliberately. Parsing a flag and deciding whether a bundle may be
+  published unsigned are different jobs, and a portal that does both is where the second one gets
+  duplicated the day a second entry point appears — which is exactly what happens next, since the
+  docker pack step is expected to drive this tool as a library rather than a binary. Everything
+  below the argument layer must be reachable without a process.
+
+
+  `pack` STOPS AT AN ARTIFACT. It writes a bundle and does not upload, because producing something
+  inspectable without publishing it is how a developer checks their own work, and how our own build
+  scripts consume this tool.
+
+
+  THE `--unsigned` FLAG DESCRIBES AN ARTIFACT, NOT A PERMISSION. It selects the shape the registry
+  requires on the path where the registry signs alone. It is not an escape hatch from the downgrade
+  refusal, and the orchestrator enforces that separately — a flag that could waive a security rule
+  is the shape that turns a safe default into an inconvenience to be worked around.
+
+
+  OUTPUT NAMES THE REGISTRY AND THE SHAPE. Every run says which registry it resolved, how it
+  resolved it, and whether the artifact carries a publisher signature. Those three facts are what a
+  developer needs to know they did what they meant to, and all three were unavailable in the
+  previous tool.
+subsystem: publishing
+componentType: Portal
+owns: []
+dependsOn:
+  - publish-orchestrator
+portalType: CLI
+status: draft
+createdAt: '2026-09-09T23:13:46.646Z'
+updatedAt: '2026-09-09T23:14:06.802Z'

@@ -1,0 +1,47 @@
+id: session
+name: Session
+description: >-
+  Which registry this tool is talking to, and who it is talking as. Owns login, logout, whoami, the
+  `use` default, and the credentials behind them.
+
+
+  THE REGISTRY IS AN ARGUMENT, NOT A CONSTANT, and this subsystem exists because the previous tool
+  treated it as one. Two hosts were compiled in, so the tool could not address a private or
+  self-hosted registry at all — the ordinary case for this product rather than an advanced one, and
+  the same limitation the marketplace package removed on the node side.
+
+
+  RESOLUTION IS ORDERED AND EXPLICIT: a per-command flag, then the environment, then a persisted
+  default set by `use`, then a built-in. Every command reports which registry it resolved and why,
+  because a publish that silently went somewhere else is the failure an operator discovers last and
+  trusts least.
+
+
+  CREDENTIALS ARE PER REGISTRY, NEVER GLOBAL. Signing in to one registry says nothing about another:
+  they are different services with different identity providers and different namespace ownership. A
+  single cached token would let a `use` change silently carry an identity across a trust boundary,
+  which is the confused-deputy shape one level out from the tool.
+
+
+  AUTHENTICATION IS DISCOVERED, NOT COMPILED IN. A registry advertises its own issuer, and this
+  subsystem authenticates against whatever that instance names. The registry's own auth is generic
+  OIDC over a discovery URL and an audience, so pointing an instance at an existing account provider
+  is deployment configuration — never a change here. That is what makes "sign in to my own registry"
+  work without this tool knowing anything about the operator's identity provider in advance.
+
+
+  WHAT SURVIVES FROM THE OLD TOOL, because it was right: an authorization-code flow with a loopback
+  callback listener, refresh tokens, and credentials cached on disk rather than re-prompted. The
+  flow is sound; what was wrong was assuming there is one registry and one issuer.
+
+
+  WHAT IT DOES NOT DO. It never decides what a token is allowed to do — the registry answers that,
+  and a 401 or 403 is reported as the registry worded it rather than reinterpreted. A client that
+  pre-judges authorization is a client that disagrees with the server about permission, and the one
+  that disagrees silently is this one.
+parentSystem: Waffler Developer CLI
+publicInterfaces: []
+trustedLinks: []
+status: draft
+createdAt: '2026-09-09T23:11:53.494Z'
+updatedAt: '2026-09-09T23:11:53.697Z'

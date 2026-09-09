@@ -1,0 +1,46 @@
+id: project
+name: Project
+description: >-
+  The developer's package project on disk: creating one, building it, and checking it says what it
+  means before anything is uploaded.
+
+
+  WHAT A PROJECT IS. A source tree carrying a package manifest, an artifact to build, and optionally
+  a namespace tree of entities and a UI plugin bundle. This subsystem turns that into the inputs
+  Publishing needs, and refuses early when it cannot.
+
+
+  THE MANIFEST MODEL IS REPLACED, NOT MIGRATED, and the audit is why. The previous tool's manifest
+  and the format waffler_core installs share exactly one field NAME (version) and nothing else:
+  namespace became fqid, module.runtime became hosting_mode, permissions became permission_groups,
+  and artifacts gained content hashes that did not previously exist. A field-by-field migration of a
+  model with no overlapping fields is a rewrite wearing a migration's clothes.
+
+
+  VALIDATION HAPPENS HERE BECAUSE THE ALTERNATIVE IS A ROUND TRIP. The registry validates everything
+  again — it must, since it accepts uploads from anyone — but a developer learning that their
+  manifest is wrong from a 400 after a build and an upload is learning it in the most expensive
+  available place. Every check here is a mirror of a registry rule, and where the two disagree the
+  REGISTRY is right: this side exists for speed, never for authority.
+
+
+  SCAFFOLDING IS A CLAIM ABOUT THE CURRENT FORMAT. A generated project that does not pack, publish
+  and install is worse than no scaffold, because it teaches a shape that will be refused later by
+  something that cannot explain why. So what `scaffold` writes is held to the same standard as what
+  `pack` reads, and the two are tested against each other rather than separately.
+
+
+  BUILDING IS DELEGATED AND NOT REIMPLEMENTED. Cargo builds Rust, npm builds a UI plugin bundle;
+  this subsystem decides WHICH to run from what the project declares and reports their failures
+  verbatim. A build tool wrapping another build tool must never paraphrase its errors — the
+  underlying message is the one a developer can act on.
+
+
+  WHAT IT DOES NOT DO. It does not sign, upload, or talk to a registry. It produces a validated
+  project and built artifacts; everything after that belongs to Publishing.
+parentSystem: Waffler Developer CLI
+publicInterfaces: []
+trustedLinks: []
+status: draft
+createdAt: '2026-09-09T23:12:08.565Z'
+updatedAt: '2026-09-09T23:12:08.797Z'

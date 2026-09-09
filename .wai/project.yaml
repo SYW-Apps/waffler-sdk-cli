@@ -1,0 +1,22 @@
+schemaVersion: 1.0.0
+name: Waffler Developer CLI
+projectType: backend
+targets:
+  - type: claude
+    outputDir: .claude/agents
+    enabled: true
+rules:
+  noOverlappingOwnership: true
+  requireOwnedPaths: true
+  metaAgentTags:
+    - meta
+    - guardian
+    - architect
+  enforceReproducibility: true
+  generateComponentImplementers: false
+  materializeAgentFiles: false
+  sddRuleSeverity: {}
+paths:
+  specsDir: .wai/specs
+createdAt: '2026-09-09T23:09:59.437Z'
+updatedAt: '2026-09-09T23:09:59.437Z'

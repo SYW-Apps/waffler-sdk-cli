@@ -1,0 +1,44 @@
+id: publication-adapter
+name: Publication Adapter
+description: >-
+  The HTTP conversation with a registry's publication API. Every publishing request this tool makes
+  goes through here and nowhere else.
+
+
+  THE ENDPOINTS, and why this component exists at all. The previous tool spread registry URLs across
+  three files and got every route wrong — POST /v1/packages instead of POST
+  /v1/packages/{namespace}/publish, GET /v1/developer/profile for an account read that is GET
+  /v1/developer/account, POST /v1/developer/namespaces/claim for a route that is POST
+  /v1/developer/namespaces, and a GET /v1/developer/namespaces/available that no longer exists. Four
+  wrong calls in three files is what a scattered client looks like from the outside; one component
+  is what makes a route a fact rather than a recollection.
+
+
+  THE UPLOAD IS MULTIPART, and the bundle rides in a field the registry names. The registry accepts
+  bundle, file or package, so this sends the canonical one rather than relying on that leniency
+  continuing to exist.
+
+
+  REFUSALS ARE REPORTED AS THE REGISTRY WORDED THEM. Its publication pipeline maps distinct refusals
+  to distinct statuses on purpose — not a publisher, no authority over this tag, a malformed
+  manifest, and a version already published are four different situations, and an automated
+  publisher told only "error" retries forever against a conflict. Flattening them here would discard
+  the only part a developer can act on.
+
+
+  IT ANSWERS "WHAT DOES THE REGISTRY HOLD", which the signature specialist needs to enforce the
+  downgrade refusal. Whether a package already carries a publisher key is the registry's fact, and
+  asking it is the only honest way to know; assuming from local state would let a fresh clone
+  downgrade a package silently.
+
+
+  IT CARRIES A TOKEN AND JUDGES NOTHING. The bearer comes from Session, and a 401 or 403 is surfaced
+  rather than pre-empted. A client that decides in advance what a token may do is a client that can
+  disagree with the server about permission, and the one that disagrees silently is this one.
+subsystem: sdk_cli::publishing
+componentType: Adapter
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-09T23:13:20.506Z'
+updatedAt: '2026-09-09T23:13:20.516Z'

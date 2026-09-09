@@ -1,0 +1,39 @@
+id: publish-orchestrator
+name: Publish Orchestrator
+description: >-
+  The pack-and-publish workflow: from a validated project to an artifact a registry has accepted.
+
+
+  THE SEQUENCE, and the order is load-bearing. Write the bundle from its parts; ask the registry
+  what it already holds for this fqid; decide which publish shape is legal; sign if a publisher key
+  applies; upload; report what the registry answered. Asking BEFORE signing is what makes the
+  downgrade refusal possible — discovering after signing that an unsigned publish was illegal would
+  mean either uploading something refused or silently changing shape.
+
+
+  IT HOLDS NO STATE. Credentials belong to Session, the format belongs to the bundle writer, the
+  frame belongs to the signature specialist, and what the registry holds belongs to the registry.
+  This component decides ORDER and nothing else, which is why it can be read top to bottom to learn
+  what publishing actually does.
+
+
+  FAILURE LEAVES NOTHING HALF-DONE LOCALLY, and says where it stopped. A publish that fails at
+  upload has still produced a valid bundle on disk, and saying so is worth more than cleaning it up:
+  the developer can inspect it, and the next attempt does not rebuild. A publish that fails at
+  signing has produced an unsigned bundle that must NOT then be uploaded, because the registry would
+  accept it and the package would silently lose its publisher attribution.
+
+
+  IT REPORTS THE REGISTRY IT RESOLVED, every time, before doing anything irreversible. A publish
+  that quietly went to the wrong registry is the failure an operator discovers last and trusts
+  least, and the tool knows the answer at the moment it would be cheapest to say.
+subsystem: sdk_cli::publishing
+componentType: Orchestrator
+owns: []
+dependsOn:
+  - bundle-writer
+  - signature-specialist
+  - publication-adapter
+status: draft
+createdAt: '2026-09-09T23:13:33.716Z'
+updatedAt: '2026-09-09T23:13:33.724Z'

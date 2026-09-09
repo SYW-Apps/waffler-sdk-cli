@@ -1,0 +1,43 @@
+id: bundle-writer
+name: Bundle Writer
+description: >-
+  Writes the package bundle: /.manifest, /artifact/&lt;name&gt;, /namespace/&lt;uuid&gt;.json. The
+  one place in this tool that knows the format.
+
+
+  THE FORMAT IT WRITES, and the one it replaces. Current is a zip carrying /.manifest (an
+  InstalledPackage JSON with fqid, version, hosting_mode, artifacts each with a content hash,
+  capabilities, dependencies, permission_groups, fast_lane_requests, ui_plugins, middleware,
+  core_compatibility). The previous tool wrote package.json at the zip root, which
+  registry::publication::bundle-reader refuses by explicit test.
+
+
+  ONE WRITER, AND THAT IS THE POINT. Two writers of one format is how a format drifts while nobody
+  runs the second — measured: live_dev pack_bundle and this tool both wrote bundles, and the one
+  developers were meant to use had been refused by the registry for four months without anyone
+  noticing. So the docker pack step is expected to call THIS, and pack_bundle becomes a caller
+  rather than a rival implementation.
+
+
+  IT NEVER RE-ZIPS AN EXISTING BUNDLE. The signature covers the whole payload, so re-compressing or
+  normalising after the fact destroys it and produces an artifact core refuses as IntegrityFailure
+  on a stranger's machine. A bundle is written once, from parts, and thereafter treated as opaque
+  bytes — the same invariant the registry holds from the other side.
+
+
+  ARTIFACT HASHES ARE COMPUTED HERE, NEVER COPIED. A hash carried in from a manifest a developer
+  wrote is a claim; a hash computed over the bytes being written is a fact, and the two disagreeing
+  is exactly what a content hash exists to detect.
+
+
+  WHAT IT DOES NOT DO. It does not sign — the frame and the signatures belong to the signature
+  specialist, because "what the archive contains" and "who vouches for it" are separate questions
+  and merging them would make an unsigned bundle unrepresentable. That shape is needed: the registry
+  requires an unsigned upload on the path where it signs alone.
+subsystem: sdk_cli::publishing
+componentType: Specialist
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-09T23:12:48.877Z'
+updatedAt: '2026-09-09T23:12:48.883Z'

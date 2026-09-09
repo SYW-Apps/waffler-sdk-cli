@@ -1,0 +1,49 @@
+id: signature-specialist
+name: Signature Specialist
+description: >-
+  Creates the publisher signature and writes the trailer frame. The producer half of dual signing
+  (plans/bundle-dual-signing.md), and the component whose output waffler_core parses.
+
+
+  THE FRAME, byte-identical or bundles do not cross:
+
+      zip bytes | trailer body (msgpack, NAMED) | trailer_len u32 LE | magic 8 bytes "WFLRSIG\x01"
+
+  Suffix length is trailer_len + 12. The trailer body is { signatures: [ { role, public_key,
+  signature } ] }, and key material rides as msgpack BIN rather than as an array of integers — serde
+  derives a fixed array as a SEQUENCE, so the encoding is a deliberate choice on both sides and is
+  pinned as a shared hex vector rather than as prose.
+
+
+  COVERAGE IS STRUCTURAL AND NEVER DECLARED. signatures[i] covers zip || signatures[0..i].signature.
+  So publisher = Ed25519(zip) and registry = Ed25519(zip || publisher.signature). There is
+  deliberately NO covers field: a field is a claim the signer makes, and a verifier that reads it
+  decides what to verify from attacker-supplied data — set covers to "zip" on the registry signature
+  and the publisher signature underneath becomes swappable without invalidating it. Position makes
+  that unrepresentable.
+
+
+  DOWNGRADE IS THE ATTACK, AND THE REFUSAL LIVES HERE. A package that has ever carried a publisher
+  signature may never publish one without. This asks the registry what it holds and refuses when the
+  answer says a publisher key is on record — as a refusal that needs no flag, because a flag is how
+  a safe path becomes the inconvenient one and gets worked around. That is the same reasoning that
+  made hand-truncating a trailer the wrong answer.
+
+
+  THREE PUBLISH SHAPES STAY LEGAL, and it produces exactly one of them: unsigned (the registry signs
+  alone), publisher-signed (the registry countersigns — the target state), and offline-bundled (one
+  anchor signature, for provisioning a node from disk). Registry-only remains legitimate because
+  first-party packages are published by the organisation that runs the registry, and a ceremonial
+  second signature over the same trust boundary is theatre.
+
+
+  READERS FIRST, AND THIS COMPONENT IS THE REASON THAT ORDER MATTERS. It must not write a dual frame
+  until every deployed reader can parse one — a producer shipped first makes every existing reader
+  fail on the trailer it cannot read, on the path that provisions a node at boot.
+subsystem: sdk_cli::publishing
+componentType: Specialist
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-09T23:13:04.468Z'
+updatedAt: '2026-09-09T23:13:04.476Z'

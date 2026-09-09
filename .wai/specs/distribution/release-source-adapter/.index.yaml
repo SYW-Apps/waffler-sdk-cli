@@ -1,0 +1,35 @@
+id: release-source-adapter
+name: Release Source Adapter
+description: >-
+  Finds available releases, from the resolved registry's mirror if it has one and from GitHub
+  otherwise.
+
+
+  TWO ORIGINS, ONE ORDER. Ask the registry first, because that is the origin an operator of a
+  private instance can actually reach; fall back to GitHub, because that is where releases are cut
+  and a public instance need not mirror anything. A registry that advertises no mirror is not an
+  error — it is the common case.
+
+
+  IT REPORTS WHICH ORIGIN ANSWERED, always. A self-updating tool that quietly took bytes from a
+  different place than the operator expected is the failure hardest to notice and worst to find
+  later, and the answer is free at the moment it is known.
+
+
+  A MIRROR IS A COURIER. Mirrored bytes must match the release they claim to be. A registry that
+  serves something that does not match is treated as having NO mirror — falling back rather than
+  trusting it — because the alternative is letting a mirror become a way to hand someone a different
+  binary than the one published. The failure mode being guarded is not a broken mirror, which is
+  obvious, but a substituted one, which is not.
+
+
+  NETWORK FAILURE IS NOT A NEW VERSION. Unreachable origins mean "unknown", never "you are up to
+  date" — a checker that reports currency when it could not check is worse than one that reports
+  nothing, because the operator stops looking.
+subsystem: sdk_cli::distribution
+componentType: Adapter
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-09T23:16:57.612Z'
+updatedAt: '2026-09-09T23:16:57.618Z'

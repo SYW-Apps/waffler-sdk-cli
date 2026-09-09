@@ -1,0 +1,28 @@
+id: update-orchestrator
+name: Update Orchestrator
+description: >-
+  The self-update workflow: find what is available, compare, fetch, replace.
+
+
+  REPLACING A RUNNING BINARY IS THE RISKY STEP, and the order exists to make a failure survivable.
+  Download and verify to a temporary location FIRST, and only then swap — so an interrupted update
+  leaves the working tool in place rather than a partial one. A self-updater that truncates itself
+  mid-download has removed the thing needed to recover.
+
+
+  IT NEVER UPDATES SILENTLY. The current version, the offered version, and which origin offered it
+  are stated before anything is fetched. An operator who did not expect an update from that origin
+  needs the chance to stop.
+
+
+  DOWNGRADE IS A DECISION, NOT A DEFAULT. An older version offered by a mirror is not automatically
+  installed, because "the registry offers 1.0.9" and "you should go back to 1.0.9" are different
+  claims and only an operator can make the second.
+subsystem: sdk_cli::distribution
+componentType: Orchestrator
+owns: []
+dependsOn:
+  - release-source-adapter
+status: draft
+createdAt: '2026-09-09T23:17:07.507Z'
+updatedAt: '2026-09-09T23:17:07.513Z'

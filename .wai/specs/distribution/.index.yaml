@@ -1,0 +1,40 @@
+id: distribution
+name: Distribution
+description: >-
+  How a developer gets this tool, and how it updates itself. Owns the `update` command.
+
+
+  RELEASES ARE PUBLISHED TO GITHUB; A REGISTRY MAY MIRROR THEM. GitHub stays the single place a
+  release is cut, so there is one publish step and one source of truth for what version exists. A
+  registry may additionally advertise and serve binaries, and when it does, this tool prefers it.
+
+
+  WHY BOTH, and it is not indecision. A developer needs the CLI BEFORE they have an account, so the
+  download cannot sit behind authentication. And a private or air-gapped instance has no route to
+  github.com at all — for those operators, "download the CLI" must be answerable by the registry
+  they can actually reach. Preferring the registry and falling back to GitHub serves both without
+  making either mandatory: a public instance mirrors nothing and costs its operator no work, while
+  an isolated one mirrors and keeps working.
+
+
+  RESOLUTION ORDER IS THE SAME SHAPE AS EVERYTHING ELSE HERE. Ask the resolved registry what it
+  offers; if it advertises no mirror, fall back to GitHub. And SAY WHICH ONE ANSWERED — a tool that
+  silently updated itself from a different origin than the operator expected is the failure that is
+  hardest to notice and worst to discover.
+
+
+  A MIRROR IS A COURIER, NOT AN AUTHORITY. Mirrored bytes must be verifiable against the release
+  they claim to be, or a mirror becomes a way to hand someone a different binary than the one that
+  was published. Whatever integrity the release carries travels with it; a registry that cannot
+  produce matching bytes is treated as having no mirror rather than as a new source of truth.
+
+
+  WHAT IT DOES NOT DO. It does not install packages, and it is not how packages are distributed —
+  that is the registry's catalog, and conflating the two would put the tool's own updates on the
+  same path as the artifacts it publishes.
+parentSystem: Waffler Developer CLI
+publicInterfaces: []
+trustedLinks: []
+status: draft
+createdAt: '2026-09-09T23:16:47.082Z'
+updatedAt: '2026-09-09T23:16:47.308Z'

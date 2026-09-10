@@ -78,20 +78,37 @@ until the node restarts; after the restart it serves. That is why `04-verify-ser
 script — a single process asserting across that discontinuity would be asserting across something it
 cannot see.
 
-**3. The enable gate is not re-evaluated when a dependency goes.** `packages:uninstall` accepts
-removing `devbot.dia.util` while `devbot.dia.lib` and `devbot.dia.app` both declare it as a REQUIRED
-dependency. Neither dependent is disabled, neither is removed, and both keep answering. Measured
-across a node restart as well, so boot does not re-derive it either — the state is durable, not a
-stale in-memory flag.
+**3. A required dependency left and the dependents kept serving.** *(Fixed in core at `677364a5`;
+not yet deployed to beta, so the leg still reports it here.)* `packages:uninstall` accepts removing
+`devbot.dia.util` while `devbot.dia.lib` and `devbot.dia.app` both declare it REQUIRED. Neither
+dependent is removed, and both keep answering — measured across a node restart as well.
 
-Nothing here is broken by accident: the gate is what expresses "this package's declared requirements
-are met", and after that uninstall it says yes when they are not. Whether these particular packages
-still function is beside the point — they do, because they never call each other, which is exactly
-the case the gate exists to cover for the packages that do.
+Core's cause: `enable` had refused without required dependencies since it was written. `init` — the
+other path that starts a package, and the one a restart takes — spawned every enabled record without
+asking. **A gate on one of two entry points is not a gate.**
 
-`13-closure-serves.py` reports this and does **not** go red for it. A leg left permanently red over
-somebody else's open question is where the next real failure goes to hide; the note stops printing
-the moment the dependents arrive disabled or removed, which is how the fix becomes visible here.
+### What this cost the check itself, which is the reusable part
+
+The first version of this note read `enabled` and called `true` "the node believes a broken package
+is working". That was **the wrong observable**, and it would have gone on printing after the fix
+landed.
+
+`enabled` is the operator's *intent* — "I want this running" — and core deliberately does **not**
+clear it, so the package starts again by itself once the dependency returns. Health is a different
+fact. And an already-running actor does not consult its dependencies per call, so it finishes its
+life either way, like a process holding a handle to a deleted file.
+
+So the observable that separates fixed from not is **whether a restart now refuses to start it** —
+which no single process can assert across. The leg now reports `enabled` and `answers` as two facts,
+states what it cannot see, and names the two-script sequence for the rest:
+
+```bash
+# after 13 has uninstalled the leaf, restart the node, then:
+CYCLE_FQID=devbot.dia.lib python 04-verify-serves.py    # must NOT answer once core's fix ships
+```
+
+A check that reads a flag adjacent to the thing it cares about is a check that keeps passing, or
+keeps failing, through the change it was written to detect.
 
 ## What the closure legs found on their first run
 

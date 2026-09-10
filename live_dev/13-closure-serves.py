@@ -22,11 +22,17 @@ Uninstalling `util` takes a required dependency out from under `lib` and `app`. 
 safe — refuse the uninstall, or accept it and disable the dependents — so this reports which
 happened rather than pinning either.
 
-The third outcome is what the first run found: the uninstall is accepted and both dependents stay
-ENABLED and keep answering, across a node restart. That is core's gate, not this harness's, so it is
-printed as a standing finding and does not turn this leg red — a leg that is permanently red over
-somebody else's open question is where the next real failure goes to hide. It stops printing the
-moment core closes it, which is how the change becomes visible here.
+The third outcome is what the first run found: the uninstall is accepted and both dependents keep
+ANSWERING. That is core's gate, not this harness's, so it is printed as a standing finding and does
+not turn this leg red — a leg that is permanently red over somebody else's open question is where
+the next real failure goes to hide.
+
+WHAT THIS LEG CANNOT SEE, and an earlier version of it claimed to. `enabled` is the operator's
+intent, not health: core deliberately keeps it set so the package starts again once the dependency
+returns. And an already-running actor does not consult its dependencies per call, so it finishes its
+life regardless — like a process holding a handle to a deleted file. So the observable that
+separates fixed from not is whether a RESTART refuses to start it, which no single process can
+assert across. This leg reports what it measured and names the two-script sequence for the rest.
 """
 
 import asyncio
@@ -235,27 +241,45 @@ async def main():
                 bad(f"{UTIL} is still listed after a successful uninstall: {after[UTIL]!r}")
             else:
                 ok(f"{UTIL} is gone")
-            stranded = [f for f in DEPENDENTS_OF_UTIL if (after.get(f) or (None, None))[1] is True]
+            # ENABLED AND ANSWERING ARE TWO FACTS AND THIS USED TO READ ONLY ONE.
+            #
+            # `enabled` is the OPERATOR'S INTENT — "I want this running" — and core deliberately
+            # does not clear it when a dependency goes, so that the package starts again by itself
+            # once the dependency returns. Health is a different fact, and the only way to ask it
+            # is to call the thing.
+            #
+            # The earlier version of this block treated `enabled is True` as "the node believes a
+            # broken package is working" and would have gone on saying so after the gate was fixed,
+            # because the flag it read is not the thing the fix changes.
+            still_serving = []
             for fqid in DEPENDENTS_OF_UTIL:
                 state = after.get(fqid)
                 if state is None:
-                    ok(f"{fqid} was removed with it")
-                elif state[1] is not True:
-                    ok(f"{fqid} was disabled when its dependency left")
-            if stranded:
+                    ok(f"{fqid} was removed with its dependency")
+                    continue
+                _, error = await rpc(ws, fqid, "echo", "dependency gone")
+                answers = error is None
+                print(f"  {fqid}: enabled={state[1]!r}  answers={answers}")
+                if answers:
+                    still_serving.append(fqid)
+                else:
+                    ok(f"{fqid} stopped serving when its dependency left")
+            if still_serving:
                 # A STANDING FINDING, NOT A FAILURE OF THIS LEG — and the distinction is the
-                # difference between a suite people read and one they stop reading. The enable gate
-                # is core's, this leg is about whether a closure serves, and leaving it permanently
-                # red over somebody else's open question would bury the next real failure in it.
-                #
-                # It does not go quiet either. If core closes this, the packages arrive here
-                # disabled or removed, this block stops printing, and the change is visible in the
-                # output rather than in a diff nobody ran.
-                note("STANDING FINDING — the enable gate is not re-evaluated when a dependency goes")
-                print(f"        {', '.join(stranded)} are still ENABLED with the required")
-                print(f"        {UTIL} uninstalled, and they keep answering. Measured across a node")
-                print("        restart too, so boot does not re-derive it either. Core's to decide;")
-                print("        see the README's findings section.")
+                # difference between a suite people read and one they stop reading. The gate is
+                # core's, this leg is about whether a closure serves, and leaving it permanently red
+                # over somebody else's open question would bury the next real failure in it.
+                note("STANDING FINDING — a required dependency left and the dependents kept serving")
+                print(f"        {', '.join(still_serving)} still answer with {UTIL} uninstalled.")
+                print("")
+                print("        WHAT THIS RUN CANNOT SEE, stated because the note used to claim it:")
+                print("        an already-RUNNING actor does not consult its dependencies per call,")
+                print("        so it finishes its life either way — like a process holding a handle")
+                print("        to a deleted file. Whether a RESTART now refuses to start it is the")
+                print("        observable that separates fixed from not, and a single process")
+                print("        asserting across a restart would be asserting across something it")
+                print("        cannot see. Restart the node and run:")
+                print(f"            CYCLE_FQID={DEPENDENTS_OF_UTIL[0]} python 04-verify-serves.py")
 
         step("5. PUT IT BACK — the node must return to a whole closure")
         result, error = await rpc(

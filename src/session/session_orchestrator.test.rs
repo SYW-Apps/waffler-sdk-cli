@@ -134,11 +134,61 @@ fn a_credential_is_fresh_only_with_room_to_spare() {
         expires_at: chrono::Utc::now() + chrono::Duration::seconds(60),
         subject: "s".into(),
         username: None,
-        issuer: "https://i.example".into(),
+        discovery_url: "https://i.example/.well-known/openid-configuration".into(),
         client_id: "waffler-cli".into(),
     };
     // A TOKEN THAT EXPIRES BETWEEN THE CHECK AND A LARGE UPLOAD WASTES THE UPLOAD. Sixty seconds of life
     // is "valid" and is NOT enough margin, which is the whole reason the margin exists.
     assert!(base.is_fresh(chrono::Duration::zero()));
     assert!(!base.is_fresh(chrono::Duration::seconds(120)));
+}
+
+#[test]
+fn a_registry_that_names_no_discovery_document_cannot_be_signed_in_to() {
+    // The refusal has to say the REGISTRY did not name one, not that the login failed. Substituting a
+    // default would authenticate a developer against somebody else's identity provider and present the
+    // resulting token here, to be refused for reasons naming neither party — so this asserts the field
+    // is OPTIONAL in the profile and that absence is representable at all.
+    let profile: crate::session::types::RegistryProfile =
+        serde_json::from_str(r#"{"authentication_available":true}"#).unwrap();
+    assert!(profile.authentication_available, "the posture is stated");
+    assert!(profile.discovery_url.is_none(), "and where to authenticate is not");
+    assert!(profile.audience.is_none());
+}
+
+#[test]
+fn the_profile_reads_the_names_the_registry_actually_serves() {
+    // THE WIRE NAMES ARE THE ASSERTION. The registry serves `oidc_discovery_url`, `oidc_audience` and
+    // `oidc_client_id`; a mirror expecting `issuer` would decode every one of them as absent — which
+    // PARSES, and reports a registry that advertises everything as advertising nothing.
+    let profile: crate::session::types::RegistryProfile = serde_json::from_str(
+        r#"{"authentication_available":true,
+            "oidc_discovery_url":"https://idp.example/.well-known/openid-configuration",
+            "oidc_audience":"waffler-registry",
+            "oidc_client_id":"waffler-cli",
+            "publishing_available":true,
+            "max_package_size_bytes":104857600}"#,
+    )
+    .unwrap();
+    assert_eq!(profile.discovery_url.as_deref(), Some("https://idp.example/.well-known/openid-configuration"));
+    assert_eq!(profile.audience.as_deref(), Some("waffler-registry"));
+    assert_eq!(profile.client_id.as_deref(), Some("waffler-cli"));
+    assert_eq!(profile.max_package_size_bytes, 104_857_600);
+    assert!(profile.publishing_available);
+}
+
+#[test]
+fn a_credential_stored_under_the_old_field_name_still_loads() {
+    // The field was `issuer` and is now `discovery_url`. A developer with a session file written by
+    // the previous build must not be silently signed out — and "silently" is the operative word: a
+    // credential that decoded with an empty provider would fail at the first REFRESH, which is a
+    // browser login appearing for no stated reason weeks later.
+    let credential: crate::session::types::RegistryCredential = serde_json::from_str(
+        r#"{"registry":"https://r.example","access_token":"t",
+            "expires_at":"2030-01-01T00:00:00Z","subject":"s",
+            "issuer":"https://idp.example/.well-known/openid-configuration",
+            "client_id":"waffler-cli"}"#,
+    )
+    .unwrap();
+    assert_eq!(credential.discovery_url, "https://idp.example/.well-known/openid-configuration");
 }

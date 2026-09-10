@@ -41,52 +41,45 @@ struct Discovery {
     token_endpoint: Option<String>,
 }
 
-/// Fetch and reduce an issuer's discovery document.
+/// Fetch and reduce the discovery document the REGISTRY named.
 ///
-/// A DOCUMENT THAT NAMES NEITHER ENDPOINT IS A REFUSAL THAT SAYS SO. The alternative — guessing
-/// conventional paths — produces requests to endpoints that may exist and may belong to something
-/// else entirely.
-async fn discover(client: &reqwest::Client, issuer: &str) -> Result<Discovery> {
-    let issuer = issuer.trim_end_matches('/');
-    // Two spellings, because a minimal provider may serve the document at the bare path while the
-    // specification places it under `/.well-known`. Tried in specification order.
-    let candidates = [
-        format!("{issuer}/.well-known/openid-configuration"),
-        format!("{issuer}/openid-configuration"),
-    ];
-    let mut last = String::new();
-    for url in &candidates {
-        match client.get(url).send().await {
-            Ok(response) if response.status().is_success() => {
-                let body = response.text().await.unwrap_or_default();
-                if let Ok(d) = serde_json::from_str::<Discovery>(&body) {
-                    return Ok(d);
-                }
-                last = format!("{url} did not answer with a discovery document");
-            }
-            Ok(response) => last = format!("{url} answered {}", response.status()),
-            Err(e) => last = format!("{url} could not be reached: {e}"),
-        }
+/// THE URL IS ADVERTISED, NOT DERIVED. An earlier version took an issuer and tried two conventional
+/// paths under it, which is guessing: a request to a path that may exist and may belong to something
+/// else. The registry holds the discovery URL its own token verifier uses and now publishes it, so
+/// there is exactly one URL and it is the one that deployment actually trusts.
+///
+/// A DOCUMENT THAT NAMES NEITHER ENDPOINT IS A REFUSAL THAT SAYS SO.
+async fn discover(client: &reqwest::Client, discovery_url: &str) -> Result<Discovery> {
+    let response = client
+        .get(discovery_url)
+        .send()
+        .await
+        .with_context(|| format!("could not reach the OpenID discovery document at {discovery_url}"))?;
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+    if !status.is_success() {
+        bail!("{discovery_url} answered {status}: {}", body.trim());
     }
-    bail!("could not read the OpenID discovery document from issuer {issuer} ({last})");
+    serde_json::from_str::<Discovery>(&body)
+        .with_context(|| format!("{discovery_url} did not answer with an OpenID discovery document"))
 }
 
 /// Run an authorization-code flow with PKCE against a discovered issuer.
 pub async fn authorize(
     client: &reqwest::Client,
-    issuer: &str,
+    discovery_url: &str,
     audience: &str,
     client_id: &str,
 ) -> Result<TokenSet> {
-    let discovery = discover(client, issuer).await?;
+    let discovery = discover(client, discovery_url).await?;
     let authorization_endpoint = discovery
         .authorization_endpoint
         .clone()
-        .with_context(|| format!("issuer {issuer} names no authorization endpoint, so an interactive login cannot be started"))?;
+        .with_context(|| format!("{discovery_url} names no authorization endpoint, so an interactive login cannot be started"))?;
     let token_endpoint = discovery
         .token_endpoint
         .clone()
-        .with_context(|| format!("issuer {issuer} names no token endpoint, so a code cannot be exchanged"))?;
+        .with_context(|| format!("{discovery_url} names no token endpoint, so a code cannot be exchanged"))?;
 
     // PKCE IS NOT OPTIONAL HERE, AND THE LOOPBACK REDIRECT IS WHY.
     //
@@ -158,14 +151,14 @@ pub async fn authorize(
 /// interactive flow would open a browser from inside a CI run and hang it until the timeout.
 pub async fn refresh(
     client: &reqwest::Client,
-    issuer: &str,
+    discovery_url: &str,
     client_id: &str,
     refresh_token: &str,
 ) -> Result<TokenSet> {
-    let discovery = discover(client, issuer).await?;
+    let discovery = discover(client, discovery_url).await?;
     let token_endpoint = discovery
         .token_endpoint
-        .with_context(|| format!("issuer {issuer} names no token endpoint, so a refresh cannot be exchanged"))?;
+        .with_context(|| format!("{discovery_url} names no token endpoint, so a refresh cannot be exchanged"))?;
 
     let response = client
         .post(&token_endpoint)

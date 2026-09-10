@@ -317,13 +317,22 @@ async fn run(cli: Cli) -> Result<()> {
             let profile = session_portal::profile(&client, &registry).await?;
             println!("  publishing:     {}", yes_no(profile.publishing_available));
             println!("  authentication: {}", yes_no(profile.authentication_available));
-            match profile.issuer.as_deref() {
-                Some(issuer) => println!("  issuer:         {issuer}"),
+            match profile.discovery_url.as_deref() {
+                Some(url) => {
+                    println!("  sign in via:    {url}");
+                    println!("  audience:       {}", profile.audience.as_deref().unwrap_or("(not advertised)"));
+                    // A CLIENT ID IS OPTIONAL WHERE THE OTHER TWO ARE NOT, so an absent one is
+                    // reported as the fallback that will be used rather than as a gap.
+                    println!(
+                        "  client id:      {}",
+                        profile.client_id.as_deref().unwrap_or("(not advertised — falling back to waffler-cli)")
+                    );
+                }
                 // NAMED AS MISSING rather than omitted. A registry that authenticates and does not say
                 // where is one `waffler login` cannot serve, and the operator needs to know that is
                 // the registry's gap rather than the tool's.
                 None if profile.authentication_available => println!(
-                    "  issuer:         {} — this registry does not advertise one, so `waffler login` cannot run against it",
+                    "  sign in via:    {} — this registry does not advertise an OpenID discovery document, so `waffler login` cannot run against it",
                     style("not advertised").yellow()
                 ),
                 None => {}

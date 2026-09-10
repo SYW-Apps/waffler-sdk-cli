@@ -69,13 +69,13 @@ pub struct RegistryCredential {
     pub subject: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
-    /// The issuer that minted it, so a refresh knows where to go without re-reading the registry.
+    /// The discovery document of the provider that minted it, so a refresh knows where to go.
     ///
-    /// STORED RATHER THAN RE-DISCOVERED: a refresh must reach the issuer that minted the token, and
-    /// asking the registry again would let a re-configured deployment send this tool's refresh to a
-    /// different issuer than the one holding the grant.
-    #[serde(default)]
-    pub issuer: String,
+    /// STORED RATHER THAN RE-DISCOVERED: a refresh must reach the provider that minted the token, and
+    /// asking the registry again would let a re-configured deployment send this tool's refresh
+    /// somewhere other than where the grant is held.
+    #[serde(default, alias = "issuer")]
+    pub discovery_url: String,
     /// The public client id used, for the same reason as the issuer.
     #[serde(default)]
     pub client_id: String,
@@ -102,16 +102,25 @@ pub struct RegistryProfile {
     /// regardless of what is presented.
     #[serde(default)]
     pub authentication_available: bool,
-    /// The OIDC issuer this instance trusts. Absent means the instance did not say, which is a
-    /// refusal to log in rather than a licence to guess.
-    #[serde(default)]
-    pub issuer: Option<String>,
+    /// The OpenID discovery document this instance trusts.
+    ///
+    /// FETCHED DIRECTLY rather than derived from an issuer, so no conventional path is ever guessed
+    /// at. Absent means the instance did not say, which is a refusal to log in rather than a licence
+    /// to guess: substituting a default would authenticate a developer against somebody else's
+    /// identity provider and present the resulting token here, to be refused for reasons naming
+    /// neither party.
+    #[serde(default, rename = "oidc_discovery_url")]
+    pub discovery_url: Option<String>,
     /// The audience this instance requires in a token. A token minted for a different audience is
     /// refused by the registry, so getting it from the registry is the only way to be right.
-    #[serde(default)]
+    #[serde(default, rename = "oidc_audience")]
     pub audience: Option<String>,
-    /// The public OAuth client this tool should identify as against that issuer.
-    #[serde(default)]
+    /// The public OAuth client this tool should identify as.
+    ///
+    /// OPTIONAL WHERE THE OTHER TWO ARE NOT: a client id is a public identifier the provider either
+    /// recognises or rejects, so falling back to a default produces a clean refusal from the right
+    /// party.
+    #[serde(default, rename = "oidc_client_id")]
     pub client_id: Option<String>,
     /// The largest upload this instance accepts.
     #[serde(default)]

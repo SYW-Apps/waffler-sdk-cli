@@ -35,10 +35,10 @@ pub const ENV_TOKEN: &str = "WAFFLER_REGISTRY_TOKEN";
 
 /// The public OAuth client this tool identifies as when a registry names none.
 ///
-/// A FALLBACK FOR THE CLIENT ID ONLY, NEVER FOR THE ISSUER. A client id is a public identifier that
-/// the issuer either recognises or rejects — guessing it wrong produces a clean refusal from the
-/// right party. Guessing an ISSUER wrong authenticates the developer against someone else's identity
-/// provider, which is why that one is refused rather than defaulted.
+/// A FALLBACK FOR THE CLIENT ID ONLY, NEVER FOR THE PROVIDER. A client id is a public identifier that
+/// the provider either recognises or rejects — guessing it wrong produces a clean refusal from the
+/// right party. Guessing a DISCOVERY URL wrong authenticates the developer against someone else's
+/// identity provider, which is why that one is refused rather than defaulted.
 pub const DEFAULT_CLIENT_ID: &str = "waffler-cli";
 
 /// How close to expiry a token may be and still be handed out.
@@ -165,9 +165,9 @@ pub async fn bearer_for(
         );
     };
 
-    match oidc_adapter::refresh(client, &credential.issuer, &credential.client_id, &refresh_token).await {
+    match oidc_adapter::refresh(client, &credential.discovery_url, &credential.client_id, &refresh_token).await {
         Ok(tokens) => {
-            let refreshed = credential_from_tokens(&registry.base_url, &credential.issuer, &credential.client_id, tokens, Some(&credential));
+            let refreshed = credential_from_tokens(&registry.base_url, &credential.discovery_url, &credential.client_id, tokens, Some(&credential));
             session_store::put_credential(&refreshed)?;
             Ok(refreshed.access_token)
         }
@@ -198,21 +198,21 @@ pub async fn sign_in(client: &reqwest::Client, registry: &TargetRegistry) -> Res
         );
     }
 
-    let issuer = profile
-        .issuer
+    let discovery_url = profile
+        .discovery_url
         .as_deref()
         .map(str::trim)
         .filter(|i| !i.is_empty())
-        // A REGISTRY THAT NAMES NO ISSUER CANNOT BE SIGNED IN TO, and this says the REGISTRY did not
-        // name one — not that the login failed. Substituting a default would authenticate the
+        // A REGISTRY THAT NAMES NO PROVIDER CANNOT BE SIGNED IN TO, and this says the REGISTRY did
+        // not name one — not that the login failed. Substituting a default would authenticate the
         // developer against someone else's identity provider and send the token here, where it would
         // be refused for reasons naming neither.
         .with_context(|| {
             format!(
-                "{} says authentication is available but does not name an OpenID issuer, so this tool \
-                 cannot know where to sign in.\n  A registry advertises its issuer and audience on \
-                 {}{}; until this deployment does, supply a bearer directly with {ENV_TOKEN} together \
-                 with --registry.",
+                "{} says authentication is available but does not name an OpenID discovery document, \
+                 so this tool cannot know where to sign in.\n  A registry advertises \
+                 `oidc_discovery_url` and `oidc_audience` on {}{}; until this deployment does, supply \
+                 a bearer directly with {ENV_TOKEN} together with --registry.",
                 registry.base_url,
                 registry.base_url,
                 registry_metadata_adapter::METADATA_PATH
@@ -243,8 +243,8 @@ pub async fn sign_in(client: &reqwest::Client, registry: &TargetRegistry) -> Res
         .unwrap_or(DEFAULT_CLIENT_ID)
         .to_string();
 
-    let tokens = oidc_adapter::authorize(client, &issuer, &audience, &client_id).await?;
-    let credential = credential_from_tokens(&registry.base_url, &issuer, &client_id, tokens, None);
+    let tokens = oidc_adapter::authorize(client, &discovery_url, &audience, &client_id).await?;
+    let credential = credential_from_tokens(&registry.base_url, &discovery_url, &client_id, tokens, None);
     session_store::put_credential(&credential)?;
     Ok(credential)
 }
@@ -282,7 +282,7 @@ pub async fn profile_of(client: &reqwest::Client, registry: &TargetRegistry) -> 
 /// not "you have none".
 fn credential_from_tokens(
     registry: &str,
-    issuer: &str,
+    discovery_url: &str,
     client_id: &str,
     tokens: super::types::TokenSet,
     previous: Option<&RegistryCredential>,
@@ -299,7 +299,7 @@ fn credential_from_tokens(
         expires_at: chrono::Utc::now() + chrono::Duration::seconds(lifetime),
         subject,
         username,
-        issuer: issuer.to_string(),
+        discovery_url: discovery_url.to_string(),
         client_id: client_id.to_string(),
     }
 }

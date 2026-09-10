@@ -49,3 +49,7 @@ pub fn http_client() -> reqwest::Client {
         // condition any caller can act on differently from any other.
         .expect("the HTTP client could not be built, which means the TLS backend is unavailable")
 }
+
+#[cfg(test)]
+#[path = "message_shape.test.rs"]
+mod message_shape_tests;

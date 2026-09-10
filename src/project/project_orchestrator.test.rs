@@ -1,3 +1,8 @@
+#![allow(non_snake_case)]
+// Emphatic capitals in a test name are this codebase convention: a name that says WHAT IS
+// BEING PROVEN reads better than one that obeys a lint, and a warning nobody clears becomes a
+// warning nobody reads - which is how a real one gets missed.
+
 //! Tests for the project workflow.
 //!
 //! THE ORDER IS WHAT IS BEING TESTED, not the individual steps — those have their own tests. What only

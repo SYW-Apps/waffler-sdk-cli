@@ -22,7 +22,7 @@ network, with a package that did not exist an hour earlier:
 |---|---|
 | `01-pack-publish.sh` | a scaffolded project packs to a current-format bundle; publishing under a tag **somebody else holds is refused (403)**; claiming a tag then publishing succeeds; the registry stores the payload **byte-identical** and appends **exactly 64 signature bytes** |
 | `02-install.py` | a second registry is added **alongside** the default; the node reaches it; search, detail, plan and preview all resolve; **install succeeds** |
-| `03-grant-and-call.py` | with no rule the call is refused `AccessDenied`; a permission group + binding changes that to `NotFound` — the grant is what moved it |
+| `03-grant-and-call.py` | with no rule the call is refused `AccessDenied`, **naming the caller as `syw.app.web`** rather than only its fingerprint; a permission group + binding changes that to `NotFound` — the grant is what moved it. Takes `CYCLE_FQID`, and REFUSES TO START rather than reporting failures when its preconditions are not met |
 | `04-verify-serves.py` | after a node restart the package **answers**, identifies itself, returns the payload it was handed, and **names** a capability it does not serve rather than echoing it |
 | `05-uninstall.py` | uninstall **stops it serving** (`the package actor has been dropped`) and removes the record — asserted against a **working baseline**, so the transition is what is proven rather than the state |
 | `06-withdraw-republish.sh` | republishing an existing version is refused (409); withdrawal makes the download 404 and the namespace **not browsable**; republish restores it; **two packs of one source are byte-identical**; a rebuild from source matches what the registry serves |
@@ -70,6 +70,16 @@ today. Whether an install should offer to author that grant is core's call.
 until the node restarts; after the restart it serves. That is why `04-verify-serves.py` is a separate
 script — a single process asserting across that discontinuity would be asserting across something it
 cannot see.
+
+## A script that goes red for the wrong reason
+
+`03-grant-and-call.py` grants, uninstalls and reinstalls, so a second run against one fqid finds a
+package that is installed-but-not-running and gets `ServiceUnavailable` where it expects
+`AccessDenied`. The first version called that two failures and described the enforcer — about a script
+that had simply already been run.
+
+A suite that goes red for reasons unrelated to the thing it tests is a suite people stop reading,
+which is the state that hides a real failure. It now refuses to start and names what it needs.
 
 ## One assertion that was wrong, and why it is worth recording
 

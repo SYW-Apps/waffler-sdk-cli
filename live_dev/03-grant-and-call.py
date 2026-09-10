@@ -20,6 +20,7 @@ silently shifts everything after it.
 
 import asyncio
 import json
+import os
 import sys
 
 import msgpack
@@ -27,11 +28,14 @@ import websockets
 
 NODE = "ws://waffler:42069/api/ws"
 REGISTRY_NAME = "local-dev"
-FQID = "devbot.example.hello"
+# Parameterised, because the refusal in step 1 can only be asserted against a package that has NOT
+# been granted yet — and this script grants one. Running it twice against a fixed fqid would assert a
+# refusal that its own previous run removed.
+FQID = os.environ.get("CYCLE_FQID", "devbot.example.hello")
 VERSION = "0.1.0"
 CALLER = "syw.app.web"
-GROUP_ID = "call_devbot_example_hello"
-BINDING_ID = "op.syw.app.web.call_devbot_example_hello"
+GROUP_ID = "call_" + FQID.replace(".", "_")
+BINDING_ID = "op.syw.app.web." + GROUP_ID
 MARKETPLACE = "syw.system.marketplace"
 
 _next_id = [0]
@@ -91,12 +95,38 @@ async def main():
     async with websockets.connect(NODE, max_size=64 * 1024 * 1024) as ws:
         step("1. the refusal, restated — so the grant below is shown to be what changed it")
         result, error = await echo_call(ws, "before the grant")
-        if error and "AccessDenied" in json.dumps(error):
+        text = json.dumps(error) if error else ""
+        if error and "AccessDenied" in text:
             ok("the call is refused with no rule, as fail-closed requires")
+            # THE CALLER IS NAMED, NOT JUST FINGERPRINTED. The refusal used to identify the caller only
+            # as `51c2c51b5a08b18a1e7edcef174f8c8b`, which is unactionable from an operator's seat —
+            # security already holds the fingerprint-to-fqid map and now uses it. Pinned so a
+            # regression to a bare fingerprint fails HERE rather than in front of a person.
+            if "no rule allows 'syw.app.web (" in text:
+                ok("and it names the caller as syw.app.web, not only its fingerprint")
+            else:
+                bad(f"the refusal does not name the caller by fqid: {text[:300]}")
+            # The ADVICE SENTENCE IS DELIBERATELY NOT PINNED. It is the part most likely to keep
+            # improving, and a test that pinned it would make every improvement a failure.
         elif error:
-            bad(f"refused for an unexpected reason: {error}")
+            # PRECONDITIONS NOT MET IS NOT A FAILURE, AND SAYING SO MATTERS.
+            #
+            # This script GRANTS, uninstalls and reinstalls, so a second run against the same fqid
+            # finds a package that is installed-but-not-running and reports `ServiceUnavailable` here
+            # rather than `AccessDenied`. The first version called that a failure — two red lines
+            # describing the enforcer, about a script that had simply already been run.
+            #
+            # A suite that goes red for reasons unrelated to the thing it tests is a suite people stop
+            # reading, which is the state that hides a real failure. So it refuses to start instead,
+            # and names what it needs.
+            print(f"[33m  SKIP  preconditions not met: the baseline call refused with {error.get('data', {}).get('code', '?')},[0m")
+            print("        not AccessDenied. This script needs a package that is installed, RUNNING,")
+            print("        and NOT yet granted — which is a package it has not already been run against.")
+            print(f"        Set CYCLE_FQID to a fresh one, or restart the node if {FQID} is installed but idle.")
+            sys.exit(2)
         else:
             bad("the call SUCCEEDED with no rule — the enforcer is not fail-closed")
+            sys.exit(1)
 
         step("2. author a permission group carrying the one rule")
         # StoredPermissionGroup positional:

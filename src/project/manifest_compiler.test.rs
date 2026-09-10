@@ -1,3 +1,8 @@
+#![allow(non_snake_case)]
+// Emphatic capitals in a test name are this codebase convention: a name that says WHAT IS
+// BEING PROVEN reads better than one that obeys a lint, and a warning nobody clears becomes a
+// warning nobody reads - which is how a real one gets missed.
+
 //! Tests for the manifest compiler.
 //!
 //! EVERY REFUSAL IS ASSERTED BESIDE ITS POSITIVE CASE. "Refuse when wrong" can pass for a check whose

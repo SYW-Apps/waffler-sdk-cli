@@ -1,3 +1,8 @@
+#![allow(non_snake_case)]
+// Emphatic capitals in a test name are this codebase convention: a name that says WHAT IS
+// BEING PROVEN reads better than one that obeys a lint, and a warning nobody clears becomes a
+// warning nobody reads - which is how a real one gets missed.
+
 //! Adversarial tests for the frame boundary, now pointed at `shared`'s parser.
 //!
 //! ## WHY THESE SURVIVED THE DELETION OF THE CODE THEY WERE WRITTEN FOR

@@ -22,17 +22,15 @@ Uninstalling `util` takes a required dependency out from under `lib` and `app`. 
 safe — refuse the uninstall, or accept it and disable the dependents — so this reports which
 happened rather than pinning either.
 
-The third outcome is what the first run found: the uninstall is accepted and both dependents keep
-ANSWERING. That is core's gate, not this harness's, so it is printed as a standing finding and does
-not turn this leg red — a leg that is permanently red over somebody else's open question is where
-the next real failure goes to hide.
+What actually happens is a third thing, and it is not a defect: the uninstall is accepted and both
+dependents keep ANSWERING, because an already-running actor does not consult its dependencies per
+call. It finishes its life like a process holding a handle to a deleted file.
 
 WHAT THIS LEG CANNOT SEE, and an earlier version of it claimed to. `enabled` is the operator's
-intent, not health: core deliberately keeps it set so the package starts again once the dependency
-returns. And an already-running actor does not consult its dependencies per call, so it finishes its
-life regardless — like a process holding a handle to a deleted file. So the observable that
-separates fixed from not is whether a RESTART refuses to start it, which no single process can
-assert across. This leg reports what it measured and names the two-script sequence for the rest.
+intent, not health — core deliberately keeps it set so the package starts again once the dependency
+returns. Together with the running-actor limit above, that means NOTHING in this leg's window
+changes when the gate is fixed or broken. The observable is whether a RESTART refuses to start it,
+which no single process can assert across, and that is `14-gate-after-restart.py`.
 """
 
 import asyncio
@@ -269,17 +267,18 @@ async def main():
                 # difference between a suite people read and one they stop reading. The gate is
                 # core's, this leg is about whether a closure serves, and leaving it permanently red
                 # over somebody else's open question would bury the next real failure in it.
-                note("STANDING FINDING — a required dependency left and the dependents kept serving")
+                # EXPECTED, AND NO LONGER A FINDING. Core closed the gate at boot
+                # (waffler_core@677364a5) and this is the documented limit that remains: an
+                # already-RUNNING actor does not consult its dependencies per call, so it finishes
+                # its life like a process holding a handle to a deleted file.
+                #
+                # This note used to say STANDING FINDING and point at 04-verify-serves.py. Both were
+                # wrong — the finding is closed, and 04 asserts a package DOES answer, so aiming it
+                # at a dependent whose dependency was removed reports the fix as a failure.
+                note("expected: a running actor keeps serving until the node restarts")
                 print(f"        {', '.join(still_serving)} still answer with {UTIL} uninstalled.")
-                print("")
-                print("        WHAT THIS RUN CANNOT SEE, stated because the note used to claim it:")
-                print("        an already-RUNNING actor does not consult its dependencies per call,")
-                print("        so it finishes its life either way — like a process holding a handle")
-                print("        to a deleted file. Whether a RESTART now refuses to start it is the")
-                print("        observable that separates fixed from not, and a single process")
-                print("        asserting across a restart would be asserting across something it")
-                print("        cannot see. Restart the node and run:")
-                print(f"            CYCLE_FQID={DEPENDENTS_OF_UTIL[0]} python 04-verify-serves.py")
+                print("        Whether they START again is the question, and no single process can")
+                print("        assert across a restart. That is 14-gate-after-restart.py.")
 
         step("5. PUT IT BACK — the node must return to a whole closure")
         result, error = await rpc(

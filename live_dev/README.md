@@ -35,7 +35,8 @@ network, with a package that did not exist an hour earlier:
 | `08-login.sh` | the interactive login, against a real provider: PKCE S256, a state parameter, an ephemeral loopback port; the credential is persisted **per registry** and does **not** leak to another; and a publish succeeds on the browser-obtained credential with **no environment token set** |
 | `11-dependency-closure.sh` | publishes a **diamond** and asks the registry to resolve it. The plan must be installable **in the order it gives**, every package after everything it declares; the range must pick the **highest** published, not the first that fits; a dependency that cannot resolve must be **an entry carrying a reason**, not an omission; and two packages asking for **incompatible ranges** of one dependency must be **refused, naming both asks**. **Two of those failed on first run** — see below |
 | `12-install-closure.py` | installs that closure through the marketplace on the live node: all three land, **in order**, **enabled**, and **at the version the registry offered** — a stale row would otherwise read as success. Both kinds of unresolvable closure — a dependency that does not exist, and one no version satisfies — are **refused with nothing installed**, naming what disagrees; a repeat install is **not a second copy** |
-| `13-closure-serves.py` | after a restart, **every member of the closure answers** — not just the root — identifies itself, and reports the version the node records. Then it takes the leaf away and asks what happens to the packages that needed it; **that found the third item below** |
+| `13-closure-serves.py` | after a restart, **every member of the closure answers** — not just the root — identifies itself, and reports the version the node records. Then it takes the leaf away and reports what a single process can see of that |
+| `14-gate-after-restart.py` | the observable neither 13 nor `04` can reach: **run twice across a node restart**, it proves all three serve, removes the leaf, and after the restart the dependents must **not have started**. It reads its phase from the NODE rather than a flag, so the two runs cannot be done out of order |
 
 ## Running it
 
@@ -64,7 +65,7 @@ capability) and replies are named maps. That asymmetry is honoured rather than w
 positional shape is spelled out where it is built — a wire read by index is one where a field inserted
 upstream silently shifts everything after it.
 
-## Three things the cycle found that are NOT this tool's to fix
+## Three things the cycle found that were NOT this tool's to fix
 
 **1. A package installed from a marketplace cannot be called from the UI until someone grants it.**
 The caller is `syw.app.web`, and the outbound Bus targets in its bundle were fixed when it was packed.
@@ -78,14 +79,29 @@ until the node restarts; after the restart it serves. That is why `04-verify-ser
 script — a single process asserting across that discontinuity would be asserting across something it
 cannot see.
 
-**3. A required dependency left and the dependents kept serving.** *(Fixed in core at `677364a5`;
-not yet deployed to beta, so the leg still reports it here.)* `packages:uninstall` accepts removing
-`devbot.dia.util` while `devbot.dia.lib` and `devbot.dia.app` both declare it REQUIRED. Neither
-dependent is removed, and both keep answering — measured across a node restart as well.
+**3. A required dependency left and the dependents kept serving.** ✅ **CLOSED** — fixed in core at
+`677364a5`, deployed, and confirmed live by `14-gate-after-restart.py`. Originally: `packages:uninstall`
+accepted removing `devbot.dia.util` while `devbot.dia.lib` and `devbot.dia.app` both declared it
+REQUIRED, and neither dependent was removed or stopped, across a node restart.
 
 Core's cause: `enable` had refused without required dependencies since it was written. `init` — the
 other path that starts a package, and the one a restart takes — spawned every enabled record without
 asking. **A gate on one of two entry points is not a gate.**
+
+Confirmed on the deployed image: both dependents fail to start after a restart, and the boot log
+carries one line each naming the dependent, the missing dependency and its range —
+
+```
+ERROR supervisor: package 'devbot.dia.lib' is enabled but 1 of its required dependencies is
+  missing, so it was NOT started. It stays enabled and will start on the next boot once they
+  are present: 'devbot.dia.util' (^0.1.0) is not installed
+WARN  package error: ... code=DependencyUnmet
+```
+
+What did **not** change, and is the documented limit rather than a defect: a dependent keeps
+answering until the restart, because an already-running actor does not consult its dependencies per
+call — like a process holding a handle to a deleted file. And `enabled` stays `true`, deliberately:
+it is the operator's intent, so the package starts again by itself once the dependency returns.
 
 ### What this cost the check itself, which is the reusable part
 

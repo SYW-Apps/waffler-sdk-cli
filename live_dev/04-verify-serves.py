@@ -14,14 +14,18 @@ process would be asserting across a discontinuity it cannot see.
 
 import asyncio
 import json
+import os
 import sys
 
 import msgpack
 import websockets
 
 NODE = "ws://waffler:42069/api/ws"
-FQID = "devbot.example.hello"
-VERSION = "0.1.0"
+# Named by the caller so the closure legs can point this at each member of a graph in turn. The
+# default is the single package the earlier legs publish, so running this bare still does what it
+# always did. VERSION is no longer pinned: 11-dependency-closure.sh publishes a fresh patch every
+# run, and a hardcoded version here would fail for a reason that is not "does it serve".
+FQID = os.environ.get("CYCLE_FQID", "devbot.example.hello")
 _next_id = [0]
 failures = []
 
@@ -54,6 +58,7 @@ async def rpc(ws, service, command, payload):
 async def main():
     async with websockets.connect(NODE, max_size=64 * 1024 * 1024) as ws:
         step("1. the package survived the restart")
+        recorded_version = None
         pkgs, err = await rpc(ws, "packages", "list", None)
         if err:
             bad(f"packages:list refused: {err}")
@@ -61,6 +66,7 @@ async def main():
             rows = {p[0]: p for p in (pkgs or []) if isinstance(p, (list, tuple)) and p}
             if FQID in rows:
                 row = rows[FQID]
+                recorded_version = row[1]
                 ok(f"{FQID} {row[1]} {row[3]} identity={row[2]}")
             else:
                 bad(f"{FQID} is not installed after the restart (have: {sorted(rows)})")
@@ -93,8 +99,22 @@ async def main():
                     ok("and returned the payload it was handed")
                 else:
                     bad(f"the echo came back as {result.get('echo')!r}")
-                if result.get("version") == VERSION:
-                    ok(f"reporting version {VERSION}")
+                # AGAINST WHAT THE NODE RECORDED, not against a constant. The two can disagree, and
+                # that disagreement is the finding: the row says one version and the artifact
+                # answering reports another, which is a stale module still loaded under a record
+                # that has moved on. Asserted with an `else`, because the version check here was
+                # previously an `if` with no else — it said nothing at all when it disagreed, which
+                # is the one case worth hearing about.
+                answered = result.get("version")
+                if recorded_version is None:
+                    bad("no recorded version to compare against — step 1 did not find the package")
+                elif answered == recorded_version:
+                    ok(f"and the version it reports is the one the node recorded: {answered}")
+                else:
+                    bad(
+                        f"the node records {recorded_version} but the artifact answering "
+                        f"reports {answered} — a stale module is loaded"
+                    )
 
         step("4. a capability it does NOT serve is named rather than answered")
         # A package that answered everything would report success for a caller asking for something it

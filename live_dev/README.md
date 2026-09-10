@@ -35,6 +35,7 @@ network, with a package that did not exist an hour earlier:
 | `08-login.sh` | the interactive login, against a real provider: PKCE S256, a state parameter, an ephemeral loopback port; the credential is persisted **per registry** and does **not** leak to another; and a publish succeeds on the browser-obtained credential with **no environment token set** |
 | `11-dependency-closure.sh` | publishes a **diamond** and asks the registry to resolve it. The plan must be installable **in the order it gives**, every package after everything it declares; the range must pick the **highest** published, not the first that fits; and a dependency that cannot resolve must be **an entry carrying a reason**, not an omission. **This leg failed on its first run** — see below |
 | `12-install-closure.py` | installs that closure through the marketplace on the live node: all three land, **in order**, **enabled**, and **at the version the registry offered** — a stale row would otherwise read as success. A closure with an unresolvable member is **refused with nothing installed**, naming the missing package; a repeat install is **not a second copy** |
+| `13-closure-serves.py` | after a restart, **every member of the closure answers** — not just the root — identifies itself, and reports the version the node records. Then it takes the leaf away and asks what happens to the packages that needed it; **that found the third item below** |
 
 ## Running it
 
@@ -63,7 +64,7 @@ capability) and replies are named maps. That asymmetry is honoured rather than w
 positional shape is spelled out where it is built — a wire read by index is one where a field inserted
 upstream silently shifts everything after it.
 
-## Two things the cycle found that are NOT this tool's to fix
+## Three things the cycle found that are NOT this tool's to fix
 
 **1. A package installed from a marketplace cannot be called from the UI until someone grants it.**
 The caller is `syw.app.web`, and the outbound Bus targets in its bundle were fixed when it was packed.
@@ -76,6 +77,21 @@ today. Whether an install should offer to author that grant is core's call.
 until the node restarts; after the restart it serves. That is why `04-verify-serves.py` is a separate
 script — a single process asserting across that discontinuity would be asserting across something it
 cannot see.
+
+**3. The enable gate is not re-evaluated when a dependency goes.** `packages:uninstall` accepts
+removing `devbot.dia.util` while `devbot.dia.lib` and `devbot.dia.app` both declare it as a REQUIRED
+dependency. Neither dependent is disabled, neither is removed, and both keep answering. Measured
+across a node restart as well, so boot does not re-derive it either — the state is durable, not a
+stale in-memory flag.
+
+Nothing here is broken by accident: the gate is what expresses "this package's declared requirements
+are met", and after that uninstall it says yes when they are not. Whether these particular packages
+still function is beside the point — they do, because they never call each other, which is exactly
+the case the gate exists to cover for the packages that do.
+
+`13-closure-serves.py` reports this and does **not** go red for it. A leg left permanently red over
+somebody else's open question is where the next real failure goes to hide; the note stops printing
+the moment the dependents arrive disabled or removed, which is how the fix becomes visible here.
 
 ## What the closure legs found on their first run
 
@@ -116,6 +132,24 @@ that had simply already been run.
 
 A suite that goes red for reasons unrelated to the thing it tests is a suite people stop reading,
 which is the state that hides a real failure. It now refuses to start and names what it needs.
+
+## `AccessDenied` cannot tell "not granted" from "not running"
+
+`03-grant-and-call.py` reads `AccessDenied` on its baseline call as "installed, running, and not yet
+granted" — which is what it usually means, and it is the precondition the whole script needs.
+
+It is not sufficient. **The enforcer answers before the router does**, so a package whose actor has
+been dropped is refused with `AccessDenied` too, and the two are indistinguishable from outside
+until a grant takes the enforcer out of the path. Found by running the script against a package that
+had been reinstalled without a restart: step 1 passed, the grant went in, and step 4 came back
+`ServiceUnavailable: the package actor has been dropped`.
+
+So the precondition is now checked at the only place it can be — **after** the grant, where the
+answer is no longer ambiguous — and it exits as a skip naming what it needs rather than reporting a
+failure about an enforcer.
+
+The general shape is worth more than the fix: **a check placed before a gate can only see what the
+gate lets through.** Asking what a check READ, rather than what it covers, is what surfaces it.
 
 ## One assertion that was wrong, and why it is worth recording
 

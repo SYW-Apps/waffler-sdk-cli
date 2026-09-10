@@ -32,7 +32,6 @@ REGISTRY_NAME = "local-dev"
 # been granted yet — and this script grants one. Running it twice against a fixed fqid would assert a
 # refusal that its own previous run removed.
 FQID = os.environ.get("CYCLE_FQID", "devbot.example.hello")
-VERSION = "0.1.0"
 CALLER = "syw.app.web"
 GROUP_ID = "call_" + FQID.replace(".", "_")
 BINDING_ID = "op.syw.app.web." + GROUP_ID
@@ -81,6 +80,17 @@ def bus_command_pattern(target):
 async def echo_call(ws, message):
     """Call the package's own capability. THE OBSERVATION THAT SEPARATES INSTALLED FROM WORKING."""
     return await rpc(ws, FQID, "echo", message)
+
+
+async def recorded_version(ws):
+    """The version the node's own package row carries for FQID, or None."""
+    pkgs, err = await rpc(ws, "packages", "list", None)
+    if err:
+        return None
+    for row in pkgs or []:
+        if isinstance(row, (list, tuple)) and row and row[0] == FQID:
+            return row[1]
+    return None
 
 
 async def installed_fqids(ws):
@@ -164,6 +174,17 @@ async def main():
 
         step("4. DOES IT ANSWER NOW?")
         result, error = await echo_call(ws, "hello from the cycle")
+        if error and (error.get("data") or {}).get("code") in ("ServiceUnavailable", "NotFound"):
+            # A BLIND SPOT IN STEP 1'S PRECONDITION CHECK, found by running this against a package
+            # whose actor had been dropped. Step 1 reads `AccessDenied` as "installed, running, not
+            # yet granted" — but the enforcer answers BEFORE the router does, so a package that is
+            # not running is refused with `AccessDenied` too, and the two are indistinguishable
+            # until a grant removes the enforcer from the path. Which is here.
+            print(f"[33m  SKIP  granted, and the package is not RUNNING ({(error.get('data') or {}).get('code')}).[0m")
+            print("        Step 1 could not tell this apart from a package awaiting a grant: the")
+            print("        enforcer refuses first, so both look like AccessDenied. Restart the node")
+            print("        and run this again.")
+            sys.exit(2)
         if error:
             bad(f"still refused after the grant: {error}")
         else:
@@ -174,8 +195,22 @@ async def main():
                     ok("and returned the payload it was handed — the artifact is loaded and executing")
                 else:
                     bad(f"the echo came back as {result.get('echo')!r}")
-                if result.get("version") == VERSION:
-                    ok(f"reporting version {VERSION}")
+                # AGAINST WHAT THE NODE RECORDED, never a constant. This was a pinned "0.1.0"
+                # inside an `if` with no `else`: it said nothing at all when it disagreed, which is
+                # the one case worth hearing about, and it went quiet permanently the moment a leg
+                # started publishing a fresh patch each run. The node's own row is the right
+                # comparand anyway — a row saying one version while the artifact answering reports
+                # another is a stale module loaded under a record that has moved on.
+                recorded = await recorded_version(ws)
+                if recorded is None:
+                    bad("the node lists no version for this package to compare against")
+                elif result.get("version") == recorded:
+                    ok(f"and it reports {recorded}, the version the node records")
+                else:
+                    bad(
+                        f"the node records {recorded} but the artifact answering reports "
+                        f"{result.get('version')} — a stale module is loaded"
+                    )
             else:
                 bad(f"unexpected reply: {result!r}")
 

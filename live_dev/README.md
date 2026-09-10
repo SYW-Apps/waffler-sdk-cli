@@ -13,6 +13,10 @@ scaffold ─▶ validate ─▶ build ─▶ pack ─▶ publish ─▶ browse �
                                             │                      │
                                             ▼                      ▼
                                         republish  ────────▶  reinstall
+
+and, for a package that needs other packages:
+
+           publish a graph ─▶ resolve the closure ─▶ install it in order ─▶ all ENABLED
 ```
 
 Measured on 2026-09-10 against `waffler-beta` and `waffler-registry` on the `waffler_default`
@@ -29,6 +33,8 @@ network, with a package that did not exist an hour earlier:
 | `07-reinstall.py` | the loop closes on a genuinely different artifact — the republished bundle has a different content address |
 | `09-dual-sign.sh` / `10-verify-chain.py` | the CLI signs as publisher, the registry **countersigns**, and an independent decoder confirms the chain: Publisher then Registry, the registry signature covering `payload \|\| publisher_signature` and **not** the payload alone. The node then installs it and **pins the publisher**, durably across a restart |
 | `08-login.sh` | the interactive login, against a real provider: PKCE S256, a state parameter, an ephemeral loopback port; the credential is persisted **per registry** and does **not** leak to another; and a publish succeeds on the browser-obtained credential with **no environment token set** |
+| `11-dependency-closure.sh` | publishes a **diamond** and asks the registry to resolve it. The plan must be installable **in the order it gives**, every package after everything it declares; the range must pick the **highest** published, not the first that fits; and a dependency that cannot resolve must be **an entry carrying a reason**, not an omission. **This leg failed on its first run** — see below |
+| `12-install-closure.py` | installs that closure through the marketplace on the live node: all three land, **in order**, **enabled**, and **at the version the registry offered** — a stale row would otherwise read as success. A closure with an unresolvable member is **refused with nothing installed**, naming the missing package; a repeat install is **not a second copy** |
 
 ## Running it
 
@@ -70,6 +76,36 @@ today. Whether an install should offer to author that grant is core's call.
 until the node restarts; after the restart it serves. That is why `04-verify-serves.py` is a separate
 script — a single process asserting across that discontinuity would be asserting across something it
 cannot see.
+
+## What the closure legs found on their first run
+
+The registry served a plan that **was not installable in the order it gave**. `app` declares `lib`
+and `util`; `lib` also declares `util`:
+
+```
+       app ────────┐
+        │          │
+        ▼          ▼
+       lib ─────▶ util
+```
+
+The closure walk is breadth-first and recorded the depth of the **first** arrival, so `util` —
+reachable straight from `app` and again through `lib` — came out at depth 1, tied with the `lib` that
+needs it, and the tie fell to frontier order: `lib, util, app`. The marketplace installs straight down
+that list.
+
+**The registry's own suite was green, and its closure test is a chain.** In a chain the depths are
+0/1/2 — distinct — so first-arrival depth and install order agree, and the test passes under a rule
+that is wrong. A diamond is the smallest graph where a node's shortest and longest paths differ, which
+is exactly what a first-arrival depth cannot see. Two packages cannot show it; three in a line cannot
+either.
+
+Fixed in the registry (`depth` is now the **longest** path from the root, so the existing
+deepest-first sort is a topological order by construction) with both shapes pinned as tests, each
+shown to fail against the old rule.
+
+**Every live install before this one was a single package declaring nothing.** The closure lane on
+both sides was fully unit-tested and had never once been handed a graph.
 
 ## A script that goes red for the wrong reason
 

@@ -27,7 +27,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{bail, Result};
 
-use super::types::{Framing, PublishOutcome, WrittenBundle};
+use super::types::{PublishOutcome, WrittenBundle};
 use super::{bundle_writer, project_client_adapter, publication_adapter, session_client_adapter, signature_specialist};
 use crate::project::types::BuildReport;
 use crate::session::types::{PersistedSession, TargetRegistry};
@@ -84,18 +84,10 @@ pub async fn publish(
         }
     };
 
-    let framing = signature_specialist::detect_framing_of_file(&bundle.path)?;
-    if framing != Framing::Unsigned {
-        // REFUSED BEFORE UPLOADING. The registry refuses one too — it cannot safely decide which
-        // trailing bytes are signature and which are content — and finding that out locally costs
-        // nothing while finding it out after the upload costs the upload.
-        bail!(
-            "{} is already {framing}, and the registry signs what it accepts: it refuses an artifact \
-             that already carries a signature, because it cannot safely decide which trailing bytes are \
-             signature and which are content.\n  Pack an unsigned bundle for a registry publish.",
-            bundle.path.display()
-        );
-    }
+    // REFUSED BEFORE UPLOADING. The registry refuses one too — it cannot safely decide which trailing
+    // bytes are signature and which are content — and finding that out locally costs nothing while
+    // finding it out after the upload costs the upload.
+    signature_specialist::refuse_if_signed(&bundle.path)?;
 
     if profile.max_package_size_bytes > 0 && bundle.size_bytes > profile.max_package_size_bytes {
         // The bundle on disk is KEPT: the developer can inspect it, and the next attempt does not

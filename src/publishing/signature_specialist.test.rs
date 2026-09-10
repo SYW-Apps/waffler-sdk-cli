@@ -404,4 +404,41 @@ mod chain_vector {
             "this crate signs something other than the archive bytes"
         );
     }
+
+    #[test]
+    fn an_UNROTATED_bundle_writes_no_lineage_key_at_all() {
+        // BYTE-IDENTITY IS THE PROPERTY, not "the field is None".
+        //
+        // `SignatureTrailer` gained a `lineage` field when core built key rotation, and it carries
+        // `skip_serializing_if = "Option::is_none"` precisely so a bundle with no rotation chain
+        // encodes exactly as it did before the field existed. Without the skip, `to_vec_named`
+        // writes `lineage: nil` into EVERY trailer this tool produces and the bytes that two
+        // implementations have a byte-for-byte agreement about change silently.
+        //
+        // Core's interop vector catches it on their side. This crate is the PRODUCER, so it should
+        // not learn about its own output from somebody else's test — and a `lineage: None` in the
+        // constructor is not evidence of anything until something reads the bytes.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("bundle.zip");
+        std::fs::write(&path, super::archive(b"")).unwrap();
+        super::sign_as_publisher(&path, &PUBLISHER_SEED).unwrap();
+        let framed = std::fs::read(&path).unwrap();
+
+        let declared =
+            u32::from_le_bytes(framed[framed.len() - 12..framed.len() - 8].try_into().unwrap()) as usize;
+        let body = &framed[framed.len() - 12 - declared..framed.len() - 12];
+
+        // THE KEYS, read without the typed struct — which would decode a present `lineage: nil` and
+        // an absent key to the same `None`, the one-value-for-two-facts shape this assertion exists
+        // to see through. `IgnoredAny` captures the key set without needing a msgpack value crate.
+        let decoded: std::collections::BTreeMap<String, serde::de::IgnoredAny> =
+            rmp_serde::from_slice(body).expect("the trailer body is a named msgpack map");
+        let keys: Vec<&str> = decoded.keys().map(String::as_str).collect();
+        assert_eq!(
+            keys,
+            vec!["signatures"],
+            "an unrotated bundle's trailer must carry ONLY `signatures`; a `lineage` key here \
+             changes bytes that core's interop vector pins"
+        );
+    }
 }

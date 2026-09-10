@@ -110,6 +110,15 @@ pub fn sign_as_publisher(bundle_path: &std::path::Path, signing_key: &[u8; 32]) 
             public_key: key.verifying_key().to_bytes().to_vec(),
             signature: signature.to_bytes().to_vec(),
         }],
+        // NO ROTATION CHAIN. `waffler key rotate` is not built, so this tool has never produced a
+        // bundle that rotates a publisher key, and `None` is the truth rather than a placeholder.
+        //
+        // IT MUST STAY `None` UNTIL ROTATION IS BUILT, and the reason is not tidiness. The field is
+        // `skip_serializing_if = "Option::is_none"`, so `None` writes NO KEY into the trailer and the
+        // bytes are identical to those produced before the field existed. Any other value — including
+        // an empty chain — writes a key, changes the trailer, and breaks the byte-for-byte agreement
+        // the interop vectors hold between this tool and core.
+        lineage: None,
     };
 
     // NAMED MessagePack, so a later addition to the trailer is non-breaking. The encoding, the length

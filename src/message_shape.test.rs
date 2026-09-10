@@ -87,6 +87,23 @@ fn has_internal_run(line: &str) -> bool {
     false
 }
 
+/// Is this line one the scan should look at?
+///
+/// EXTRACTED FROM THE WALKER SO IT CAN BE KILLED. Both halves were inline `continue`s, and
+/// neutralising either left the suite green — not because they do nothing, but because nothing could
+/// observe them. A filter inside a loop is a decision no test can reach; a named predicate is one
+/// that can be handed the shapes it exists to reject.
+fn is_scannable(line: &str) -> bool {
+    // A comment may align things on purpose and none of them is a message a user sees.
+    if line.trim_start().starts_with("//") {
+        return false;
+    }
+    // Only lines carrying a string literal at all. This is also what makes the examined-lines floor
+    // mean something: without it the count is "every line in the crate", which a broken filter would
+    // still satisfy.
+    line.contains(char::from(34))
+}
+
 fn rust_sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
     for entry in std::fs::read_dir(dir).expect("reading the source tree").flatten() {
         let path = entry.path();
@@ -131,12 +148,7 @@ fn no_user_facing_string_carries_a_run_of_spaces_from_a_lost_line_continuation()
 
         let text = std::fs::read_to_string(file).expect("reading a source file");
         for (n, line) in text.lines().enumerate() {
-            // Comments and doc comments may align things on purpose, and none of them is a message.
-            if line.trim_start().starts_with("//") {
-                continue;
-            }
-            // Only lines that carry a string literal at all.
-            if !line.contains(char::from(34)) {
+            if !is_scannable(line) {
                 continue;
             }
             examined_lines += 1;
@@ -218,4 +230,37 @@ fn the_predicate_does_not_flag_DELIBERATE_alignment() {
     assert!(!has_internal_run("  * every node that installs such a package PINS this publisher;"));
     assert!(!has_internal_run(&format!("trailing spaces are not a gap either{gap}")), "a run at the end has nothing after it");
     assert!(!has_internal_run(&format!("updated_at{gap}= datetime('now')")), "aligned SQL is deliberate");
+
+    // THE CASE THAT COVERS `after != b'{'`, AND IT WAS ALSO MISSING. Every other aligned-column case
+    // here has a `:` before the run, so `before` excluded them and this clause decided nothing — the
+    // same redundancy as `before` had, one clause along.
+    //
+    // The shape it actually excludes is an aligned column with NO punctuation before the placeholder.
+    // Neither crate contains one today, which is why nothing could kill the clause; it is an ordinary
+    // Rust line rather than an unreachable one, so the clause is kept and given the case rather than
+    // deleted.
+    assert!(
+        !has_internal_run(&format!("println!(\"Total{gap}{{}}\", n);")),
+        "padding before a format placeholder is alignment, not a sentence gap"
+    );
+}
+
+#[test]
+fn the_line_filter_rejects_what_it_exists_to_reject() {
+    // BOTH HALVES WERE UNKILLABLE AS INLINE `continue`s. Neutralising either left the suite green,
+    // because a decision inside a loop is one no test can hand a value to. Extracting the filter is
+    // what made these assertions possible at all.
+    let gap = " ".repeat(RUN);
+
+    // A comment may align on purpose, and none of them is a message a user reads. The shape that
+    // reaches this clause needs a quote too, or the other half rejects it first — which is exactly
+    // why neither could be killed while they were fused together.
+    assert!(!is_scannable(&format!("    // see \"over the{gap}limit\" above")));
+    assert!(!is_scannable(&format!("//! the message ships as `over the{gap}limit`")));
+
+    // A line with no string literal carries no message, whatever else is on it.
+    assert!(!is_scannable(&format!("    let x = y{gap}+ z;")));
+
+    // And the positive: an ordinary line carrying a message is scanned.
+    assert!(is_scannable("    bail!(\"the archive declares no fqid\");"));
 }

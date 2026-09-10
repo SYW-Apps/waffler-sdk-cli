@@ -222,3 +222,47 @@ fn an_archive_with_no_manifest_is_refused_as_not_a_bundle() {
 fn bundle_writer_write(plan: &BundlePlan, out: &std::path::Path) {
     write_bundle(plan, out).unwrap();
 }
+
+#[test]
+fn packing_the_same_plan_twice_produces_BYTE_IDENTICAL_bundles() {
+    let dir = tempfile::tempdir().unwrap();
+    let plan = plan_with(
+        dir.path(),
+        vec![artifact(dir.path(), "libecho.so", b"the artifact")],
+        vec![],
+    );
+
+    let first = dir.path().join("a.zip");
+    let second = dir.path().join("b.zip");
+    write_bundle(&plan, &first).unwrap();
+    // A clock in the bytes would show up here and nowhere else, which is why this has to be a test
+    // rather than a code comment: the first version stamped the build instant into the identity
+    // segment and left the archive's entry timestamps at their default, and both are the clock.
+    std::thread::sleep(std::time::Duration::from_millis(1100));
+    write_bundle(&plan, &second).unwrap();
+
+    let a = std::fs::read(&first).unwrap();
+    let b = std::fs::read(&second).unwrap();
+    assert_eq!(
+        a, b,
+        "a bundle must be a function of its inputs and nothing else — reproducibility is what lets \
+         anyone rebuild from source and confirm the registry is serving what the source says"
+    );
+}
+
+#[test]
+fn the_identity_segment_asserts_no_creation_time() {
+    let dir = tempfile::tempdir().unwrap();
+    let plan = plan_with(dir.path(), vec![], vec![]);
+    let out = dir.path().join("bundle.zip");
+    bundle_writer_write(&plan, &out);
+
+    let segment: serde_json::Value =
+        serde_json::from_slice(&read_entry(&out, &format!("namespace/{}.json", plan.package_uuid))).unwrap();
+    // ABSENT IS TRUE. A fixed literal would restore determinism and assert something false; the build
+    // instant would be honest and destroy determinism. The bundle does not know when the entity was
+    // created, and a node stamps its own on ingest.
+    assert!(segment.get("created_at").is_none(), "got {segment}");
+    assert_eq!(segment["uuid"], plan.package_uuid);
+    assert_eq!(segment["entity_type"], "package");
+}

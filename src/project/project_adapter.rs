@@ -50,38 +50,45 @@ pub fn read_authored_manifest(directory: &Path) -> Result<AuthoredPackage> {
     serde_json::from_str(&text).with_context(|| format!("{} is not a valid {MANIFEST_FILE}", path.display()))
 }
 
-/// Resolve one declared artifact to an absolute path and measure it.
-pub fn locate_artifact(directory: &Path, declared: &DeclaredArtifact) -> Result<LocatedArtifact> {
-    let joined = directory.join(&declared.path);
-    // NO CANDIDATE LIST, NO FALLBACK DIRECTORY, NO SEARCH.
-    //
-    // The previous tool tried `target/release`, then the wasm target dir, then the project root,
-    // and took the first hit — so a stale artifact from a build the developer had forgotten was as
-    // good as a fresh one, and nothing could report that it had happened.
-    let absolute = joined.canonicalize().map_err(|_| {
-        // BOTH SPELLINGS IN THE MESSAGE. A relative path that looks right and a working directory
-        // that is not what the developer thinks are the same mistake wearing different clothes, and
-        // only printing both tells them which one they have.
+/// Confirm one artifact exists at an already-resolved candidate path, and measure it.
+///
+/// `candidate` came from exactly one of two authorities and from no third: the declaration's own
+/// `path`, joined to the project; or the build tool, asked where it put its output. NO CANDIDATE LIST,
+/// NO FALLBACK DIRECTORY, NO SEARCH — the previous tool tried the release target dir, then the wasm
+/// target dir, then the project root, and took the first hit, so a stale artifact from a build the
+/// developer had forgotten was as good as a fresh one with nothing able to report that it happened.
+///
+/// `describe` is how the candidate is spelled in a refusal: the declared path when a developer wrote
+/// one, and where the build tool said its output would be when they did not.
+pub fn locate_artifact(
+    declared: &DeclaredArtifact,
+    candidate: &Path,
+    describe: &str,
+) -> Result<LocatedArtifact> {
+    let absolute = candidate.canonicalize().map_err(|_| {
+        // BOTH SPELLINGS IN THE MESSAGE. A relative path that looks right and a working directory that
+        // is not what the developer thinks are the same mistake wearing different clothes, and only
+        // printing both tells them which one they have.
         anyhow::anyhow!(
-            "declared artifact '{}' does not exist.\n  resolved to: {}\n  \
-             (nothing else is searched: the declared path is the path)",
-            declared.path,
-            joined.display()
+            "declared artifact '{describe}' does not exist.\n  resolved to: {}\n  \
+             (nothing else is searched: one authority answers, and this is its answer)",
+            candidate.display()
         )
     })?;
 
     let meta = std::fs::metadata(&absolute).with_context(|| format!("reading {}", absolute.display()))?;
     if !meta.is_file() {
-        bail!("declared artifact '{}' resolves to {}, which is not a file", declared.path, absolute.display());
+        // `canonicalize` SUCCEEDS on a directory, so without this the failure would surface inside the
+        // archive writer as an error about reading bytes.
+        bail!("declared artifact '{describe}' resolves to {}, which is not a file", absolute.display());
     }
 
     Ok(LocatedArtifact {
-        name: declared.bundle_name(),
+        name: declared.bundle_name(&absolute),
         kind: declared.kind.clone(),
         entry_point: declared.entry_point.clone(),
         absolute_path: absolute,
-        // Measured here so an oversized bundle can be refused before an upload rather than during
-        // one.
+        // Measured here so an oversized bundle can be refused before an upload rather than during one.
         size_bytes: meta.len(),
     })
 }

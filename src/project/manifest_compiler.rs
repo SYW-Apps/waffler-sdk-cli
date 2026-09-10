@@ -58,20 +58,39 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
     }
 
     // Every cross-reference below resolves against this set.
+    //
+    // A `fromBuild` artifact's bundle name is not known until the build tool has been asked, so an
+    // EXPLICIT `name` is what makes it referenceable from a capability or a ui plugin. Without one it
+    // contributes nothing here, and a declaration naming it is refused with the list of what IS
+    // declared -- which is the right message, because the fix is to give it a name.
     let names: std::collections::HashSet<String> =
-        authored.artifacts.iter().map(super::types::DeclaredArtifact::bundle_name).collect();
+        authored.artifacts.iter().filter_map(declared_name_of).collect();
 
     for (i, artifact) in authored.artifacts.iter().enumerate() {
         let at = format!("artifacts[{i}]");
-        if artifact.path.trim().is_empty() {
-            violations.push(Violation::new(format!("{at}.path"), "must not be empty"));
-        } else if is_escaping_path(&artifact.path) {
-            // A bundle assembled from files outside the project is one nobody can reproduce from
-            // the repository.
-            violations.push(Violation::new(
-                format!("{at}.path"),
-                format!("'{}' escapes the project directory; an artifact must live inside the project that declares it", artifact.path),
-            ));
+        // EXACTLY ONE AUTHORITY PER ARTIFACT. `path` says the developer knows where the file is;
+        // `fromBuild` says the build tool does. Both together is a manifest that could disagree with
+        // itself, and neither is one that names nothing at all.
+        match (artifact.path.as_deref().map(str::trim).filter(|p| !p.is_empty()), artifact.from_build) {
+            (Some(path), false) => {
+                if is_escaping_path(path) {
+                    // A bundle assembled from files outside the project is one nobody can reproduce
+                    // from the repository.
+                    violations.push(Violation::new(
+                        format!("{at}.path"),
+                        format!("'{path}' escapes the project directory; an artifact must live inside the project that declares it"),
+                    ));
+                }
+            }
+            (None, true) => {}
+            (Some(_), true) => violations.push(Violation::new(
+                at.clone(),
+                "declares both `path` and `fromBuild`; exactly one authority answers where an artifact is",
+            )),
+            (None, false) => violations.push(Violation::new(
+                at.clone(),
+                "declares neither `path` nor `fromBuild`, so nothing says where this artifact is",
+            )),
         }
         match artifact.kind.as_str() {
             KIND_DLL => {
@@ -119,7 +138,7 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
         if plugin.id.trim().is_empty() {
             violations.push(Violation::new(format!("{at}.id"), "must not be empty"));
         }
-        match authored.artifacts.iter().find(|a| a.bundle_name() == plugin.artifact) {
+        match authored.artifacts.iter().find(|a| declared_name_of(a).as_deref() == Some(plugin.artifact.as_str())) {
             None => violations.push(Violation::new(
                 format!("{at}.artifact"),
                 format!("names '{}', which no declared artifact provides (declared: {})", plugin.artifact, name_list(&names)),
@@ -149,6 +168,22 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
     }
 
     violations
+}
+
+/// The name a declaration is referenceable by BEFORE anything has been located.
+///
+/// `None` for a `fromBuild` artifact with no explicit name: what the build tool will call it is not
+/// knowable at validation time, and inventing a plausible name here would let a capability reference
+/// resolve against a guess.
+fn declared_name_of(a: &super::types::DeclaredArtifact) -> Option<String> {
+    if let Some(name) = a.name.as_deref().filter(|n| !n.is_empty()) {
+        return Some(name.to_string());
+    }
+    // The last segment of a declared path, under either separator: a manifest is written on one
+    // platform and packed on another, and a declaration spelled with backslashes is a portability bug
+    // rather than a path — but it must still resolve to the same name here as it does at pack time.
+    let path = a.path.as_deref()?;
+    Some(path.rsplit(['/', '\\']).next().unwrap_or(path).to_string())
 }
 
 /// A relative path that climbs out of the project, or is absolute.

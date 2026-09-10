@@ -33,18 +33,26 @@ fn what_the_scaffold_renders_passes_every_check_that_pack_applies() {
 }
 
 #[test]
-fn the_declared_artifact_path_matches_the_crate_the_generated_cargo_manifest_builds() {
+fn the_generated_manifest_lets_the_BUILD_TOOL_say_where_its_output_went() {
     let files = render_project("syw.example.hello", "0.1.0", "A greeting.", "../..");
     let manifest = manifest_of(&files);
     let cargo = &files.iter().find(|f| f.relative_path == "Cargo.toml").unwrap().contents;
 
-    // ONE DERIVATION, ASSERTED ACROSS TWO FILES. The crate name and the declared artifact path are the
-    // same fact written twice, and the failure when they diverge is "the build succeeded and produced
-    // nothing at the declared path" — reported at pack time, naming a path the developer never typed.
     assert!(cargo.contains("name = \"syw_example_hello\""), "got:\n{cargo}");
-    let declared = &manifest.artifacts[0].path;
-    assert!(declared.contains("syw_example_hello"), "the declared path must name the crate that is built: {declared}");
-    assert!(declared.starts_with("target/release/"), "release, because a debug module exceeds core's inline custody cap: {declared}");
+
+    // THE MANIFEST NO LONGER RESTATES WHERE THE OUTPUT GOES, and the change came from running it.
+    //
+    // A literal `target/release/libsyw_example_hello.so` asserts two things the build tool owns: the
+    // target directory, which `CARGO_TARGET_DIR` (our own container build sets it to a cache mount),
+    // `build.target-dir` and a workspace all move; and the platform-specific file name, which makes the
+    // manifest single-platform. The first packed run failed on the first of those, refusing a path
+    // nobody had typed. `fromBuild` asks instead.
+    assert!(manifest.artifacts[0].from_build, "the generated artifact must be resolved by the build tool");
+    assert!(
+        manifest.artifacts[0].path.is_none(),
+        "and must not ALSO declare a path — two authorities for one artifact is a manifest that can \
+         disagree with itself"
+    );
 }
 
 #[test]
@@ -112,6 +120,6 @@ fn a_dotted_and_hyphenated_fqid_both_reduce_to_one_legal_crate_name() {
     // point at a file that never exists.
     assert!(cargo.contains("name = \"syw_my_package_thing\""), "got:\n{cargo}");
     let manifest = manifest_of(&files);
-    assert!(manifest.artifacts[0].path.contains("syw_my_package_thing"));
+    assert!(manifest.artifacts[0].from_build);
     assert_eq!(manifest_compiler::validate_authored(&manifest), vec![]);
 }

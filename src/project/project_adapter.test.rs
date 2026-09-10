@@ -65,12 +65,14 @@ fn a_declared_path_is_resolved_EXACTLY_and_nothing_else_is_searched() {
     write(dir.path(), "target/release/libecho.so", "stale");
 
     let declared = DeclaredArtifact {
-        path: "out/libecho.so".into(),
+        path: Some("out/libecho.so".into()),
+        from_build: false,
         kind: "Dll".into(),
         entry_point: Some("wf_init".into()),
         name: None,
     };
-    let e = locate_artifact(dir.path(), &declared).unwrap_err().to_string();
+    let candidate = dir.path().join("out/libecho.so");
+    let e = locate_artifact(&declared, &candidate, "out/libecho.so").unwrap_err().to_string();
     assert!(e.contains("out/libecho.so"), "the message names the path AS DECLARED: {e}");
     // BOTH SPELLINGS. A relative path that looks right and a working directory that is not what the
     // developer thinks are the same mistake wearing different clothes.
@@ -78,7 +80,7 @@ fn a_declared_path_is_resolved_EXACTLY_and_nothing_else_is_searched() {
 
     // Now the declared path exists, and the size is measured.
     write(dir.path(), "out/libecho.so", "fresh!");
-    let located = locate_artifact(dir.path(), &declared).unwrap();
+    let located = locate_artifact(&declared, &candidate, "out/libecho.so").unwrap();
     assert_eq!(located.name, "libecho.so");
     assert_eq!(located.size_bytes, 6, "measured at location time so an oversized bundle is refused before an upload");
 }
@@ -87,8 +89,8 @@ fn a_declared_path_is_resolved_EXACTLY_and_nothing_else_is_searched() {
 fn a_directory_at_the_declared_path_is_refused_rather_than_packed() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(dir.path().join("out/libecho.so")).unwrap();
-    let declared = DeclaredArtifact { path: "out/libecho.so".into(), kind: "Dll".into(), entry_point: None, name: None };
-    let e = locate_artifact(dir.path(), &declared).unwrap_err().to_string();
+    let declared = DeclaredArtifact { path: Some("out/libecho.so".into()), from_build: false, kind: "Dll".into(), entry_point: None, name: None };
+    let e = locate_artifact(&declared, &dir.path().join("out/libecho.so"), "out/libecho.so").unwrap_err().to_string();
     // `canonicalize` SUCCEEDS on a directory, so without the explicit file check this would pass
     // location and fail later inside the archive writer with a message about reading bytes.
     assert!(e.contains("not a file"), "got {e}");

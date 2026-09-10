@@ -16,7 +16,8 @@ fn sound() -> AuthoredPackage {
         description: "a fixture".into(),
         core_compatibility: Some("^0.1".into()),
         artifacts: vec![DeclaredArtifact {
-            path: "target/release/libecho.so".into(),
+            path: Some("target/release/libecho.so".into()),
+            from_build: false,
             kind: "Dll".into(),
             entry_point: Some("wf_init".into()),
             name: None,
@@ -100,7 +101,7 @@ fn an_unknown_artifact_kind_is_refused() {
 fn a_path_that_escapes_the_project_is_refused_in_every_spelling() {
     for escaping in ["../elsewhere/libecho.so", "/usr/lib/libecho.so", "a/../../b/libecho.so"] {
         let mut m = sound();
-        m.artifacts[0].path = escaping.into();
+        m.artifacts[0].path = Some(escaping.into());
         let v = validate_authored(&m);
         assert!(
             v.iter().any(|v| v.field == "artifacts[0].path"),
@@ -110,7 +111,7 @@ fn a_path_that_escapes_the_project_is_refused_in_every_spelling() {
     }
     // The neighbouring valid shape: a nested relative path is fine.
     let mut m = sound();
-    m.artifacts[0].path = "build/out/libecho.so".into();
+    m.artifacts[0].path = Some("build/out/libecho.so".into());
     assert!(validate_authored(&m).is_empty());
 }
 
@@ -160,7 +161,8 @@ fn a_ui_plugin_must_name_a_UiBundle_and_not_merely_an_artifact() {
     assert_eq!(fields(&validate_authored(&m)), vec!["uiPlugins[0].artifact"]);
 
     m.artifacts.push(DeclaredArtifact {
-        path: ".ui/marketplace.js".into(),
+        path: Some(".ui/marketplace.js".into()),
+        from_build: false,
         kind: "UiBundle".into(),
         entry_point: None,
         name: None,
@@ -172,7 +174,7 @@ fn a_ui_plugin_must_name_a_UiBundle_and_not_merely_an_artifact() {
 #[test]
 fn an_empty_slot_is_accepted_because_it_is_the_honest_value_for_a_plugin_that_mounts_nowhere() {
     let mut m = sound();
-    m.artifacts.push(DeclaredArtifact { path: ".ui/p.js".into(), kind: "UiBundle".into(), entry_point: None, name: None });
+    m.artifacts.push(DeclaredArtifact { path: Some(".ui/p.js".into()), from_build: false, kind: "UiBundle".into(), entry_point: None, name: None });
     m.ui_plugins.push(DeclaredUiPlugin { id: "p".into(), slot: String::new(), artifact: "p.js".into() });
     assert!(validate_authored(&m).is_empty());
 
@@ -346,23 +348,67 @@ fn a_fast_lane_request_is_a_PENDING_REQUEST_never_a_grant() {
     assert!(body.get("fast_lane_grants").is_none(), "a bundle must not be able to declare a grant");
 }
 
+
 #[test]
-fn a_bundle_name_defaults_to_the_file_name_and_an_explicit_name_wins() {
+fn an_artifact_must_name_EXACTLY_ONE_authority_for_where_it_is() {
+    // `path` says the developer knows where the file is; `fromBuild` says the build tool does. Both
+    // together is a manifest that could disagree with itself, and neither is one that names nothing.
+    let mut m = sound();
+    m.artifacts[0].from_build = true;
+    assert_eq!(fields(&validate_authored(&m)), vec!["artifacts[0]"], "path AND fromBuild must be refused");
+
+    m.artifacts[0].path = None;
+    assert!(validate_authored(&m).is_empty(), "fromBuild alone is the ordinary case");
+
+    m.artifacts[0].from_build = false;
+    assert_eq!(fields(&validate_authored(&m)), vec!["artifacts[0]"], "neither must be refused");
+}
+
+#[test]
+fn a_from_build_artifact_needs_an_explicit_name_to_be_referenceable() {
+    // WHAT THE BUILD TOOL WILL CALL IT IS NOT KNOWABLE AT VALIDATION TIME — that is the whole reason
+    // `fromBuild` exists. So a capability cannot reference such an artifact unless the manifest also
+    // gives it a name, and the refusal says which names ARE available.
+    let mut m = sound();
+    m.artifacts[0].path = None;
+    m.artifacts[0].from_build = true;
+    m.capabilities.push(DeclaredCapability {
+        fqid: "sim.echo".into(),
+        kind: "RuntimePrimitive".into(),
+        target_host: "runtime-wack".into(),
+        artifact: "libecho.so".into(),
+        symbol: Some("sim_echo".into()),
+        inputs: vec![],
+    });
+    let v = validate_authored(&m);
+    assert!(v.iter().any(|v| v.field == "capabilities[0].artifact"), "got {v:?}");
+
+    // Give it a name and the reference resolves. This is the positive half: without it, a check that
+    // refused every fromBuild capability reference would pass the assertion above.
+    m.artifacts[0].name = Some("libecho.so".into());
+    assert!(validate_authored(&m).is_empty(), "an explicit name makes it referenceable");
+}
+
+#[test]
+fn a_bundle_name_comes_from_the_resolved_file_and_an_explicit_name_wins() {
     let mut a = DeclaredArtifact {
-        path: "target/release/libecho.so".into(),
+        path: Some("target/release/libecho.so".into()),
+        from_build: false,
         kind: "Dll".into(),
         entry_point: Some("wf_init".into()),
         name: None,
     };
-    assert_eq!(a.bundle_name(), "libecho.so");
-    // A Windows-spelled path still yields the file name, because a declaration written on one platform
-    // is packed on another.
-    a.path = r"target\release\libecho.so".into();
-    assert_eq!(a.bundle_name(), "libecho.so");
+    // THE RESOLVED FILE'S OWN NAME. A `fromBuild` artifact has no declared path to take a name from,
+    // and for a declared one the two are identical — so taking it from the file that will actually be
+    // embedded is the only spelling that works for both.
+    let resolved = std::path::Path::new("/cache/target/release/libsyw_example_hello.so");
+    assert_eq!(a.bundle_name(resolved), "libsyw_example_hello.so");
+
     a.name = Some("echo.so".into());
-    assert_eq!(a.bundle_name(), "echo.so");
+    assert_eq!(a.bundle_name(resolved), "echo.so", "an explicit name overrides the file's");
+
     // An empty explicit name falls back rather than producing an artifact with no name — a zip entry
     // called `artifact/` is a directory, not a file.
     a.name = Some(String::new());
-    assert_eq!(a.bundle_name(), "libecho.so");
+    assert_eq!(a.bundle_name(resolved), "libsyw_example_hello.so");
 }

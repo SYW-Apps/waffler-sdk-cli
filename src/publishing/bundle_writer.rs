@@ -44,6 +44,15 @@ pub const NAMESPACE_PREFIX: &str = "namespace";
 /// they come.
 const CHUNK: usize = 64 * 1024;
 
+/// The fixed timestamp every entry carries.
+///
+/// The zip format's date field starts at 1980, so that is the earliest representable instant and the
+/// conventional choice for a reproducible archive. The value itself carries no meaning — what matters
+/// is that it is the same on every run, on every machine.
+fn epoch_time() -> zip::DateTime {
+    zip::DateTime::from_date_and_time(1980, 1, 1, 0, 0, 0).expect("1980-01-01 is representable in a zip timestamp")
+}
+
 /// Write `.manifest`, `artifact/<name>` for each artifact, and the namespace tree.
 pub fn write_bundle(plan: &BundlePlan, output_path: &Path) -> Result<WrittenBundle> {
     if let Some(parent) = output_path.parent().filter(|p| !p.as_os_str().is_empty()) {
@@ -61,7 +70,14 @@ pub fn write_bundle(plan: &BundlePlan, output_path: &Path) -> Result<WrittenBund
     // expands past its limit, and a compressed entry can declare one size and expand to another,
     // which is a decompression bomb that was accepted and published before the reader learned to
     // check both numbers.
-    let options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+    //
+    // THE ENTRY TIMESTAMP IS FIXED, so a bundle is a function of its inputs and nothing else. The
+    // default is the clock, and a clock in the bytes means packing the same source twice yields a
+    // different content address — which is exactly the property that lets anyone rebuild from source
+    // and confirm the registry is serving what the source says.
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Stored)
+        .last_modified_time(epoch_time());
 
     // The artifacts go in first so their hashes exist before the manifest that declares them is
     // written. The alternative — writing the manifest first and patching it — would mean rewriting
@@ -154,15 +170,24 @@ pub fn write_bundle(plan: &BundlePlan, output_path: &Path) -> Result<WrittenBund
 ///
 /// THE LENIENT StagedSegment SHAPE: only `uuid` and `entity_type` are required by the reader, and the
 /// rest is what makes the ingested entity legible to a human looking at it.
+///
+/// ## THERE IS NO `created_at`, AND ITS ABSENCE IS THE POINT
+///
+/// The first version stamped the build instant here. That made a bundle a function of its inputs AND
+/// of the clock: packing the same source twice produced different bytes, a different content address,
+/// and an artifact nobody could check against a published one. Reproducibility is what lets anyone
+/// rebuild from source and confirm the registry is serving what the source says — and a per-build
+/// timestamp destroys it for no gain, because when a version was published is the REGISTRY's fact and
+/// it already records `published_at`.
+///
+/// A fixed literal instant would restore determinism and assert something false. Absent is true: the
+/// bundle does not know when the entity was created, and a node stamps its own on ingest.
 fn identity_segment(plan: &BundlePlan) -> Result<Vec<u8>> {
     serde_json::to_vec_pretty(&serde_json::json!({
         "uuid": plan.package_uuid,
         "technical_name": plan.fqid,
         "display_name": plan.fqid,
         "entity_type": "package",
-        // The instant the bundle was built. A fixed literal here would make every package claim the
-        // same creation time, which is worse than useless in a catalog sorted by it.
-        "created_at": chrono::Utc::now().to_rfc3339(),
         "tags": [],
         "parent_uuid": null,
     }))

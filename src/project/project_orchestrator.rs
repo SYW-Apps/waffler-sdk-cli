@@ -55,9 +55,27 @@ pub fn plan_bundle(directory: &Path, skip_build: bool) -> Result<(BundlePlan, Bu
         }
     };
 
+    // EACH ARTIFACT IS RESOLVED BY EXACTLY ONE AUTHORITY, and which one is a property of the
+    // declaration rather than a fallback chain. A declared `path` means the developer knows where the
+    // file is; `fromBuild` means the build tool does, and it is asked. Nothing here searches.
     let mut located = Vec::with_capacity(authored.artifacts.len());
     for declared in &authored.artifacts {
-        located.push(project_adapter::locate_artifact(directory, declared)?);
+        let (candidate, describe) = if declared.from_build {
+            let Some(build) = authored.build.as_ref() else {
+                bail!(
+                    "an artifact declares `fromBuild` but {} declares no `build.manifestPath`, so there \
+                     is no build to ask where its output went.",
+                    super::types::MANIFEST_FILE
+                );
+            };
+            let path = build_adapter::built_artifact_path(&directory.join(&build.manifest_path))?;
+            let describe = format!("fromBuild ({})", path.display());
+            (path, describe)
+        } else {
+            let path = declared.path.clone().unwrap_or_default();
+            (directory.join(&path), path)
+        };
+        located.push(project_adapter::locate_artifact(declared, &candidate, &describe)?);
     }
 
     let namespace_files = project_adapter::read_namespace_tree(directory)?;

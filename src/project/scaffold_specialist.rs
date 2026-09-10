@@ -25,16 +25,16 @@ pub const SCAFFOLD_CORE_COMPATIBILITY: &str = "^0.1";
 /// dependency line pointing nowhere would generate a project that cannot build — the exact failure
 /// this component exists to prevent, moved from the manifest into the crate manifest.
 pub fn render_project(fqid: &str, version: &str, description: &str, sdk_path: &str) -> Vec<RenderedFile> {
-    // ONE DERIVATION, STATED ONCE. The crate name, the library file name and the artifact path the
-    // manifest declares are all the same fact; deriving it in three places is three chances for the
-    // declared path and the built file to diverge.
+    // ONE DERIVATION, STATED ONCE, and now used in ONE place rather than two. The generated manifest
+    // no longer restates where the build's output goes — it says `fromBuild` and lets the build tool
+    // answer, which is what makes the generated project pack on every platform instead of only on the
+    // one it was created on.
     let crate_name = fqid.replace(['.', '-'], "_");
-    let lib_file = library_file_name(&crate_name);
 
     vec![
         RenderedFile {
             relative_path: super::types::MANIFEST_FILE.to_string(),
-            contents: render_manifest(fqid, version, description, &lib_file),
+            contents: render_manifest(fqid, version, description),
         },
         RenderedFile { relative_path: "Cargo.toml".into(), contents: render_cargo_toml(&crate_name, version, description, sdk_path) },
         RenderedFile { relative_path: "src/lib.rs".into(), contents: render_lib_rs(fqid, version) },
@@ -43,22 +43,7 @@ pub fn render_project(fqid: &str, version: &str, description: &str, sdk_path: &s
     ]
 }
 
-/// The file name a cdylib takes on the platform the scaffold is running on.
-///
-/// THE PLATFORM MATTERS AND CANNOT BE HIDDEN. A declared artifact path is resolved exactly, with no
-/// search, so a manifest naming `libfoo.so` on Windows names a file that will never exist — and the
-/// refusal would arrive at pack time naming a path the developer never typed.
-fn library_file_name(crate_name: &str) -> String {
-    if cfg!(target_os = "windows") {
-        format!("{crate_name}.dll")
-    } else if cfg!(target_os = "macos") {
-        format!("lib{crate_name}.dylib")
-    } else {
-        format!("lib{crate_name}.so")
-    }
-}
-
-fn render_manifest(fqid: &str, version: &str, description: &str, lib_file: &str) -> String {
+fn render_manifest(fqid: &str, version: &str, description: &str) -> String {
     let capability = "echo";
     format!(
         r#"{{
@@ -74,10 +59,10 @@ fn render_manifest(fqid: &str, version: &str, description: &str, lib_file: &str)
     "manifestPath": "Cargo.toml"
   }},
 
-  "//artifacts": "Paths are resolved EXACTLY. Nothing else is searched, so a stale binary in another directory can never be packed by accident.",
+  "//artifacts": "`fromBuild` asks the build tool where its output went. A literal path would encode two things the build tool owns -- the target directory, which CARGO_TARGET_DIR and workspaces move, and the platform-specific file name -- and both were wrong the first time this was run for real.",
   "artifacts": [
     {{
-      "path": "target/release/{lib_file}",
+      "fromBuild": true,
       "kind": "Dll",
       "entryPoint": "wf_init"
     }}

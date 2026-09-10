@@ -105,8 +105,31 @@ pub struct BuildDeclaration {
 // snake_case; a developer editing JSON should not have to know which language read it.
 #[serde(rename_all = "camelCase")]
 pub struct DeclaredArtifact {
-    /// Project-relative path to the built file. Resolved exactly, never searched.
-    pub path: String,
+    /// Project-relative path to a file THIS TOOL DOES NOT BUILD — a UI bundle from vite, a data file,
+    /// anything produced by other tooling. Resolved exactly, never searched.
+    ///
+    /// Exactly one of `path` and `from_build` must be given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    /// Take this artifact from the declared build's OUTPUT, wherever the toolchain put it.
+    ///
+    /// ## WHY THIS EXISTS RATHER THAN A LITERAL PATH
+    ///
+    /// A manifest declaring `target/release/libfoo.so` encodes two assumptions that belong to the
+    /// build tool and not to the developer, and both were wrong the first time this was run for real:
+    ///
+    ///   * WHERE the output goes. `CARGO_TARGET_DIR` — which our own container build sets to a cache
+    ///     mount — `build.target-dir` in a config file, and a workspace's shared target directory all
+    ///     move it. The pack failed with "declared artifact does not exist", naming a path nobody had
+    ///     typed.
+    ///   * WHAT the file is called. The toolchain emits `libfoo.so`, `foo.dll` or `libfoo.dylib`
+    ///     depending on the platform, so a literal path makes the manifest single-platform — and a
+    ///     bundle packed on Windows carries a module no Linux node can load.
+    ///
+    /// Asking the toolchain removes both. IT IS NOT A SEARCH: the build tool is the authority on where
+    /// its own output went, and one authoritative answer replaces a list of guesses.
+    #[serde(default)]
+    pub from_build: bool,
     /// `Dll` for a loadable module, `UiBundle` for a frontend bundle.
     pub kind: String,
     /// The symbol a host calls to initialize a Dll — `wf_init` for the Rust SDK. Absent for a
@@ -125,13 +148,15 @@ impl DeclaredArtifact {
     /// the zip entry path all resolve a declaration to a name; three implementations of that would
     /// be three chances for a capability to name an artifact that the writer files under something
     /// else, and the bundle would be internally inconsistent with nothing able to say so.
-    pub fn bundle_name(&self) -> String {
+    pub fn bundle_name(&self, resolved: &std::path::Path) -> String {
         if let Some(name) = self.name.as_deref().filter(|n| !n.is_empty()) {
             return name.to_string();
         }
-        // Forward slashes only: a declaration is project-relative and written with `/`, and a
-        // Windows path separator in a declaration is a portability bug rather than a path.
-        self.path.rsplit(['/', '\\']).next().unwrap_or(&self.path).to_string()
+        // THE RESOLVED FILE'S OWN NAME, not the declaration's last segment. A `from_build` artifact has
+        // no declared path to take a name from, and for a declared one the two are identical — so
+        // taking it from the file that will actually be embedded is both correct and the only spelling
+        // that works for both.
+        resolved.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
     }
 }
 

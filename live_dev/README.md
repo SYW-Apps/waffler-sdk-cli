@@ -197,8 +197,18 @@ reads exactly like a zero from a check that ran** — the same shape as the rest
 And the ANSI escapes are only one cause of it. Within an hour of writing the line above I believed a
 comment had been deleted from a shared file, because I grepped a sentence I had written in capitals
 using lower case. Same failure, different reason, and the reason does not matter: **a search that
-returns nothing has two explanations and the tool reports one of them.** Before reading a zero as
-absence, check the pattern against a line you know is there.
+returns nothing has two explanations and the tool reports one of them.**
+
+So: **a grep used to establish a NEGATIVE needs a positive control in the same run.** Three different
+causes have produced the same misleading zero here in one day — ANSI escapes between a field name and
+its `=`, letter case, and an identifier the code never names. Grepping for something you know is
+present proves the pattern and the stream are both what you think:
+
+```bash
+# "the gate did not fire" is only worth reading if this line also appears
+docker logs waffler-beta 2>&1 | grep -c "packages provisioning"   # must be > 0
+docker logs waffler-beta 2>&1 | grep -c DependencyUnmet
+```
 
 ## `AccessDenied` cannot tell "not granted" from "not running"
 

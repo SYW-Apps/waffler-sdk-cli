@@ -117,11 +117,46 @@ python3 -m json.tool < /tmp/plan.json
 STEP "4. IS IT INSTALLABLE IN THE ORDER GIVEN?"
 # The only property that matters, and it is not "sorted by depth": every package must appear AFTER
 # everything it declares. That is a topological order, and depth is at best a proxy for one.
-GRAPH="$GRAPH" VERSION="$VERSION" python3 - /tmp/plan.json <<'PY'
-import json, os, sys
+GRAPH="$GRAPH" VERSION="$VERSION" REGISTRY="$REGISTRY" python3 - /tmp/plan.json <<'PY'
+import json, os, sys, urllib.request
 
 graph = json.loads(os.environ['GRAPH'])
-expected_version = os.environ['VERSION']
+registry = os.environ['REGISTRY']
+
+
+def published(namespace):
+    """Every version the registry lists for a package — fetched from a DIFFERENT endpoint than the
+    resolver under test, so this compares the resolver's choice against an independently obtained
+    set rather than against itself."""
+    with urllib.request.urlopen(f"{registry}/v1/packages/{namespace}", timeout=15) as reply:
+        return [v["version"] for v in json.load(reply).get("versions", [])]
+
+
+def order_key(version):
+    """Compare versions THIS SCRIPT PUBLISHES, and deliberately nothing more.
+
+    It splits on dots and compares integers, which is exact for the `0.MINOR.<epoch>` shape used
+    here and is NOT a SemVer implementation. Writing a real one would put a second opinion about
+    version semantics in the test that checks the first — and the day the two disagree, the test is
+    wrong in the direction of confidently contradicting the thing it is measuring."""
+    return tuple(int(part) for part in version.split("."))
+
+
+def highest_admitted(namespace, requested):
+    """What the resolver SHOULD have chosen: the newest published version the range admits.
+
+    Only the two range spellings this script authors are handled — `*` and `^0.MINOR.PATCH` — and
+    anything else raises rather than guessing, because a range this cannot evaluate must not
+    silently become "no expectation" and pass."""
+    candidates = published(namespace)
+    if requested == "*":
+        admitted = candidates
+    elif requested.startswith("^0."):
+        minor = order_key(requested[1:])[1]
+        admitted = [c for c in candidates if order_key(c)[:2] == (0, minor)]
+    else:
+        raise SystemExit(f"this leg cannot evaluate the range {requested!r} for {namespace}")
+    return max(admitted, key=order_key) if admitted else None
 plan = json.load(open(sys.argv[1]))
 if isinstance(plan, dict):
     plan = plan.get('plan', plan.get('dependencies', []))
@@ -146,14 +181,23 @@ for package, declared in graph.items():
 for entry in plan:
     if entry.get('unresolved_reason'):
         violations.append(f"{entry['namespace']} did not resolve: {entry['unresolved_reason']}")
-    # THE RANGE MUST PICK THE HIGHEST, not the first published that fits. Every run leaves another
-    # version behind, so from the second run on this is a real question: `^0.1.0` is satisfied by
-    # every one of them, and only the newest is the right answer.
-    elif entry['resolved_version'] != expected_version:
-        violations.append(
-            f"{entry['namespace']} resolved to {entry['resolved_version']}, "
-            f"not the {expected_version} published moments ago"
-        )
+    # THE RANGE MUST PICK THE HIGHEST VERSION IT ADMITS, not the first that fits. Every run leaves
+    # another version behind, so from the second run on this is a real question.
+    #
+    # ASKED AGAINST THE REGISTRY'S PUBLISHED LIST, not against "the version this run published".
+    # That earlier form was wrong and passed for hours: it assumed what this run published was the
+    # highest that existed, which held until a 0.2 line was published out of band and the root —
+    # requested at `*` — correctly resolved to it. The test failed and the resolver was right.
+    # An expectation derived from what the test happens to have done is an expectation about the
+    # test, and it goes stale the moment anything else touches the same registry.
+    else:
+        expected = highest_admitted(entry['namespace'], entry['requested_range'])
+        if entry['resolved_version'] != expected:
+            violations.append(
+                f"{entry['namespace']} ({entry['requested_range']}) resolved to "
+                f"{entry['resolved_version']}, but {expected} is the newest published version "
+                f"that range admits"
+            )
 
 if violations:
     print("\nFAIL: the plan is not installable in the order it gives")

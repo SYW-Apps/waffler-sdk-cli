@@ -27,13 +27,15 @@ description: >-
   IT REPORTS THE REGISTRY IT RESOLVED, every time, before doing anything irreversible. A publish
   that quietly went to the wrong registry is the failure an operator discovers last and trusts
   least, and the tool knows the answer at the moment it would be cheapest to say.
-subsystem: sdk_cli::publishing
+subsystem: publishing
 componentType: Orchestrator
 owns: []
 dependsOn:
+  - project-client-adapter
+  - session-client-adapter
   - bundle-writer
   - signature-specialist
   - publication-adapter
 status: draft
 createdAt: '2026-09-09T23:13:33.716Z'
-updatedAt: '2026-09-09T23:13:33.724Z'
+updatedAt: '2026-09-10T00:06:03.677Z'

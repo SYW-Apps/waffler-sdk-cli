@@ -1,0 +1,95 @@
+id: ipublication-adapter
+name: Registry Publication Contract
+description: >-
+  Every publishing request this tool makes, in one place.
+
+
+  REFUSALS ARE REPORTED AS THE REGISTRY WORDED THEM. Its pipeline maps distinct refusals to distinct
+  statuses on purpose — not a publisher, no authority over this tag, a malformed manifest, and a
+  version already published are four different situations, and an automated publisher told only
+  'error' retries forever against a conflict.
+
+
+  IT CARRIES A TOKEN AND JUDGES NOTHING. A 401 or 403 is surfaced, never pre-empted; a client that
+  decides in advance what a token may do is one that can disagree with the server about permission,
+  silently.
+component: publication-adapter
+methods:
+  - name: uploadBundle
+    description: >-
+      `POST /v1/packages/{namespace}/publish`, multipart, bundle in the field the registry names,
+      bearer presented.
+
+
+      THE ROUTE IS A FACT HERE RATHER THAN A RECOLLECTION. The previous tool spread registry URLs
+      across three files and got four routes wrong — including this one, which it addressed as `POST
+      /v1/packages`. One component is what turns that into something a reader can check in one
+      place.
+
+
+      THE FIELD NAME IS THE CANONICAL ONE. The registry also accepts `file` and `package`, and
+      relying on that leniency is relying on it continuing to exist.
+    signature: >-
+      uploadBundle(baseUrl: string, namespace: string, bundlePath: string, bearer: string):
+      PublishOutcome
+    returns: sdk_cli::publish-outcome
+    params:
+      - name: baseUrl
+        type: string
+        description: The normalised registry base URL.
+      - name: namespace
+        type: string
+        description: The package fqid, which is the registry's namespace key.
+      - name: bundlePath
+        type: string
+        description: The artifact to upload, streamed rather than held whole.
+      - name: bearer
+        type: string
+        description: The access token, presented uninterpreted.
+  - name: fetchPublishedPackage
+    description: >-
+      What the registry already holds for an fqid: its versions, and whether any carries a publisher
+      signature.
+
+
+      THIS IS WHAT MAKES THE DOWNGRADE REFUSAL HONEST. Whether a package has ever carried a
+      publisher key is the registry's fact; assuming it from local state would let a fresh clone
+      downgrade a package silently, which is the whole attack.
+
+
+      AN UNKNOWN PACKAGE IS AN ABSENCE, NOT AN ERROR. A first publish is the ordinary case.
+    signature: 'fetchPublishedPackage(baseUrl: string, namespace: string): PublishedPackage?'
+    returns: json
+    params:
+      - name: baseUrl
+        type: string
+        description: The normalised registry base URL.
+      - name: namespace
+        type: string
+        description: The package fqid.
+  - name: withdrawVersion
+    description: >-
+      `DELETE /v1/packages/{namespace}/versions/{version}` — withdraw a published version.
+
+
+      THE CATALOG ROW GOES AND THE ARTIFACT STAYS, which is the registry's decision and is stated
+      here so a developer is not told the bytes were deleted. Another version may reference the same
+      bytes.
+    signature: 'withdrawVersion(baseUrl: string, namespace: string, version: string, bearer: string): void'
+    returns: void
+    params:
+      - name: baseUrl
+        type: string
+        description: The normalised registry base URL.
+      - name: namespace
+        type: string
+        description: The package fqid.
+      - name: version
+        type: string
+        description: The version to withdraw.
+      - name: bearer
+        type: string
+        description: The access token.
+status: draft
+createdAt: '2026-09-10T00:12:36.494Z'
+updatedAt: '2026-09-10T00:12:36.502Z'

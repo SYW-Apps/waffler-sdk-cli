@@ -1,0 +1,30 @@
+kind: value-object
+id: declared-dependency
+name: Declared Dependency
+description: >-
+  A package this package needs: an fqid and a version REQUIREMENT.
+
+
+  THE VERSION HALF IS A RANGE, NOT A PIN. `^1.0` is the normal spelling and `1.0.1` merely a narrow
+  one — the registry resolves the requirement against what is published, and a pin makes every
+  upstream patch a republish here.
+
+
+  DECLARE ONLY WHAT IS TRUE, IN BOTH DIRECTIONS. Core refuses to ENABLE a package whose declared
+  dependencies are absent, disabled, or at an excluded version, so a dependency nothing needs
+  becomes an enable that refuses for a reason nobody can act on. A dependency that IS needed and is
+  not declared becomes the failure the field exists to prevent: a package that starts and then fails
+  on its first call to a service that is not there.
+subsystem: project
+fields:
+  - name: fqid
+    type: string
+    description: The depended-upon package's fully-qualified id.
+    optional: false
+  - name: version
+    type: string
+    description: A SemVer requirement the registry resolves, e.g. `^1.0`.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:07:31.598Z'
+updatedAt: '2026-09-10T00:07:31.809Z'

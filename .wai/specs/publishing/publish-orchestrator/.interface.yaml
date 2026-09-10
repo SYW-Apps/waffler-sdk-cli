@@ -1,0 +1,111 @@
+id: ipublish-orchestrator
+name: Publishing Workflow Contract
+description: >-
+  From a validated project to an artifact a registry has accepted. This component decides ORDER and
+  nothing else, which is why it can be read top to bottom to learn what publishing actually does.
+
+
+  FAILURE LEAVES NOTHING HALF-DONE LOCALLY, AND SAYS WHERE IT STOPPED. A publish that fails at
+  upload has still produced a valid bundle on disk, and saying so is worth more than cleaning it up:
+  the developer can inspect it and the next attempt does not rebuild.
+component: publish-orchestrator
+methods:
+  - name: pack
+    description: >-
+      Produce a bundle and stop.
+
+
+      STOPPING AT AN ARTIFACT IS THE POINT. Producing something inspectable without publishing it is
+      how a developer checks their own work, and how our own build scripts consume this tool — the
+      docker image build packs with no network and no credential at all.
+    signature: 'pack(directory: string, outputPath: string, skipBuild: boolean): WrittenBundle'
+    returns: sdk_cli::written-bundle
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+      - name: outputPath
+        type: string
+        description: Where to write the bundle.
+      - name: skipBuild
+        type: boolean
+        description: Reuse already-built artifacts.
+  - name: publish
+    description: >-
+      Pack if needed, then upload, in the order that makes each refusal possible.
+
+
+      THE SEQUENCE, AND THE ORDER IS LOAD-BEARING. Resolve and REPORT the registry; ask it what it
+      accepts and whether it can publish at all; write the bundle from its parts; ask what it
+      already holds for this fqid; decide which publish shape is legal; sign if a publisher key
+      applies; obtain a bearer; upload; report what the registry answered.
+
+
+      ASKING BEFORE SIGNING IS WHAT MAKES THE DOWNGRADE REFUSAL POSSIBLE. Discovering after signing
+      that an unsigned publish was illegal would mean either uploading something that will be
+      refused or silently changing shape.
+
+
+      REPORTING THE REGISTRY FIRST IS WHAT MAKES IT ACTIONABLE. The tool knows the answer at the
+      moment it is cheapest to say, and a publish that quietly went to the wrong registry is the
+      failure an operator discovers last and trusts least.
+
+
+      A BUNDLE THAT IS ALREADY SIGNED BY A REGISTRY IS REFUSED BEFORE UPLOAD. The registry cannot
+      safely decide which trailing bytes are signature and which are content, so it refuses one —
+      and finding that out locally costs nothing while finding it out after the upload costs the
+      upload.
+    signature: >-
+      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean):
+      PublishOutcome
+    returns: sdk_cli::publish-outcome
+    params:
+      - name: directory
+        type: string
+        description: The project root, when publishing from a project.
+      - name: bundlePath
+        type: string
+        description: >-
+          An already-built bundle to publish instead. Carried through as opaque bytes with its
+          identity read from itself — re-reading a project manifest to describe a bundle that
+          already exists is how the two come to disagree.
+        optional: true
+      - name: registryFlag
+        type: string
+        description: A `--registry` override.
+        optional: true
+      - name: skipBuild
+        type: boolean
+        description: Reuse already-built artifacts.
+  - name: unpublish
+    description: >-
+      Withdraw a published version from a registry.
+
+
+      IT EXISTS BECAUSE THE CYCLE NEEDS IT. Publish, install, uninstall, withdraw, republish is the
+      loop a developer actually runs while getting a package right, and a tool that can only add
+      versions makes every mistake permanent — which pushes people to bump the version to escape a
+      bad publish, and a version number that means 'the last one was wrong' is a version number that
+      means nothing.
+
+
+      IT SAYS WHAT WITHDRAWING DOES AND DOES NOT DO. The catalog row goes; the artifact stays in
+      custody because another version may reference the same bytes. Telling a developer their bytes
+      were deleted when they were not is the kind of wrong that is only discovered by someone
+      relying on it.
+    signature: 'unpublish(fqid: string, version: string, registryFlag: string?): void'
+    returns: void
+    params:
+      - name: fqid
+        type: string
+        description: The package to withdraw from.
+      - name: version
+        type: string
+        description: The version to withdraw.
+      - name: registryFlag
+        type: string
+        description: A `--registry` override.
+        optional: true
+status: draft
+createdAt: '2026-09-10T00:13:07.519Z'
+updatedAt: '2026-09-10T00:23:19.474Z'

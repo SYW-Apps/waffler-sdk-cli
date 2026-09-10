@@ -1,0 +1,43 @@
+kind: value-object
+id: publish-outcome
+name: Publish Outcome
+description: >-
+  What the registry answered, and where the artifact is regardless.
+
+
+  IT NAMES THE REGISTRY IT WENT TO. A publish that quietly went to the wrong registry is the failure
+  an operator discovers last and trusts least, and this is the record that makes it discoverable at
+  all.
+
+
+  THE LOCAL PATH IS PRESENT EVEN ON SUCCESS, because a developer who wants to inspect what was
+  accepted should not have to re-derive where it was written.
+subsystem: publishing
+fields:
+  - name: registry
+    type: string
+    description: The normalised base URL the bundle was actually sent to.
+    optional: false
+  - name: fqid
+    type: string
+    description: The published package.
+    optional: false
+  - name: version
+    type: string
+    description: The published version.
+    optional: false
+  - name: bundlePath
+    type: string
+    description: Where the artifact sits locally. Present on success and on failure alike.
+    optional: false
+  - name: receipt
+    type: json
+    description: >-
+      The registry's own answer, carried through rather than reinterpreted. Its publication pipeline
+      maps distinct refusals to distinct statuses on purpose — not a publisher, no authority over
+      this tag, a malformed manifest, and a version already published are four different situations,
+      and an automated publisher told only 'error' retries forever against a conflict.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:09:12.696Z'
+updatedAt: '2026-09-10T00:09:12.916Z'

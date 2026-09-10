@@ -1,0 +1,131 @@
+id: isession-orchestrator
+name: Session Workflow Contract
+description: >-
+  Resolving which registry a command addresses, and producing a usable credential for it.
+
+
+  IT DECIDES NOTHING ABOUT AUTHORIZATION. Whether an identity may publish under a namespace is the
+  registry's answer, surfaced as the registry worded it. The previous tool checked namespace
+  ownership locally against a cached account record and refused publishes the registry would have
+  accepted — a client disagreeing with the server about permission, in the merely obstructive
+  direction until the day the cache is stale in the other one.
+component: session-orchestrator
+methods:
+  - name: resolveRegistry
+    description: >-
+      Decide which registry this invocation addresses, and record which of the four sources said so.
+
+
+      ORDER: a per-command flag, then the environment, then the persisted `use` default, then the
+      built-in. Four sources means four ways to be surprised, so the SOURCE is returned alongside
+      the URL and reported on every command — 'publishing to X' answers a different question from
+      'publishing to X, because WAFFLER_REGISTRY is set in this shell'.
+
+
+      THE URL IS NORMALISED HERE, ONCE. The same normalisation is what the credential store keys on;
+      there must not be a second one.
+    signature: 'resolveRegistry(flagValue: string?): TargetRegistry'
+    returns: sdk_cli::target-registry
+    params:
+      - name: flagValue
+        type: string
+        description: A `--registry` value, when the command carried one.
+        optional: true
+  - name: bearerFor
+    description: >-
+      A usable access token for a registry, refreshed if it is close to expiring.
+
+
+      REFRESHED BEFORE IT IS HANDED OUT, NOT AFTER IT FAILS. A token that expires between the check
+      and a large upload wastes the upload; refreshing on a margin costs one request.
+
+
+      A FAILED REFRESH REMOVES THE CREDENTIAL. A stale entry that keeps failing looks to a developer
+      like the registry rejecting them.
+
+
+      NO CREDENTIAL IS A REFUSAL, NEVER AN EMPTY BEARER. Falling through to an unauthenticated
+      request converts a local, actionable 'you are not signed in to this registry' into a remote
+      401 that reads like a server problem.
+    signature: 'bearerFor(registry: TargetRegistry): string'
+    returns: string
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The resolved registry.
+  - name: signIn
+    description: >-
+      Authenticate against whatever issuer a registry advertises, and persist the result for that
+      registry alone.
+
+
+      A REGISTRY THAT NAMES NO ISSUER CANNOT BE SIGNED IN TO, and that is reported as the registry
+      not saying rather than as a failure of the login. Substituting a default issuer would
+      authenticate a developer against someone else's identity provider and send the token here, to
+      be refused for reasons that name neither.
+    signature: 'signIn(registry: TargetRegistry): RegistryCredential'
+    returns: sdk_cli::registry-credential
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The registry to sign in to.
+  - name: signOut
+    description: >-
+      Forget the credential for one registry.
+
+
+      ONE REGISTRY, NOT ALL OF THEM. Clearing every session on a machine because a developer wanted
+      to leave one is a data-loss shape small enough that nobody reports it and annoying enough that
+      they stop using the command.
+    signature: 'signOut(registry: TargetRegistry): void'
+    returns: void
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The registry to sign out of.
+  - name: whoAmI
+    description: >-
+      Report the identity held for a registry, or that there is none.
+
+
+      PER REGISTRY, BECAUSE THAT IS WHAT A CREDENTIAL IS. Asking who I am without naming a registry
+      is asking a question with as many answers as there are sessions.
+    signature: 'whoAmI(registry: TargetRegistry): RegistryCredential?'
+    returns: sdk_cli::registry-credential
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The registry to report on.
+  - name: setDefault
+    description: >-
+      Persist a registry as the default for later commands.
+
+
+      IT DOES NOT SIGN ANYONE IN, and the output says so when there is no credential for the new
+      default — otherwise a `use` to an unauthenticated registry looks like a working session until
+      the first publish.
+    signature: 'setDefault(baseUrl: string): TargetRegistry'
+    returns: sdk_cli::target-registry
+    params:
+      - name: baseUrl
+        type: string
+        description: The registry to make default. Normalised before it is stored.
+  - name: profileOf
+    description: >-
+      What a registry says about itself — what it accepts, whether it can publish at all, and what
+      it signs with.
+
+
+      EXPOSED BECAUSE PUBLISHING NEEDS IT AND MUST NOT FETCH IT ITSELF. The maximum upload size and
+      'this instance cannot publish' are facts a publish needs before it builds anything, and
+      routing them through Session keeps one component talking to a registry about what kind of
+      service it is.
+    signature: 'profileOf(registry: TargetRegistry): RegistryProfile'
+    returns: sdk_cli::registry-profile
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The registry to describe.
+status: draft
+createdAt: '2026-09-10T00:11:31.265Z'
+updatedAt: '2026-09-10T00:11:31.275Z'

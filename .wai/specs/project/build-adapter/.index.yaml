@@ -1,0 +1,37 @@
+id: build-adapter
+name: Build Adapter
+description: >-
+  Runs the toolchain a project declares — cargo for the Rust artifact, npm for a UI plugin bundle —
+  and reports what it said.
+
+
+  FAILURES ARE REPORTED VERBATIM, and this is the whole discipline of the component. A build tool
+  wrapping another build tool must never paraphrase, summarise or re-rank the inner tool's
+  diagnostics: `cargo`'s message names a file, a line and a type, and any sentence this component
+  substitutes for it is strictly less useful to the person who has to fix it. Exit status decides
+  success; stdout and stderr pass through.
+
+
+  RELEASE, NOT DEBUG, AND NOT BY PREFERENCE. A debug `.so` is large enough to exceed core's inline
+  custody cap, so a debug artifact does not merely run slower — it produces a bundle a node refuses
+  to install, and the refusal names custody rather than the profile. Building release by default is
+  what keeps that failure from being reachable by accident; a project that wants otherwise says so.
+
+
+  IT NEVER INFERS THE CRATE. What to build is a declaration in the project manifest, not a search.
+  Deriving a cargo package name from the package fqid worked until the two differed, and then it
+  built the wrong crate and packed its artifact under the right name — a bundle that installs and is
+  not the software anyone wrote.
+
+
+  THE BUILD IS SKIPPABLE AND THE SKIP IS VISIBLE. `--no-build` exists because packing a pre-built
+  artifact is a real workflow, particularly inside a container image whose build already ran cargo.
+  Every run states whether it built or reused, because "it packed the wrong binary" and "it packed a
+  binary it did not build" are the same incident seen a day apart.
+subsystem: project
+componentType: Adapter
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-10T00:01:18.925Z'
+updatedAt: '2026-09-10T00:01:18.930Z'

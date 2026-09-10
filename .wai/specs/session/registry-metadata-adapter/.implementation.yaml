@@ -1,0 +1,44 @@
+id: registry_metadata_adapter_impl
+name: Registry Metadata Adapter Implementation
+description: >-
+  One GET against `/v1/registry`, decoded into a profile.
+
+
+  NO TECHNOLOGY IS DECLARED, deliberately. A technology declaration fences a swappable vendor
+  backend consumers must not know about; the web protocol a registry speaks is neither swappable nor
+  hidden — a registry IS a URL, and every layer of this tool says so out loud, including the type
+  that carries one. Declaring it would make the domain's own vocabulary unsayable everywhere else in
+  the tree.
+contract: iregistry-metadata-adapter
+sourcePath: sdk/cli/src/session/registry_metadata_adapter.rs
+technologies: []
+methods:
+  - name: fetchProfile
+    narrative: []
+    detail: intent
+    intent: >-
+      GET `<baseUrl>/v1/registry` and decode the answer.
+
+
+      A NON-200, AN UNREACHABLE HOST OR A BODY THAT DOES NOT DECODE IS A REFUSAL NAMING THE URL. It
+      is never a fallback to defaults: assuming 'no authentication required' on a failed probe is
+      how a tool sends an unauthenticated publish to a registry that would have taken a credential,
+      and then reports the 401 as the registry's fault.
+
+
+      A response that says authentication is available but names no issuer is decoded FAITHFULLY —
+      available true, issuer absent — rather than being repaired. The absence is a real fact about
+      that deployment, and the login flow refuses on it with a message about the registry not saying
+      rather than about the login failing. Substituting a default issuer would authenticate a
+      developer against someone else's identity provider and send the resulting token here.
+
+
+      HTML is a specific failure worth naming. A registry serving a console behind a single-page-app
+      fallback answers an unknown API path with its index, so a client on a stale route gets 200 and
+      markup and finds out only when decoding fails somewhere unrelated. When the body is HTML the
+      message says the URL did not answer as an API, because the likely cause is a wrong base URL
+      rather than a broken registry.
+detail: intent
+status: draft
+createdAt: '2026-09-10T00:18:52.832Z'
+updatedAt: '2026-09-10T00:20:32.640Z'

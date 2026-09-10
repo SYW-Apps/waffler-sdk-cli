@@ -1,0 +1,40 @@
+kind: value-object
+id: located-artifact
+name: Located Artifact
+description: >-
+  A declared artifact that has been found on disk after the build: the same declaration, now with a
+  path that is known to resolve.
+
+
+  IT HOLDS A PATH, NOT BYTES, AND CARRIES NO HASH. A package artifact may be a hundred megabytes;
+  loading every one into memory to hand across a subsystem boundary buys nothing, because the only
+  component that needs the bytes is the one streaming them into the archive. The hash is computed
+  there, over the bytes actually written, for the same reason: a hash measured anywhere else is a
+  claim that a later step could contradict.
+subsystem: project
+fields:
+  - name: name
+    type: string
+    description: The name this artifact takes inside the bundle, at `artifact/<name>`.
+    optional: false
+  - name: kind
+    type: string
+    description: '`Dll` or `UiBundle`.'
+    optional: false
+  - name: entryPoint
+    type: string
+    description: The initialization symbol for a Dll.
+    optional: true
+  - name: absolutePath
+    type: string
+    description: Where the file actually is, resolved and confirmed readable.
+    optional: false
+  - name: sizeBytes
+    type: integer
+    description: >-
+      Measured at location time so an oversized bundle can be refused before an upload rather than
+      during one.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:08:04.847Z'
+updatedAt: '2026-09-10T00:08:05.108Z'

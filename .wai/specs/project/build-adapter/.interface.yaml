@@ -1,0 +1,40 @@
+id: ibuild-adapter
+name: Build Toolchain Contract
+description: >-
+  Running the toolchain a project declares, and reporting what it said.
+
+
+  THE INNER TOOL'S DIAGNOSTICS PASS THROUGH UNCHANGED. It names a file, a line and a type; any
+  sentence substituted for that is strictly less useful to whoever has to fix it.
+
+
+  THERE IS NO UI BUILD METHOD, AND THE ABSENCE IS DELIBERATE. A frontend bundle is built by whatever
+  tooling that project already uses — vite, esbuild, a Makefile — and the developer declares the
+  resulting file as an artifact like any other. A method here to invoke it would have had no caller:
+  the manifest carries no build command to invoke it WITH, so it would have been a capability
+  nothing could produce input for, which is a capability nobody runs and everybody assumes works.
+  Adding it back means adding the declaration that feeds it, in the same change.
+component: build-adapter
+methods:
+  - name: buildRustCrate
+    description: >-
+      Build a Rust crate in release profile and return what the toolchain printed.
+
+
+      RELEASE IS NOT A PREFERENCE. A debug module exceeds core's inline custody cap, so a debug
+      artifact does not merely run slower — it produces a bundle a node refuses with a message about
+      custody rather than about the profile, on someone else's machine.
+
+
+      THE CRATE IS NAMED, NEVER INFERRED. Deriving a package name from a package fqid worked until
+      the two differed, and then it built the wrong crate and packed its artifact under the right
+      name.
+    signature: 'buildRustCrate(manifestPath: string): BuildReport'
+    returns: sdk_cli::build-report
+    params:
+      - name: manifestPath
+        type: string
+        description: Path to the crate's own manifest, as the project declares it.
+status: draft
+createdAt: '2026-09-10T00:09:44.857Z'
+updatedAt: '2026-09-10T00:17:42.196Z'

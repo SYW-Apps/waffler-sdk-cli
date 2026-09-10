@@ -1,0 +1,38 @@
+id: build_adapter_impl
+name: Build Adapter Implementation
+description: >-
+  Spawns the declared toolchain as a child process and returns what it printed.
+
+
+  NO TECHNOLOGY IS DECLARED HERE, and that is a judgement rather than an omission. A technology
+  declaration marks a vendor swap seam — a backend consumers must not know about. The Rust toolchain
+  is not that: a package project in this ecosystem IS a crate, its manifest file is part of what a
+  developer edits and what a scaffold writes, and there is no alternative to swap to. Fencing it off
+  would model a seam that does not exist and would make the ordinary vocabulary of the domain
+  unsayable everywhere else.
+contract: ibuild-adapter
+sourcePath: sdk/cli/src/project/build_adapter.rs
+methods:
+  - name: buildRustCrate
+    narrative: []
+    detail: intent
+    intent: >-
+      Run a release build against the declared crate manifest, capturing stdout and stderr, and
+      report the exit status as the verdict.
+
+
+      Release is not configurable here. A debug module exceeds core's inline custody cap, so a debug
+      artifact does not run slower — it produces a bundle a node refuses with a message about
+      custody, on someone else's machine, naming nothing about the profile that caused it.
+
+
+      The captured output is carried whole into the report and printed verbatim on failure. The
+      toolchain names a file, a line and a type; any sentence substituted for that is strictly less
+      useful to the person who has to fix it.
+
+
+      The manifest path comes from the declaration and is never derived from the package fqid.
+detail: intent
+status: draft
+createdAt: '2026-09-10T00:15:14.440Z'
+updatedAt: '2026-09-10T00:17:50.482Z'

@@ -1,0 +1,81 @@
+id: iproject-adapter
+name: Project Filesystem Contract
+description: >-
+  What is on disk in a package project, answered exactly and without searching.
+
+
+  EVERY METHOD EITHER RESOLVES A NAMED PATH OR FAILS NAMING IT. Nothing here falls back to a
+  candidate list, a sibling directory or a previous build's output: a path that does not resolve is
+  a sentence a developer can act on, and a path that resolved somewhere unexpected is a bundle that
+  ships the wrong binary and cannot say so.
+component: project-adapter
+methods:
+  - name: readAuthoredManifest
+    description: >-
+      Read and parse `waffler.json` from a project directory.
+
+
+      FINDING A LEGACY `package.json` AND NO `waffler.json` IS REPORTED AS EXACTLY THAT, naming both
+      files. The legacy model shares one field NAME with this one and no meaning, so the alternative
+      — reading it — succeeds and produces a bundle wrong in every field.
+    signature: 'readAuthoredManifest(directory: string): AuthoredPackage'
+    returns: sdk_cli::authored-package
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+  - name: locateArtifact
+    description: >-
+      Resolve one declared artifact to an absolute path and measure it.
+
+
+      EXACT RESOLUTION, NEVER A SEARCH. The previous tool tried the release target dir, the wasm
+      target dir and the project root and took the first hit, which made a forgotten stale artifact
+      as good as a fresh one with nothing able to report it.
+    signature: 'locateArtifact(directory: string, declared: DeclaredArtifact): LocatedArtifact'
+    returns: sdk_cli::located-artifact
+    params:
+      - name: directory
+        type: string
+        description: The project root the path is relative to.
+      - name: declared
+        type: sdk_cli::declared-artifact
+        description: The artifact as the manifest declares it.
+  - name: readNamespaceTree
+    description: >-
+      Collect the project's `namespace/` entity files as relative-path and absolute-path pairs.
+
+
+      READ, NOT PARSED. The segment format belongs to VFS's staged reader; a packer that parsed and
+      re-emitted it would be a second implementation of a format it does not own, and it would be
+      the one that drifts. An absent `namespace/` directory is an empty result, not an error — a
+      package need not ship entities.
+    signature: 'readNamespaceTree(directory: string): FileRef[]'
+    returns: json[]
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+  - name: writeProjectFiles
+    description: >-
+      Write a rendered set of files into a directory, creating parents.
+
+
+      IT REFUSES A NON-EMPTY TARGET unless overwrite is explicitly asked for. A scaffold that
+      clobbers eventually eats work, and the cost of refusing is one flag.
+    signature: 'writeProjectFiles(directory: string, files: RenderedFile[], overwrite: boolean): void'
+    returns: void
+    params:
+      - name: directory
+        type: string
+        description: Where to write.
+      - name: files
+        type: json[]
+        description: Relative path and content pairs, rendered by the scaffold specialist.
+      - name: overwrite
+        type: boolean
+        description: Permission to write into a directory that is not empty.
+    effect: write
+status: draft
+createdAt: '2026-09-10T00:09:34.638Z'
+updatedAt: '2026-09-10T00:14:19.304Z'

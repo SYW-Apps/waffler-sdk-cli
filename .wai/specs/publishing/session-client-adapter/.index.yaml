@@ -1,0 +1,38 @@
+id: session-client-adapter
+name: Session Client Adapter
+description: >-
+  Publishing's one door into Session: which registry does this command address, and what bearer is
+  presented to it.
+
+
+  IT RESOLVES ONCE PER COMMAND, AND THAT IS ITS REAL JOB rather than a caching nicety. Registry
+  resolution reads a flag, an environment variable, a persisted default and a built-in; if the
+  orchestrator asked twice — once to report the target and again to upload — a `use` running
+  concurrently or an environment read differently could answer differently, and the registry NAMED
+  in the output would not be the registry PUBLISHED to. Resolving once and carrying the answer makes
+  "we told you where this was going" a fact instead of a hope.
+
+
+  THE CREDENTIAL IS FETCHED LATE AND THE ADDRESS EARLY, deliberately. The address is needed before
+  anything irreversible so it can be reported; the bearer is needed at the moment of upload and
+  refreshed against that moment, because an access token checked before a long build and used after
+  it can expire in between.
+
+
+  IT ASKS FOR NOTHING ELSE, and Session is given nothing. It does not pass the fqid, the version, or
+  the size of what is about to be uploaded. Session resolving an address it cannot see the contents
+  of is what makes it impossible for a change in what a bundle contains to change who the tool
+  authenticates as.
+
+
+  A MISSING CREDENTIAL COMES BACK AS A REFUSAL, NOT AS AN EMPTY BEARER. An unauthenticated request
+  to a registry that requires authentication produces a 401 that reads like the registry's fault; a
+  local refusal names the registry and says how to sign in to it.
+subsystem: publishing
+componentType: Adapter
+owns: []
+dependsOn:
+  - session-portal
+status: draft
+createdAt: '2026-09-10T00:05:58.691Z'
+updatedAt: '2026-09-10T00:05:58.699Z'

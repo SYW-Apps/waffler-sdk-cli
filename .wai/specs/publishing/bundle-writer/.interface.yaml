@@ -1,0 +1,60 @@
+id: ibundle-writer
+name: Bundle Format Contract
+description: >-
+  Writing the package bundle. The one place in this tool that knows the format.
+
+
+  IT NEVER RE-ZIPS AN EXISTING BUNDLE. A bundle is written once, from parts, and thereafter treated
+  as opaque bytes — re-compressing or normalising after the fact destroys a signature over the whole
+  payload and produces an artifact core refuses as IntegrityFailure on a stranger's machine.
+component: bundle-writer
+methods:
+  - name: writeBundle
+    description: >-
+      Write `/.manifest`, `/artifact/<name>` for each artifact, and `/namespace/<uuid>.json`, and
+      return what was written.
+
+
+      ARTIFACT HASHES ARE COMPUTED HERE, NEVER COPIED. A hash carried in from a manifest a developer
+      wrote is a claim; a hash computed over the bytes being written is a fact, and the two
+      disagreeing is exactly what a content hash exists to detect. The artifacts array of
+      `/.manifest` is completed here for that reason and nowhere else.
+
+
+      THE ARCHIVE IS STORED, NOT DEFLATED. Nothing downstream may depend on a compression path, and
+      a stored entry's declared size is its real size — which matters because the registry refuses a
+      metadata entry that expands past its limit and a compressed one can lie about that until it is
+      read.
+
+
+      IT WRITES AN UNSIGNED ARCHIVE. What follows the archive is the signature specialist's
+      business, because 'what the archive contains' and 'who vouches for it' are separate questions
+      — merging them would make an unsigned bundle unrepresentable, and an unsigned bundle is
+      exactly what a registry publish requires.
+    signature: 'writeBundle(plan: BundlePlan, outputPath: string): WrittenBundle'
+    returns: sdk_cli::written-bundle
+    params:
+      - name: plan
+        type: sdk_cli::bundle-plan
+        description: Identity, compiled manifest body, located artifacts and namespace files.
+      - name: outputPath
+        type: string
+        description: Where to write the bundle.
+  - name: readIdentity
+    description: >-
+      Read the fqid and version out of a bundle that already exists, without unpacking or rewriting
+      it.
+
+
+      NEEDED FOR THE PRE-BUILT PATH. A publish may start from a bundle somebody else packed; its
+      identity must come from the bundle itself rather than from a project manifest sitting next to
+      it, because those two can disagree and the bundle is the thing being uploaded.
+    signature: 'readIdentity(bundlePath: string): WrittenBundle'
+    returns: sdk_cli::written-bundle
+    params:
+      - name: bundlePath
+        type: string
+        description: An existing bundle on disk.
+status: draft
+createdAt: '2026-09-10T00:11:59.264Z'
+updatedAt: '2026-09-10T00:11:59.273Z'

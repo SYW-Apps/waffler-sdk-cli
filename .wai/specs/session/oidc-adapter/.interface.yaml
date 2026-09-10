@@ -1,0 +1,75 @@
+id: ioidc-adapter
+name: Identity Provider Contract
+description: >-
+  Obtaining a token from whatever issuer a registry names.
+
+
+  TOKENS ARE RETURNED, NEVER STORED. Persistence belongs to the session store; a component that both
+  obtained and cached credentials is one where an 'obtain' that quietly returned a cached value
+  would be indistinguishable from a real sign-in.
+
+
+  NOTHING HERE VERIFIES A TOKEN. This is a client. The registry validates signatures against the
+  issuer's key set and is the only party whose verdict matters — a client enforcing its own reading
+  of a policy it does not own is a client that refuses requests the server would have accepted.
+component: oidc-adapter
+methods:
+  - name: authorize
+    description: >-
+      Run an authorization-code flow with PKCE against a discovered issuer, using a loopback
+      listener for the redirect.
+
+
+      PKCE IS NOT OPTIONAL, AND THE LOOPBACK REDIRECT IS WHY. `http://127.0.0.1:<port>` is reachable
+      by any other process on the machine, so a code delivered there is a code anybody local could
+      race for; PKCE binds it to a verifier only this process holds, which turns a stolen code into
+      nothing.
+
+
+      THE STATE PARAMETER IS CHECKED AND A MISMATCH ABORTS. The listener accepts one request from
+      anywhere on the loopback interface — without the check, another local process can complete the
+      flow with a code for a different account and this tool caches it as the developer's.
+
+
+      THE ISSUER COMES FROM THE REGISTRY BEING ADDRESSED. A client that knows an issuer in advance
+      can only ever talk to one deployment, which is the limitation this whole subsystem exists to
+      remove.
+    signature: 'authorize(issuer: string, audience: string, clientId: string): TokenSet'
+    returns: json
+    params:
+      - name: issuer
+        type: string
+        description: >-
+          The OIDC issuer the registry named. Discovery is performed against it and the endpoints
+          used are the ones its document names.
+      - name: audience
+        type: string
+        description: >-
+          The audience the registry requires. A token minted for another audience is refused by the
+          registry.
+      - name: clientId
+        type: string
+        description: The public client this tool identifies as.
+  - name: refresh
+    description: >-
+      Exchange a refresh token for a new access token.
+
+
+      A FAILED REFRESH IS REPORTED AS FAILED, not as a silent re-prompt. The caller decides whether
+      to discard the credential and ask for a browser — an adapter that transparently escalated to
+      an interactive flow would open a browser from inside a CI run.
+    signature: 'refresh(issuer: string, clientId: string, refreshToken: string): TokenSet'
+    returns: json
+    params:
+      - name: issuer
+        type: string
+        description: The issuer that minted the refresh token.
+      - name: clientId
+        type: string
+        description: The public client this tool identifies as.
+      - name: refreshToken
+        type: string
+        description: The stored refresh token.
+status: draft
+createdAt: '2026-09-10T00:11:09.605Z'
+updatedAt: '2026-09-10T00:11:09.620Z'

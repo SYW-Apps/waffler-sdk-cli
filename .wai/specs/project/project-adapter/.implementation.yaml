@@ -1,0 +1,117 @@
+id: project_adapter_impl
+name: Project Adapter Implementation
+description: >-
+  Reads and writes the project tree with `std::fs` and `walkdir`, and parses `waffler.json` with
+  `serde_json`.
+
+
+  THE TECHNOLOGY IS DECLARED HERE BECAUSE THIS IS WHERE IT LIVES. Nothing above this component names
+  a path separator, a directory walk, or a JSON parse error — the orchestrator asks for an authored
+  manifest and gets one or a refusal, and the compiler is pure.
+contract: iproject-adapter
+sourcePath: sdk/cli/src/project/project_adapter.rs
+technologies:
+  - filesystem
+methods:
+  - name: readAuthoredManifest
+    narrative: []
+    detail: intent
+    intent: >-
+      Join `waffler.json` to the directory and read it.
+
+
+      When it is absent, check for `package.json` before reporting. If a legacy manifest is there,
+      the message names BOTH files and says the model changed — because the developer's next move
+      otherwise is to rename the file, which produces a manifest that parses and is wrong in every
+      field. When neither is there, the message names the directory and the file expected in it.
+
+
+      A parse failure reports serde's own line and column. A tool that says only 'invalid manifest'
+      for a JSON syntax error has thrown away the part that locates it.
+  - name: locateArtifact
+    narrative: []
+    detail: intent
+    intent: >-
+      Join the declared path to the project directory, canonicalise it, and confirm it is a readable
+      file.
+
+
+      No candidate list, no fallback directory, no search. A path that does not resolve is an error
+      naming the path AS DECLARED and the absolute path it resolved to, because a relative path that
+      looks right and a working directory that is not what the developer thinks are the same mistake
+      wearing different clothes.
+
+
+      The file's length is measured here so an oversized bundle can be refused before an upload
+      rather than during one. The bundle name defaults to the file name unless the declaration
+      overrides it.
+  - name: readNamespaceTree
+    narrative: []
+    detail: intent
+    intent: >-
+      Walk `namespace/` under the project directory and collect every file as a relative-path and
+      absolute-path pair, with forward slashes in the relative half regardless of platform — a zip
+      entry named with a backslash is a zip entry whose path component is a filename on every reader
+      that matters.
+
+
+      Nothing is parsed. The segment format belongs to VFS's staged reader, and a second
+      implementation of a format this tool does not own is the one that drifts.
+
+
+      An absent `namespace/` is an empty result. A package need not ship entities, and turning that
+      into an error would make the common case explain itself.
+  - name: writeProjectFiles
+    narrative:
+      - stepNumber: 1
+        description: Is the target directory non-empty, and was overwrite withheld?
+        type: branch
+        condition: the directory exists, contains entries, and overwrite is false
+        onFalseStep: 3
+      - stepNumber: 2
+        description: >-
+          Refuse, naming the directory. THE REFUSAL COMES FIRST, before any file is written — a
+          scaffold that checked per-file would leave half a project behind on the file that
+          collided, which is worse than either outcome it was choosing between.
+        type: throw
+        error: DirectoryNotEmpty
+      - stepNumber: 3
+        label: write
+        description: >-
+          Create parent directories and write each rendered file.
+
+
+          What is written must be a project that packs: every artifact path the generated manifest
+          declares resolves after the generated build runs, and every capability and ui plugin in it
+          names an artifact the manifest also declares. A scaffold is a claim about the current
+          format, and one whose output cannot pack teaches a shape that something later refuses
+          without being able to say why.
+        type: local
+        assertsInvariants:
+          - sdk_cli::authored-package.artifact-paths-resolve
+          - sdk_cli::authored-package.declarations-name-declared-artifacts
+      - stepNumber: 4
+        description: Written.
+        type: return
+        outcome: success
+    detail: full
+    intent: >-
+      Refuse a non-empty target directory unless overwrite was asked for, then create parents and
+      write each rendered file.
+
+
+      The refusal comes FIRST, before any file is written. A scaffold that checks per-file leaves a
+      half-written project behind on the file that collides, which is worse than either outcome it
+      was choosing between.
+
+
+      What is written must satisfy the authored-package invariants: every artifact path the
+      generated manifest declares resolves after the generated build runs, and every capability and
+      ui plugin names an artifact the manifest also declares. A scaffold is a claim about the
+      current format — one whose output cannot pack teaches a shape that something later refuses
+      without being able to say why.
+    conformance: declared
+detail: intent
+status: draft
+createdAt: '2026-09-10T00:15:05.429Z'
+updatedAt: '2026-09-10T00:17:57.939Z'

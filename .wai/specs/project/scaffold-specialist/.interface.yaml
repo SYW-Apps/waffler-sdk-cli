@@ -1,0 +1,43 @@
+id: iscaffold-specialist
+name: Scaffold Rendering Contract
+description: >-
+  Rendering a new package project as a set of files, without writing any of them.
+
+
+  PURE, AND THE PURITY IS WHAT MAKES IT TESTABLE AGAINST `pack`. A rendered project can be handed
+  straight to the manifest compiler in a test and refused there if it is wrong, which is the only
+  way a scaffold's claim about the current format stays true.
+component: scaffold-specialist
+methods:
+  - name: renderProject
+    description: >-
+      Render a complete package project: `waffler.json`, a Cargo crate wired to the Rust SDK, and a
+      capability that answers.
+
+
+      WHAT IT GENERATES MUST ANSWER, NOT MERELY LOAD. The generated package serves one capability
+      that echoes its input along with its own fqid and version, because 'installed' and 'working'
+      are different observations and a scaffold whose output can only prove the first teaches a
+      developer to stop one step too early.
+
+
+      IT PINS A CORE CONTRACT RANGE. A bundle declaring none installs UNCHECKED behind a warning
+      nobody reads; a scaffold is the one place where the right declaration costs the developer
+      nothing.
+    signature: 'renderProject(fqid: string, version: string, description: string): RenderedFile[]'
+    returns: json[]
+    params:
+      - name: fqid
+        type: string
+        description: The new package's fully-qualified id.
+      - name: version
+        type: string
+        description: Its starting version.
+      - name: description
+        type: string
+        description: Catalog prose.
+    guarantees:
+      - idempotent
+status: draft
+createdAt: '2026-09-10T00:10:07.625Z'
+updatedAt: '2026-09-10T00:10:07.632Z'

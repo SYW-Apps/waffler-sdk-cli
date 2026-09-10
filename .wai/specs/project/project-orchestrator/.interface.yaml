@@ -1,0 +1,89 @@
+id: iproject-orchestrator
+name: Project Workflow Contract
+description: >-
+  From a directory to a bundle plan: load, validate, build, locate, compile — and every failure
+  naming the stage it happened in.
+
+
+  'INVALID MANIFEST', 'BUILD FAILED', 'DECLARED ARTIFACT MISSING' AND 'DECLARATION INCONSISTENT' are
+  four different problems with four different fixes. A tool that reports them as 'pack failed' has
+  converted a diagnosis into a search.
+component: project-orchestrator
+methods:
+  - name: planBundle
+    description: >-
+      The whole workflow, in the order that makes each failure cheap.
+
+
+      VALIDATE BEFORE BUILDING. A release build costs minutes and a malformed fqid costs
+      microseconds to detect; the previous tool built first and validated at upload, so every
+      manifest mistake was paid for at full price.
+
+
+      LOCATE AFTER BUILDING. That order is what makes 'the build succeeded and produced nothing at
+      the declared path' a distinct, sayable failure rather than a stale artifact silently taking
+      its place.
+    signature: 'planBundle(directory: string, skipBuild: boolean): BundlePlan'
+    returns: sdk_cli::bundle-plan
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+      - name: skipBuild
+        type: boolean
+        description: >-
+          Reuse already-built artifacts. A real workflow inside a container image whose build
+          already ran cargo — and always reported, because 'it packed the wrong binary' and 'it
+          packed a binary it did not build' are the same incident a day apart.
+  - name: validateProject
+    description: >-
+      Everything `planBundle` does up to the build, and then stop.
+
+
+      IT EXISTS SO THE CHEAP CHECK IS AVAILABLE ALONE. A tool whose only way to check a manifest is
+      to build the package teaches people not to check.
+    signature: 'validateProject(directory: string): Violation[]'
+    returns: json[]
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+  - name: buildProject
+    description: >-
+      Build what the project declares, in the profile a publishable bundle requires, and say which
+      crate and which profile it used.
+
+
+      NOT A CARGO ALIAS. A developer who runs `cargo build`, then packs, and gets a different binary
+      has met the failure this exists to remove.
+    signature: 'buildProject(directory: string): BuildReport'
+    returns: sdk_cli::build-report
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+  - name: scaffoldProject
+    description: Create a new package project on disk that packs, publishes and installs.
+    signature: >-
+      scaffoldProject(directory: string, fqid: string, version: string, description: string,
+      overwrite: boolean): void
+    returns: void
+    params:
+      - name: directory
+        type: string
+        description: Where to create it.
+      - name: fqid
+        type: string
+        description: The new package's fully-qualified id.
+      - name: version
+        type: string
+        description: Its starting version.
+      - name: description
+        type: string
+        description: Catalog prose.
+      - name: overwrite
+        type: boolean
+        description: Permission to write into a non-empty directory.
+status: draft
+createdAt: '2026-09-10T00:10:20.051Z'
+updatedAt: '2026-09-10T00:14:14.429Z'

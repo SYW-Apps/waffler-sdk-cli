@@ -1,0 +1,37 @@
+id: session_client_adapter_impl
+name: Session Client Adapter Implementation
+description: Three narrow questions across the boundary, and nothing told back the other way.
+contract: isession-client-adapter
+sourcePath: sdk/cli/src/publishing/session_client_adapter.rs
+methods:
+  - name: target
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Resolve the registry once per command and carry the answer. Asking twice — once to report
+          it and again to upload — lets a concurrent `use` or a differently-read environment answer
+          differently, and then the registry NAMED in the output is not the registry PUBLISHED to.
+        type: call
+        targetComponent: session-portal
+        targetMethod: resolve
+  - name: describe
+    narrative:
+      - stepNumber: 1
+        description: Ask what that registry accepts and whether it can publish at all.
+        type: call
+        targetComponent: session-portal
+        targetMethod: profile
+  - name: bearer
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Fetch a token LATE, refreshed against the moment of upload rather than the moment the
+          command started. A token checked before a long build and used after it can expire in
+          between.
+        type: call
+        targetComponent: session-portal
+        targetMethod: bearer
+detail: calls-only
+status: draft
+createdAt: '2026-09-10T00:22:14.157Z'
+updatedAt: '2026-09-10T00:22:14.159Z'

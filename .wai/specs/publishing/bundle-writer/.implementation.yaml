@@ -1,0 +1,145 @@
+id: bundle_writer_impl
+name: Bundle Writer Implementation
+description: >-
+  The only description of the bundle layout in this tool, and the producer counterpart to the
+  registry's reader.
+
+
+  THE READER IS THE OTHER HALF AND IT ALREADY EXISTS. `registry::publication::bundle-reader` refuses
+  everything this writes wrongly, including the previous tool's layout by explicit test. Where the
+  two disagree, the reader is right and this is the bug.
+
+
+  NO TECHNOLOGY IS DECLARED. The archive format is not a backend hidden behind a seam — it IS the
+  bundle, named in the format's own definition, in the registry's reader, in core's installer and in
+  every document describing what a package is. Fencing it off would model a swap that cannot happen
+  and make the format unsayable in the components that exist to talk about it.
+contract: ibundle-writer
+sourcePath: sdk/cli/src/publishing/bundle_writer.rs
+technologies: []
+methods:
+  - name: writeBundle
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Open an archive at the output path, writing entries STORED rather than deflated.
+
+
+          Stored, for two reasons. Nothing downstream may depend on a compression path having been
+          taken. And a stored entry's declared uncompressed size is its real size — the registry
+          refuses a metadata entry that expands past its limit, and a compressed entry can declare
+          one size and expand to another, which is a decompression bomb that was accepted and
+          published before the reader learned to check.
+        type: local
+      - stepNumber: 2
+        description: For each located artifact in the plan.
+        type: loop
+        loopKind: forEach
+        over: plan.artifacts
+        endStep: 3
+      - stepNumber: 3
+        label: artifact-written
+        description: >-
+          Stream the file into `artifact/<name>`, hashing the bytes as they pass, and record the
+          hash beside the name.
+
+
+          COMPUTED HERE, NEVER COPIED. A hash carried in from a manifest a developer wrote is a
+          claim; a hash computed over the bytes being written is a fact, and the two disagreeing is
+          exactly what a content hash exists to detect. Streaming rather than buffering because a
+          package artifact may be a hundred megabytes and holding it whole buys nothing.
+        type: local
+      - stepNumber: 4
+        description: >-
+          Complete the manifest body with the artifacts array built from those measurements, and
+          write it to `.manifest` at the archive root.
+
+
+          AT THE ROOT AND NAMED `.manifest` — not `package.json`, which is the layout the previous
+          tool wrote and which the registry's reader refuses by name.
+        type: local
+      - stepNumber: 5
+        description: For each namespace entity file in the plan.
+        type: loop
+        loopKind: forEach
+        over: plan.namespaceFiles
+        endStep: 6
+      - stepNumber: 6
+        label: namespace-written
+        description: Copy it into `namespace/` under its relative path, bytes unchanged.
+        type: local
+      - stepNumber: 7
+        description: >-
+          Write the package identity segment at `namespace/<packageUuid>.json`.
+
+
+          WITHOUT IT THE READER FINDS NO SEGMENT AND INGESTS NOTHING — the package installs as a
+          record with no entity behind it, which looks like a successful install until something
+          tries to reference it.
+        type: local
+      - stepNumber: 8
+        description: >-
+          Finish the archive and measure the file. Nothing else touches these bytes afterwards: the
+          invariant is that the bytes a node verifies are the bytes that were signed, and a later
+          re-zip or normalisation destroys that while looking harmless.
+        type: local
+      - stepNumber: 9
+        description: The path, the identity, framing Unsigned, and the size.
+        type: return
+        outcome: a written bundle
+    detail: full
+  - name: readIdentity
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Open the archive read-only and read the `.manifest` entry. NOTHING IS UNPACKED AND NOTHING
+          IS REWRITTEN — a publish of a pre-built bundle uploads exactly these bytes, and any
+          modification here would invalidate a signature the bundle may already carry.
+        type: local
+      - stepNumber: 2
+        description: Is there a manifest at the root?
+        type: branch
+        condition: the `.manifest` entry exists
+        onFalseStep: 5
+      - stepNumber: 3
+        description: >-
+          Take the fqid and version out of it.
+
+
+          THE IDENTITY COMES FROM THE BUNDLE, NOT FROM A PROJECT BESIDE IT. Those two can disagree,
+          and the bundle is the thing being uploaded — reading a manifest from the working directory
+          to describe an archive built last week is how a package gets published under the wrong
+          name, successfully.
+        type: local
+      - stepNumber: 4
+        description: The path, the identity, and the measured size.
+        type: return
+        outcome: the bundle's own identity
+      - stepNumber: 5
+        label: not-a-bundle
+        description: >-
+          Refuse: an archive with no root manifest is not a Waffler bundle. The likely answer when
+          someone points this at an arbitrary archive, and saying so beats a decode error naming a
+          field.
+        type: throw
+        error: NotABundle
+    detail: full
+    intent: >-
+      Open the archive read-only, read `.manifest`, and take the fqid and version out of it.
+
+
+      NOTHING IS UNPACKED AND NOTHING IS REWRITTEN. The file is left exactly as it was found,
+      because a publish of a pre-built bundle uploads those bytes and any modification here would
+      invalidate a signature the bundle may already carry.
+
+
+      THE IDENTITY COMES FROM THE BUNDLE, NOT FROM A PROJECT BESIDE IT. Those two can disagree, and
+      the bundle is the thing being uploaded — reading a manifest from the working directory to
+      describe an archive built last week is how a package gets published under the wrong name.
+
+
+      An archive with no `.manifest` is refused as not a Waffler bundle, which is the likely answer
+      when someone points this at an arbitrary zip.
+status: draft
+createdAt: '2026-09-10T00:21:22.974Z'
+updatedAt: '2026-09-10T00:23:12.456Z'

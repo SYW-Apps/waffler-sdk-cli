@@ -1,0 +1,39 @@
+id: registry-metadata-adapter
+name: Registry Metadata Adapter
+description: >-
+  Asks a registry what it is: whether it authenticates, which issuer it trusts, what it will accept,
+  and what it signs with.
+
+
+  THIS IS WHAT MAKES "SIGN IN TO MY OWN REGISTRY" POSSIBLE WITHOUT COMPILING ANYTHING IN. A
+  registry's auth is generic OIDC over a discovery URL and an audience, so an operator pointing an
+  instance at their own account provider is deployment configuration. For that to reach a client,
+  the instance must SAY so — and the metadata route as it stands answers `authentication_available:
+  true` without naming the issuer or the audience, which tells a client that a login exists and not
+  where to perform one. Closing that is a registry change this component depends on; until it lands,
+  a login against an arbitrary registry cannot be discovered and must be configured by hand, which
+  is the gap being removed rather than a design choice.
+
+
+  IT IS READ BEFORE A LOGIN AND BEFORE A PUBLISH, for different reasons. Before a login, to learn
+  where to authenticate. Before a publish, because the maximum accepted upload size is the
+  registry's to state and a client that guesses it discovers the real number by having a 100 MiB
+  body refused after transferring it.
+
+
+  A REGISTRY THAT ANSWERS NOTHING IS NOT ASSUMED TO BE OPEN. An unreachable or unparseable metadata
+  document is a refusal naming the URL, not a fallback to defaults. Defaulting to "no authentication
+  required" on a failed probe is how a tool sends an unauthenticated publish to a registry that
+  would have taken a credential, and reports the resulting 401 as the registry's fault.
+
+
+  IT IS SEPARATE FROM THE PUBLICATION ADAPTER ON PURPOSE. Session must not depend on Publishing —
+  the direction is the other way — and "what kind of service is this" is a question asked before
+  there is anything to publish.
+subsystem: session
+componentType: Adapter
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-10T00:02:37.867Z'
+updatedAt: '2026-09-10T00:02:37.876Z'

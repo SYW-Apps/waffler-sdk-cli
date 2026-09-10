@@ -1,0 +1,41 @@
+id: project-adapter
+name: Project Adapter
+description: >-
+  Reads the project off disk: the `waffler.json` authoring manifest, the `namespace/` entity tree,
+  and the built artifacts the manifest points at.
+
+
+  WHY THE AUTHORING MANIFEST IS A NEW FILE WITH A NEW NAME. It is not `package.json`, and the
+  collision is the reason. The previous tool read a `package.json` whose model shares one field NAME
+  with the format core installs and nothing else — so a legacy project left in place would be READ
+  SUCCESSFULLY and packed into a bundle that is wrong in every field. A distinct filename turns that
+  silent misread into "this project has no waffler.json", which is a sentence a developer can act
+  on. Finding a legacy `package.json` and no `waffler.json` is reported as exactly that, naming
+  both.
+
+
+  IT LOCATES ARTIFACTS, IT DOES NOT GUESS AT THEM. The manifest names each artifact by a path
+  relative to the project, and a path that does not resolve is an error naming the path. The
+  previous tool searched a list of candidate directories — `target/release`,
+  `target/wasm32-unknown-unknown/release`, the project root — and took the first hit, which means a
+  stale artifact from a previous build in a directory the developer had forgotten was as good as a
+  fresh one. A build system that can silently ship yesterday's binary has no way to tell anyone it
+  did.
+
+
+  THE NAMESPACE TREE IS READ AS BYTES, NOT INTERPRETED. Entity segment JSON belongs to VFS's staged
+  reader and to nothing here; this component reads the files and reports their relative paths. A
+  packer that parsed and re-emitted them would be a second implementation of a format it does not
+  own, and it would be the one that drifts.
+
+
+  WHAT IT DOES NOT DO. It does not build, does not validate semantics beyond "this file is readable
+  JSON", and does not decide what belongs in a bundle. It answers "what is on disk", which is the
+  only question a filesystem can answer honestly.
+subsystem: project
+componentType: Adapter
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-10T00:01:04.037Z'
+updatedAt: '2026-09-10T00:01:04.052Z'

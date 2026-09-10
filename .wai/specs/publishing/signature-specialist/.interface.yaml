@@ -1,0 +1,74 @@
+id: isignature-specialist
+name: Bundle Framing Contract
+description: >-
+  What follows the archive, and who vouches for it.
+
+
+  THE FRAME IS THE SAME ONE THE REGISTRY READS, and there must be exactly one description of it in
+  the world that both sides agree on. The registry's reader already implements it; this is the
+  producer that must not drift from it.
+
+
+  THE PRODUCER HALF IS GATED, AND THE GATE IS A RULE RATHER THAN A SCHEDULE. Appending a signature
+  shape that consumers cannot yet read produces artifacts nobody can install — so READERS SHIP
+  FIRST, and this tool starts emitting a dual frame only once the nodes that must verify it already
+  can. Detection ships immediately, because refusing to upload a bundle whose trailing bytes are not
+  the shape the registry accepts is useful the day it exists.
+component: signature-specialist
+methods:
+  - name: detectFraming
+    description: >-
+      Decide what the bytes after the archive are: nothing, a legacy detached signature, or a
+      dual-signature trailer.
+
+
+      THE ARCHIVE'S END IS FOUND BY VALIDATING THE CENTRAL DIRECTORY, not by trusting the first
+      end-of-central-directory record that scans. A comment-aware scan finds several candidate
+      records in a hostile file; the one whose directory pointer actually addresses a directory is
+      the real end, and when two candidates both qualify the file is REFUSED rather than guessed at.
+      Guessing produces a bundle that reads one way here and another way at the registry, which is
+      the entire attack.
+
+
+      A SUFFIX THAT MATCHES NOTHING IS A REFUSAL. Sixty-four trailing bytes are a legacy signature;
+      a trailer ending in the magic whose declared length agrees with the suffix is a dual frame;
+      anything else is refused rather than trimmed, because deciding which trailing bytes are
+      signature and which are content by guessing publishes a corrupt package successfully.
+    signature: 'detectFraming(bundlePath: string): Framing'
+    returns: string
+    params:
+      - name: bundlePath
+        type: string
+        description: The bundle to inspect.
+    guarantees:
+      - idempotent
+  - name: signAsPublisher
+    description: >-
+      Append a publisher signature to an unsigned archive, producing a dual-signature frame.
+
+
+      COVERAGE IS STRUCTURAL, NOT DECLARED. Signature `i` covers the archive plus the signature
+      bytes of every signature before it, so the order in the trailer IS the countersigning chain.
+      There is no field saying what a signature covers, deliberately: a verifier that read such a
+      field would be letting attacker-supplied data decide what to verify.
+
+
+      IT REFUSES AN ALREADY-SIGNED ARCHIVE. Re-signing means either re-zipping — which destroys the
+      payload a signature covers — or appending blindly, and both produce artifacts refused later on
+      somebody else's machine.
+
+
+      PARKED UNTIL THE READERS SHIP. Specified now so the shape is agreed on both sides; emitted
+      only once the verifiers that must read it are deployed.
+    signature: 'signAsPublisher(bundlePath: string, signingKey: bytes): WrittenBundle'
+    returns: sdk_cli::written-bundle
+    params:
+      - name: bundlePath
+        type: string
+        description: An unsigned bundle.
+      - name: signingKey
+        type: bytes
+        description: The publisher's Ed25519 signing key.
+status: draft
+createdAt: '2026-09-10T00:12:20.479Z'
+updatedAt: '2026-09-10T00:12:20.502Z'

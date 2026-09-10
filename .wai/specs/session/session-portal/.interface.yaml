@@ -1,0 +1,100 @@
+id: isession-portal
+name: Session Command Contract
+description: >-
+  The session commands, and Session's front door for in-process callers.
+
+
+  LIKE THE OTHER PORTALS, THESE METHODS ARE THE LIBRARY API and argument parsing sits above them. A
+  check written in a command handler is one the library path silently skips.
+component: session-portal
+methods:
+  - name: resolve
+    description: >-
+      Which registry does this invocation address, and why. Publishing's first question, asked once
+      per command.
+    signature: 'resolve(flagValue: string?): TargetRegistry'
+    returns: sdk_cli::target-registry
+    params:
+      - name: flagValue
+        type: string
+        description: A `--registry` value, when the command carried one.
+        optional: true
+    endpoint:
+      transport: CLI
+      command: registry --show
+  - name: bearer
+    description: >-
+      A usable access token for a resolved registry, refreshed on a margin. Refuses rather than
+      returning an empty bearer.
+    signature: 'bearer(registry: TargetRegistry): string'
+    returns: string
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The resolved registry.
+    endpoint:
+      transport: CLI
+      command: registry --token
+  - name: profile
+    description: >-
+      What the registry says about itself. Publishing needs the accepted upload size and whether the
+      instance can publish at all.
+    signature: 'profile(registry: TargetRegistry): RegistryProfile'
+    returns: sdk_cli::registry-profile
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The resolved registry.
+    endpoint:
+      transport: CLI
+      command: registry --info
+  - name: login
+    description: Sign in to a registry, against whatever issuer that registry advertises.
+    signature: 'login(flagValue: string?): RegistryCredential'
+    returns: sdk_cli::registry-credential
+    params:
+      - name: flagValue
+        type: string
+        description: A `--registry` value; otherwise the resolved default.
+        optional: true
+    endpoint:
+      transport: CLI
+      command: login
+  - name: logout
+    description: Sign out of one registry, leaving every other session intact.
+    signature: 'logout(flagValue: string?): void'
+    returns: void
+    params:
+      - name: flagValue
+        type: string
+        description: A `--registry` value; otherwise the resolved default.
+        optional: true
+    endpoint:
+      transport: CLI
+      command: logout
+  - name: whoami
+    description: Report the identity held for a registry, naming the registry it is for.
+    signature: 'whoami(flagValue: string?): RegistryCredential?'
+    returns: sdk_cli::registry-credential
+    params:
+      - name: flagValue
+        type: string
+        description: A `--registry` value; otherwise the resolved default.
+        optional: true
+    endpoint:
+      transport: CLI
+      command: whoami
+  - name: use
+    description: Persist a registry as the default, and say plainly whether there is a credential for it.
+    signature: 'use(baseUrl: string): TargetRegistry'
+    returns: sdk_cli::target-registry
+    params:
+      - name: baseUrl
+        type: string
+        description: The registry to make default.
+    endpoint:
+      transport: CLI
+      command: use
+status: draft
+createdAt: '2026-09-10T00:11:42.767Z'
+updatedAt: '2026-09-10T00:11:46.299Z'

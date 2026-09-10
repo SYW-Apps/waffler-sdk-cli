@@ -1,0 +1,116 @@
+id: oidc_adapter_impl
+name: OIDC Adapter Implementation
+description: >-
+  Discovery, an authorization-code flow with PKCE over a loopback listener, and a refresh exchange.
+
+
+  THE ISSUER IS AN ARGUMENT. Every endpoint used comes from the discovery document of whatever
+  issuer the registry named, which is the whole reason this tool can address a registry it was not
+  built for.
+contract: ioidc-adapter
+sourcePath: sdk/cli/src/session/oidc_adapter.rs
+technologies:
+  - openid-connect
+methods:
+  - name: authorize
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Fetch the issuer's discovery document and read its authorization and token endpoints. A
+          discovery document that names neither is a refusal that says so — the alternative,
+          guessing conventional paths, produces requests to endpoints that may exist and may belong
+          to something else.
+        type: local
+      - stepNumber: 2
+        description: >-
+          Generate a PKCE verifier and its challenge, and a random state value, both from a
+          cryptographically secure source.
+
+
+          PKCE IS NOT OPTIONAL HERE, AND THE LOOPBACK REDIRECT IS WHY. A redirect to
+          `http://127.0.0.1:<port>` is reachable by any other process on the machine, so an
+          authorization code delivered there is a code anybody local could race for. The verifier
+          never leaves this process, which turns a stolen code into nothing. A public client on a
+          loopback redirect without PKCE is the textbook shape of this vulnerability.
+        type: local
+      - stepNumber: 3
+        description: >-
+          Bind a listener on an ephemeral loopback port. The port is not fixed: a fixed one is a
+          port another process can already be holding, and the failure is a login that hangs rather
+          than one that says the port is taken.
+        type: local
+      - stepNumber: 4
+        description: >-
+          Build the authorize URL with the client id, the redirect, the challenge, the state and the
+          requested audience, and open it in the developer's browser — printing it as well, because
+          a headless or remote shell has no browser to open and a URL on stdout is the only way
+          through.
+        type: local
+      - stepNumber: 5
+        description: >-
+          Wait for exactly one request on the listener, with a timeout. A login that waits forever
+          is one that has to be killed, and killing it leaves the terminal without the sentence
+          explaining what went wrong.
+        type: local
+      - stepNumber: 6
+        description: Does the returned state match the one that was sent?
+        type: branch
+        condition: the state parameter equals the generated state
+        onFalseStep: 8
+      - stepNumber: 7
+        description: Continue to the code exchange.
+        type: jump
+        toStep: 9
+      - stepNumber: 8
+        label: state-mismatch
+        description: >-
+          Abort. The listener accepts one request from anywhere on the loopback interface; without
+          this check another local process can complete the flow with a code for a DIFFERENT
+          account, and this tool would cache it as the developer's and publish under it.
+        type: throw
+        error: StateMismatch
+      - stepNumber: 9
+        label: exchange
+        description: POST the code and the PKCE verifier to the token endpoint and read the token set back.
+        type: local
+      - stepNumber: 10
+        description: >-
+          The tokens, returned and not stored. Persistence belongs to the session store — a
+          component that both obtained and cached credentials is one where an 'obtain' quietly
+          returning a cached value would be indistinguishable from a real sign-in.
+        type: return
+        outcome: a token set
+    detail: full
+  - name: refresh
+    narrative:
+      - stepNumber: 1
+        description: Fetch the issuer's discovery document and read its token endpoint.
+        type: local
+      - stepNumber: 2
+        description: POST the refresh grant with the client id and the stored refresh token.
+        type: local
+      - stepNumber: 3
+        description: Did the issuer accept it?
+        type: branch
+        condition: the token endpoint answered with a token set
+        onFalseStep: 5
+      - stepNumber: 4
+        description: >-
+          The new token set, including a rotated refresh token when the issuer sent one — an issuer
+          that rotates and a client that keeps the old one is a session that dies on the second
+          refresh.
+        type: return
+        outcome: a refreshed token set
+      - stepNumber: 5
+        label: refresh-failed
+        description: >-
+          Report the failure as a failure. NOT AS A SILENT RE-PROMPT: the caller decides whether to
+          discard the credential and ask for a browser, because an adapter that transparently
+          escalated to an interactive flow would open a browser from inside a CI run and hang it
+          until the timeout.
+        type: throw
+        error: RefreshRejected
+    detail: full
+status: draft
+createdAt: '2026-09-10T00:19:13.004Z'
+updatedAt: '2026-09-10T00:19:13.005Z'

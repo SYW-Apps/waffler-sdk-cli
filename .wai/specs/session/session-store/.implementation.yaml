@@ -1,0 +1,144 @@
+id: session_store_impl
+name: Session Store Implementation
+description: >-
+  One JSON document in the user's own config directory, holding a default registry and a map of
+  credentials keyed by normalised registry URL.
+
+
+  WHY A FILE AND NOT A KEYCHAIN. A keychain would be better and is not portable across the three
+  platforms this tool ships on without three implementations, of which two would be exercised by
+  nobody. The file is written with owner-only permissions and never inside a project tree, which
+  closes the failure that actually happens — a credential committed to a repository.
+contract: isession-store
+sourcePath: sdk/cli/src/session/session_store.rs
+technologies:
+  - json-file
+methods:
+  - name: load
+    narrative: []
+    detail: intent
+    intent: >-
+      Read the session document from the user's config directory, or answer with an empty session
+      when it is not there.
+
+
+      AN ABSENT FILE IS A FIRST RUN, not an error. A malformed one IS an error, naming the path:
+      silently replacing an unreadable credential file with an empty session is how a developer's
+      stored logins vanish with no event that says so.
+
+
+      Hydration happens once at process start, because every command — including one that only
+      reports which registry it resolved — needs the persisted default.
+  - name: credentialFor
+    narrative: []
+    detail: intent
+    intent: >-
+      Look the registry up in the credential map by its normalised URL.
+
+
+      The key is what the resolver produced. There is no second normalisation here, and adding one
+      would let two spellings of a registry hold two credentials and use whichever the current
+      command's spelling happened to find.
+  - name: putCredential
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Insert or REPLACE the entry keyed by the normalised registry URL.
+
+
+          Replace, never append: one credential per registry is the invariant, and an append would
+          leave two live sessions for one service with nothing to choose between them. The record
+          written is always complete — a credential is never stored with cleared fields, because a
+          blanked record and an expired one need different sentences and would become
+          indistinguishable.
+        type: local
+        assertsInvariants:
+          - sdk_cli::registry-credential.one-credential-per-registry
+          - sdk_cli::registry-credential.removed-not-blanked
+      - stepNumber: 2
+        description: >-
+          Write the whole document back atomically — a temporary file in the same directory, then a
+          rename — with owner-only permissions. A process interrupted mid-write otherwise leaves a
+          truncated document, and the next run reports every stored login as gone.
+        type: local
+      - stepNumber: 3
+        description: Persisted.
+        type: return
+        outcome: success
+    detail: full
+    intent: >-
+      Insert or replace the entry for that registry, then write the whole document back with
+      owner-only permissions.
+
+
+      REPLACE, NEVER APPEND. One credential per registry is the invariant, and an append would leave
+      two live sessions for one service with nothing to choose between them.
+
+
+      The write is atomic — a temporary file in the same directory, then a rename — because a
+      process interrupted mid-write otherwise leaves a truncated document, and the next run reports
+      every stored login as gone.
+  - name: removeCredential
+    narrative:
+      - stepNumber: 1
+        description: >-
+          DELETE the entry for that registry rather than clearing its fields, leaving at most one
+          entry per registry as before.
+
+
+          A record with cleared fields is indistinguishable from an expired one, and the two need
+          different sentences: 'you are not signed in to this registry' versus 'your session
+          expired'.
+        type: local
+        assertsInvariants:
+          - sdk_cli::registry-credential.removed-not-blanked
+          - sdk_cli::registry-credential.one-credential-per-registry
+      - stepNumber: 2
+        description: >-
+          Write the document back atomically, with owner-only permissions. Removing an entry that is
+          not there is success — signing out twice is not a mistake.
+        type: local
+      - stepNumber: 3
+        description: Removed.
+        type: return
+        outcome: success
+    detail: full
+    intent: >-
+      Delete the entry and write the document back.
+
+
+      DELETED, NOT BLANKED. A record with cleared fields is indistinguishable from an expired one,
+      and the two need different sentences: 'you are not signed in to this registry' versus 'your
+      session expired'. Removing an entry that is not there is success, not an error — signing out
+      twice is not a mistake.
+  - name: defaultRegistry
+    narrative: []
+    detail: intent
+    intent: >-
+      Return the persisted default, or none. A tool that has never had `use` run against it has no
+      default, and that is the ordinary first-run state.
+  - name: setDefaultRegistry
+    narrative: []
+    detail: intent
+    intent: >-
+      Store the default and write the document back, atomically and with owner-only permissions like
+      every other write here.
+
+
+      It does NOT create or touch a credential. Which registry a command addresses and whether there
+      is an identity for it are separate facts, and conflating them is how a `use` to an
+      unauthenticated registry looks like a working session until the first publish.
+detail: intent
+lint:
+  allow:
+    - code: UNASSERTED_INVARIANT
+      reason: >-
+        `setDefaultRegistry` writes a different field of the same document. The two credential
+        invariants — one entry per registry, and removal rather than blanking — are properties of
+        the credential MAP, and this method touches only the default-registry pointer beside it.
+        `putCredential` and `removeCredential`, which do write the map, assert both. Silencing is
+        spec-level because the tool has no per-method allow; the assertions that matter are present
+        and visible in the two narratives above.
+status: draft
+createdAt: '2026-09-10T00:18:41.664Z'
+updatedAt: '2026-09-10T00:20:44.746Z'

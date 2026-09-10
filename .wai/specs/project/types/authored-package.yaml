@@ -1,0 +1,100 @@
+kind: entity
+id: authored-package
+name: Authored Package
+description: >-
+  `waffler.json` — everything a developer writes about their package, and nothing else.
+
+
+  THE FILE IS NOT `package.json`, AND THE NAME IS THE SAFETY. A legacy project's `package.json`
+  describes a model that shares one field NAME with this one and no meaning; read as this, it would
+  parse and produce a bundle wrong in every field. A different filename converts that silent misread
+  into a missing file.
+
+
+  IT CARRIES ONLY THE DECLARED POPULATION. What a node's `InstalledPackage` also holds — artifact
+  content hashes, identity, enabled, approved group ids, fast-lane grants — is derived from bytes or
+  minted by a node, and a field a developer cannot write is a field that cannot be wrong.
+  `hosting_mode` is absent for the same reason: it is a fact about whether a loadable artifact was
+  built, not an option.
+subsystem: project
+fields:
+  - name: fqid
+    type: string
+    description: >-
+      The fully-qualified package id, e.g. `syw.probe.echo`. It is the registry namespace, the
+      install key, and the seed of the deterministic package uuid — one string doing three jobs, so
+      it is never derived from anything else.
+    optional: false
+    key: primary
+  - name: version
+    type: string
+    description: >-
+      SemVer. The one field name this model shares with the previous tool's manifest, which is why a
+      filename check rather than a field check is what distinguishes them.
+    optional: false
+  - name: description
+    type: string
+    description: Prose for the catalog. Never read by an installer.
+    optional: true
+  - name: coreCompatibility
+    type: string
+    description: >-
+      The core CONTRACT range this package is built against, e.g. `^0.1`. ABSENT MEANS THE BUNDLE
+      DECLARED NOTHING and installs UNCHECKED with a warning — which is not the same as compatible.
+      Optional here only so an existing project keeps packing; a scaffold always writes one.
+    optional: true
+  - name: artifacts
+    type: sdk_cli::declared-artifact[]
+    description: >-
+      The files to build and embed, each named by a project-relative path. Empty means the package
+      ships no loadable code and installs HOSTED.
+    optional: false
+  - name: dependencies
+    type: sdk_cli::declared-dependency[]
+    description: >-
+      Package dependencies as fqid + version REQUIREMENT (`^1.0`, not a pin) — the registry resolves
+      them against what is published. These are REQUIRED: core refuses to enable a package whose
+      declared dependencies are absent, disabled, or at an excluded version, so declaring one
+      nothing needs turns into an enable that refuses for a reason nobody can act on.
+    optional: false
+  - name: capabilities
+    type: sdk_cli::declared-capability[]
+    description: >-
+      Runtime primitives and other host-targeted capability declarations, each naming the artifact
+      that realizes it.
+    optional: false
+  - name: permissionGroups
+    type: json[]
+    description: >-
+      The reviewable permission asks, passed through as authored. Their schema belongs to security
+      and re-modelling it here would create a second definition that drifts — the registry validates
+      the real one.
+    optional: false
+  - name: fastLaneRequests
+    type: json[]
+    description: >-
+      Requested fast lanes, `{target, secure}` per entry. The reviewable ASK; a grant is what an
+      approval produces on a node and can never be declared here.
+    optional: false
+  - name: uiPlugins
+    type: sdk_cli::declared-ui-plugin[]
+    description: >-
+      UI plugin bundles this package ships. A plugin rides as an artifact INSIDE the package, so a
+      node without the package has no page rather than an empty one.
+    optional: false
+methods: []
+componentClass: sdk_cli::project-adapter
+invariants:
+  - id: artifact-paths-resolve
+    description: >-
+      Every path named in artifacts and uiPlugins resolves to a readable file under the project
+      directory after the build has run. An unresolvable path is an error naming the path, never a
+      fallback to a search of candidate directories.
+  - id: declarations-name-declared-artifacts
+    description: >-
+      Every capability and every ui plugin names an artifact that the manifest also declares. The
+      registry's bundle reader aligns declared artifacts against on-disk zip entries strictly in
+      both directions, so an unnamed artifact and a named-but-absent one are both refused there —
+      and are cheaper to catch here.
+createdAt: '2026-09-10T00:07:14.467Z'
+updatedAt: '2026-09-10T00:07:14.705Z'

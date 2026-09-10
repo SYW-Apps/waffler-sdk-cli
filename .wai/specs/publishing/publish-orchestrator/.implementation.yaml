@@ -1,0 +1,203 @@
+id: publish_orchestrator_impl
+name: Publish Orchestrator Implementation
+description: Order, and nothing else. Readable top to bottom to learn what publishing does.
+contract: ipublish-orchestrator
+sourcePath: sdk/cli/src/publishing/publish_orchestrator.rs
+methods:
+  - name: pack
+    narrative:
+      - stepNumber: 1
+        description: Ask Project for a plan.
+        type: call
+        targetComponent: project-client-adapter
+        targetMethod: planFromDirectory
+      - stepNumber: 2
+        description: Write the bundle from its parts.
+        type: call
+        targetComponent: bundle-writer
+        targetMethod: writeBundle
+      - stepNumber: 3
+        description: >-
+          The written bundle, and nothing uploaded.
+
+
+          NO REGISTRY IS RESOLVED AND NO CREDENTIAL IS ASKED FOR on this path. Producing something
+          inspectable without publishing it is how a developer checks their own work and how the
+          container image build consumes this tool — that build has no network and no session, and a
+          pack that reached for either would fail there for a reason that has nothing to do with
+          packing.
+        type: return
+        outcome: a bundle on disk
+    detail: full
+  - name: publish
+    narrative:
+      - stepNumber: 1
+        description: Resolve which registry this command addresses, and which source said so.
+        type: call
+        targetComponent: session-client-adapter
+        targetMethod: target
+      - stepNumber: 2
+        description: >-
+          REPORT IT NOW, before anything irreversible. The tool knows the answer at the moment it is
+          cheapest to say, and a publish that quietly went to the wrong registry is the failure an
+          operator discovers last and trusts least.
+        type: local
+      - stepNumber: 3
+        description: 'Ask the registry what it is: what it accepts, and whether it can publish at all.'
+        type: call
+        targetComponent: session-client-adapter
+        targetMethod: describe
+      - stepNumber: 4
+        description: Can this deployment accept publishes?
+        type: branch
+        condition: the profile says publishing is available
+        onFalseStep: 22
+      - stepNumber: 5
+        description: Was a pre-built bundle given instead of a project?
+        type: branch
+        condition: bundlePath is present
+        onFalseStep: 8
+      - stepNumber: 6
+        description: >-
+          Read its identity out of the bundle itself, leaving the bytes untouched. NOT from a
+          project manifest beside it: those two can disagree, and the bundle is the thing being
+          uploaded.
+        type: call
+        targetComponent: bundle-writer
+        targetMethod: readIdentity
+      - stepNumber: 7
+        description: Continue to the framing check.
+        type: jump
+        toStep: 10
+      - stepNumber: 8
+        label: from-project
+        description: Ask Project for a plan.
+        type: call
+        targetComponent: project-client-adapter
+        targetMethod: planFromDirectory
+      - stepNumber: 9
+        description: Write the bundle from its parts.
+        type: call
+        targetComponent: bundle-writer
+        targetMethod: writeBundle
+      - stepNumber: 10
+        label: check-framing
+        description: Detect what follows the archive.
+        type: call
+        targetComponent: signature-specialist
+        targetMethod: detectFraming
+      - stepNumber: 11
+        description: Does it already carry a registry signature?
+        type: branch
+        condition: the framing is Legacy, or Dual with a registry signature present
+        onFalseStep: 13
+      - stepNumber: 12
+        description: >-
+          Refuse before uploading. The registry refuses one too — it cannot safely decide which
+          trailing bytes are signature and which are content — and finding that out locally costs
+          nothing while finding it out after the upload costs the upload.
+        type: throw
+        error: AlreadyRegistrySigned
+      - stepNumber: 13
+        label: size-check
+        description: Is the artifact within what this registry accepts?
+        type: branch
+        condition: the bundle size is at most the profile's maximum
+        onFalseStep: 21
+      - stepNumber: 14
+        description: Ask the registry what it already holds for this fqid.
+        type: call
+        targetComponent: publication-adapter
+        targetMethod: fetchPublishedPackage
+      - stepNumber: 15
+        description: Has this package ever carried a publisher signature?
+        type: branch
+        condition: a published version carries a publisher signature
+        onFalseStep: 17
+      - stepNumber: 16
+        description: Does this publish carry one?
+        type: branch
+        condition: the framing is Dual with a publisher signature
+        onFalseStep: 20
+      - stepNumber: 17
+        label: obtain-bearer
+        description: >-
+          Obtain a bearer, refreshed against this moment.
+
+
+          ASKED AFTER THE BUILD AND BEFORE THE UPLOAD, deliberately: a token checked before a
+          release build and used after it can expire in between, and the wasted upload is the whole
+          cost of getting that order wrong.
+        type: call
+        targetComponent: session-client-adapter
+        targetMethod: bearer
+      - stepNumber: 18
+        description: Upload.
+        type: call
+        targetComponent: publication-adapter
+        targetMethod: uploadBundle
+      - stepNumber: 19
+        description: >-
+          What the registry answered, the registry it answered from, and where the artifact sits
+          locally — present on success too, so a developer wanting to inspect what was accepted need
+          not re-derive the path.
+        type: return
+        outcome: a publish outcome
+      - stepNumber: 20
+        label: downgrade
+        description: >-
+          REFUSE, WITH NO FLAG TO WAIVE IT. A package that has ever carried a publisher signature
+          may never publish one without: accepting it would let anyone who obtains publish rights
+          strip the binding to whoever built the software, and every node afterwards would verify a
+          registry signature and find nothing missing.
+
+
+          ASKED BEFORE SIGNING for exactly this reason — discovering it after would mean either
+          uploading something that will be refused or silently changing shape.
+        type: throw
+        error: PublisherSignatureDowngrade
+      - stepNumber: 21
+        label: too-large
+        description: >-
+          Refuse, naming both sizes. The bundle on disk is kept: the developer can inspect it, and
+          the next attempt does not rebuild.
+        type: throw
+        error: BundleTooLarge
+      - stepNumber: 22
+        label: cannot-publish
+        description: >-
+          Refuse: this deployment serves downloads and signs nothing. Said before a build rather
+          than after, because it is knowable from one request.
+        type: throw
+        error: RegistryCannotPublish
+    detail: full
+  - name: unpublish
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Resolve which registry this is withdrawing from, and report it. Withdrawing from the wrong
+          registry is worse than publishing to one, because the damage is to something that already
+          worked.
+        type: call
+        targetComponent: session-client-adapter
+        targetMethod: target
+      - stepNumber: 2
+        description: Obtain a bearer for it.
+        type: call
+        targetComponent: session-client-adapter
+        targetMethod: bearer
+      - stepNumber: 3
+        description: Withdraw the version.
+        type: call
+        targetComponent: publication-adapter
+        targetMethod: withdrawVersion
+      - stepNumber: 4
+        description: >-
+          Withdrawn — stating that the catalog entry is gone and the stored bytes are not, so nobody
+          relies on a deletion that did not happen.
+        type: return
+        outcome: the version is no longer listed
+    detail: full
+status: draft
+createdAt: '2026-09-10T00:22:39.553Z'
+updatedAt: '2026-09-10T00:23:25.479Z'

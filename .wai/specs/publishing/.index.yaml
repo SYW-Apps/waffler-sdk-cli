@@ -38,7 +38,23 @@ description: >-
   acceptance decision after that belongs to someone else.
 parentSystem: Waffler Developer CLI
 publicInterfaces: []
-trustedLinks: []
+trustedLinks:
+  - subsystem: project
+    reason: >-
+      One process, one binary, no distribution seam — so the adapter a boundary hop would normally
+      require would be a function call wrapping a function call, and its only effect would be to
+      make the call graph one hop longer than the code. These subsystems are modules of a developer
+      tool that runs to completion in a terminal; they cannot be deployed apart, and modelling a
+      network boundary between them would be modelling something that does not exist. The edge
+      targets project's Portal, whose interface methods ARE the library API: argument parsing sits
+      above them, which is what keeps the docker image build able to drive this tool without a
+      process.
+  - subsystem: session
+    reason: >-
+      Same single-process reason as the link to project. The traffic is deliberately narrow and
+      one-way: Publishing asks Session which registry this invocation addresses and what bearer to
+      present, and tells it nothing about what is being published. Session cannot learn what is in a
+      bundle, so no change to bundle contents can change who the tool authenticates as.
 status: draft
 createdAt: '2026-09-09T23:10:39.506Z'
-updatedAt: '2026-09-09T23:10:39.714Z'
+updatedAt: '2026-09-10T00:04:22.232Z'

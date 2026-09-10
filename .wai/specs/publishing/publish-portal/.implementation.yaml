@@ -1,0 +1,39 @@
+id: publish_portal_impl
+name: Publish Portal Implementation
+description: Delegation, and the rendering that names the registry and the shape.
+contract: ipublish-portal
+sourcePath: sdk/cli/src/publishing/publish_portal.rs
+methods:
+  - name: pack
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Delegate, then print the path, the identity, the size and the framing — Unsigned being the
+          shape a registry publish requires, so saying it is what tells a developer the artifact is
+          publishable.
+        type: call
+        targetComponent: publish-orchestrator
+        targetMethod: pack
+  - name: publish
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Delegate, then print which registry was resolved and how, and what the registry answered.
+          All three facts were unavailable in the previous tool.
+        type: call
+        targetComponent: publish-orchestrator
+        targetMethod: publish
+  - name: unpublish
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Delegate, then state what withdrawing did: the catalog entry is gone, the stored bytes are
+          not.
+        type: call
+        targetComponent: publish-orchestrator
+        targetMethod: unpublish
+    detail: calls-only
+detail: calls-only
+status: draft
+createdAt: '2026-09-10T00:22:45.609Z'
+updatedAt: '2026-09-10T00:23:34.705Z'

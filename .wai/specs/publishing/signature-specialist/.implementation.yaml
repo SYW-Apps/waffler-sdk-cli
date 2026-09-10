@@ -1,0 +1,155 @@
+id: signature_specialist_impl
+name: Signature Specialist Implementation
+description: >-
+  The producer side of a frame the registry already reads. Its algorithm is not invented here —
+  `registry::publication::bundle_framing` implements the same boundary detection, and the two must
+  agree byte for byte or an artifact reads one way locally and another way at the registry, which is
+  the entire attack this detection exists to close.
+contract: isignature-specialist
+sourcePath: sdk/cli/src/publishing/signature_specialist.rs
+methods:
+  - name: detectFraming
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Scan backwards for end-of-central-directory records. A zip comment may contain bytes that
+          look like one, so several candidates appear in a hostile file and the last one is not
+          necessarily the real one.
+        type: local
+      - stepNumber: 2
+        description: For each candidate record found.
+        type: loop
+        loopKind: forEach
+        over: the candidate end-of-central-directory offsets
+        endStep: 3
+      - stepNumber: 3
+        label: candidate-checked
+        description: >-
+          Accept it only if its central-directory pointer actually addresses a central directory:
+          the pointer plus the declared size must land at or before the record, and the bytes at the
+          pointer must carry the directory header signature. An archive declaring zero entries
+          qualifies only when the record sits at offset zero — without that, a zeroed plant reads as
+          a legitimate empty archive, which is how the first version of this check passed its own
+          test while being wrong.
+        type: local
+      - stepNumber: 4
+        description: Did more than one candidate qualify?
+        type: branch
+        condition: two or more candidates validated
+        onFalseStep: 6
+      - stepNumber: 5
+        description: >-
+          REFUSE rather than choose. Two readers picking different ends of the same file is the
+          whole attack: the bundle a developer inspects and the bundle a registry validates would
+          differ, and neither could report it.
+        type: throw
+        error: AmbiguousArchiveEnd
+      - stepNumber: 6
+        label: one-or-none
+        description: Did any candidate qualify?
+        type: branch
+        condition: exactly one candidate validated
+        onFalseStep: 15
+      - stepNumber: 7
+        description: The archive ends there. The suffix is everything after it.
+        type: local
+      - stepNumber: 8
+        description: Is the suffix empty?
+        type: branch
+        condition: the suffix has zero length
+        onFalseStep: 10
+      - stepNumber: 9
+        description: >-
+          Unsigned — the shape a registry publish requires, because on that path the registry signs
+          alone.
+        type: return
+        outcome: Unsigned
+      - stepNumber: 10
+        label: check-dual
+        description: >-
+          Does the suffix end with the trailer magic, with a declared length that agrees with the
+          suffix's own length?
+        type: branch
+        condition: >-
+          the suffix ends with the magic and trailer_len plus the footer size equals the suffix
+          length
+        onFalseStep: 12
+      - stepNumber: 11
+        description: >-
+          Dual — a signature trailer. THE LENGTH MUST AGREE: a magic alone is a byte pattern content
+          can contain, and only the declared length agreeing with the measured suffix makes it a
+          frame rather than a coincidence.
+        type: return
+        outcome: Dual
+      - stepNumber: 12
+        label: check-legacy
+        description: Is the suffix exactly the length of one detached signature?
+        type: branch
+        condition: the suffix length equals the detached signature length
+        onFalseStep: 14
+      - stepNumber: 13
+        description: Legacy — a single detached signature appended to the payload.
+        type: return
+        outcome: Legacy
+      - stepNumber: 14
+        label: unrecognised
+        description: >-
+          REFUSE, naming the suffix length. Trailing bytes matching no known frame are not trimmed
+          and not ignored: deciding by guess which trailing bytes are signature and which are
+          content publishes a corrupt package SUCCESSFULLY, which is the worst outcome available.
+        type: throw
+        error: UnrecognisedTrailer
+      - stepNumber: 15
+        label: not-an-archive
+        description: 'Refuse: no valid archive end was found, so this is not a bundle.'
+        type: throw
+        error: NotAnArchive
+    detail: full
+  - name: signAsPublisher
+    narrative:
+      - stepNumber: 1
+        description: Detect what the file already carries.
+        type: call
+        targetComponent: signature-specialist
+        targetMethod: detectFraming
+      - stepNumber: 2
+        description: Is it unsigned?
+        type: branch
+        condition: the framing is Unsigned
+        onFalseStep: 6
+      - stepNumber: 3
+        description: >-
+          Sign the archive bytes and build a trailer holding one publisher signature.
+
+
+          COVERAGE IS STRUCTURAL, NOT DECLARED. Signature `i` covers the archive plus the signature
+          bytes of every signature before it, so the ORDER in the trailer is the countersigning
+          chain. There is deliberately no field saying what a signature covers — a verifier reading
+          such a field would be letting attacker-supplied data decide what to verify.
+        type: local
+      - stepNumber: 4
+        description: >-
+          Append the encoded trailer, its length, and the magic, in that order. The frame is read
+          back-to-front, which is why the length and the magic come last.
+        type: local
+      - stepNumber: 5
+        description: >-
+          The same archive with a publisher signature appended. PARKED UNTIL THE VERIFIERS SHIP:
+          specified now so both sides agree on the shape, emitted only once the nodes that must read
+          it already can — readers first, because a signature shape consumers cannot read produces
+          artifacts nobody can install.
+        type: return
+        outcome: a dual-framed bundle
+      - stepNumber: 6
+        label: already-signed
+        description: >-
+          Refuse. Re-signing means either re-zipping, which destroys the payload the existing
+          signature covers, or appending blindly — and both produce artifacts refused later on
+          somebody else's machine, with a message about integrity that names nothing about this
+          step.
+        type: throw
+        error: AlreadySigned
+    detail: full
+status: draft
+createdAt: '2026-09-10T00:21:47.541Z'
+updatedAt: '2026-09-10T00:21:47.542Z'

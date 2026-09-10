@@ -1,0 +1,47 @@
+id: session-orchestrator
+name: Session Orchestrator
+description: >-
+  Resolving which registry a command addresses, and producing a usable credential for it. The
+  subsystem's public face, and what Publishing asks before every request.
+
+
+  RESOLUTION IS ORDERED, EXPLICIT, AND REPORTED: a per-command flag, then the environment, then the
+  persisted `use` default, then the built-in. Four sources means four ways to be surprised, so every
+  command states which registry it resolved AND which of the four said so. A publish that silently
+  went somewhere else is the failure an operator discovers last and trusts least, and the tool knows
+  the answer at the moment it is cheapest to say.
+
+
+  THE URL IS NORMALISED ONCE, HERE. Trailing slashes, case in the host, a default port written out —
+  all of these produce spellings that name one registry, and a store keyed by the raw string would
+  hold two credentials for it and use whichever the current spelling found. The same normalisation
+  is what the store keys on; there must not be a second one.
+
+
+  A CREDENTIAL IS REFRESHED BEFORE IT IS HANDED OUT, NOT AFTER IT FAILS. An access token that
+  expires between the check and a 100 MiB upload wastes the upload; refreshing on a margin costs one
+  request. When a refresh fails the credential is REMOVED rather than kept — a stale entry that
+  keeps failing looks to a developer like the registry rejecting them.
+
+
+  IT NEVER FABRICATES AN ANONYMOUS SESSION. A registry that requires authentication and a caller
+  with no credential is a refusal that names the registry and says how to sign in to it. Falling
+  through to an unauthenticated request would convert a local, actionable "you are not logged in to
+  this registry" into a remote 401 that reads like a server problem.
+
+
+  IT DECIDES NOTHING ABOUT AUTHORIZATION. Whether an identity may publish under a namespace is the
+  registry's answer and is surfaced as the registry worded it. The previous tool checked namespace
+  ownership locally against a cached account record and refused publishes the registry would have
+  accepted — a client disagreeing with the server about permission, in the direction that merely
+  obstructs, until the day the cache is stale in the other direction.
+subsystem: session
+componentType: Orchestrator
+owns: []
+dependsOn:
+  - session-store
+  - oidc-adapter
+  - registry-metadata-adapter
+status: draft
+createdAt: '2026-09-10T00:03:07.156Z'
+updatedAt: '2026-09-10T00:03:07.163Z'

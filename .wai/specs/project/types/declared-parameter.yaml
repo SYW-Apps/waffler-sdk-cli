@@ -1,0 +1,21 @@
+kind: value-object
+id: declared-parameter
+name: Declared Parameter
+description: >-
+  One parameter of a capability's calling contract. Its POSITION in the list is the contract; the
+  name is how a designer labels the pin.
+subsystem: project
+fields:
+  - name: key
+    type: string
+    description: The parameter name, used as both key and label.
+    optional: false
+  - name: type
+    type: string
+    description: >-
+      A WafflerDataType kind. Absent means `Dynamic` — accepted, but it defers every type error to
+      runtime.
+    optional: true
+methods: []
+createdAt: '2026-09-10T00:07:48.185Z'
+updatedAt: '2026-09-10T00:07:48.396Z'

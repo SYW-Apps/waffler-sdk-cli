@@ -1,0 +1,165 @@
+id: project_orchestrator_impl
+name: Project Orchestrator Implementation
+description: Decides the order in which a project becomes a plan, and holds nothing.
+contract: iproject-orchestrator
+sourcePath: sdk/cli/src/project/project_orchestrator.rs
+methods:
+  - name: planBundle
+    narrative:
+      - stepNumber: 1
+        description: Read the authored manifest from the directory.
+        type: call
+        targetComponent: project-adapter
+        targetMethod: readAuthoredManifest
+      - stepNumber: 2
+        description: Validate it before anything expensive runs.
+        type: call
+        targetComponent: manifest-compiler
+        targetMethod: validateAuthored
+      - stepNumber: 3
+        description: Did validation find anything?
+        type: branch
+        condition: the violation list is non-empty
+        onFalseStep: 5
+      - stepNumber: 4
+        description: >-
+          Refuse, listing every violation. VALIDATING BEFORE BUILDING is the whole reason this step
+          is here rather than after: a release build costs minutes and a malformed fqid costs
+          microseconds to detect, and the previous tool discovered both at upload.
+        type: throw
+        error: InvalidManifest
+      - stepNumber: 5
+        label: build-gate
+        description: Was the build asked to be skipped?
+        type: branch
+        condition: skipBuild
+        onTrueStep: 10
+        onFalseStep: 6
+      - stepNumber: 6
+        label: do-build
+        description: Build the declared Rust crate in release profile.
+        type: call
+        targetComponent: build-adapter
+        targetMethod: buildRustCrate
+      - stepNumber: 7
+        description: Did the toolchain succeed?
+        type: branch
+        condition: the build report says succeeded
+        onFalseStep: 9
+      - stepNumber: 8
+        description: Continue to locating the artifacts the build was supposed to produce.
+        type: jump
+        toStep: 10
+      - stepNumber: 9
+        label: build-failed
+        description: >-
+          Refuse, printing the toolchain's own output unchanged. Cargo names a file, a line and a
+          type; any sentence substituted for that is strictly less useful to the person who has to
+          fix it.
+        type: throw
+        error: BuildFailed
+      - stepNumber: 10
+        label: locate
+        description: For each declared artifact, resolve it on disk.
+        type: loop
+        loopKind: forEach
+        over: authored.artifacts
+        endStep: 11
+      - stepNumber: 11
+        label: locate-one
+        description: >-
+          Resolve exactly the declared path and measure the file. LOCATING AFTER BUILDING is what
+          makes 'the build succeeded and produced nothing at the declared path' a distinct, sayable
+          failure — in the other order a stale artifact from a forgotten build silently takes its
+          place, and nothing can report that it happened.
+        type: call
+        targetComponent: project-adapter
+        targetMethod: locateArtifact
+      - stepNumber: 12
+        description: Collect the project's namespace entity files as bytes to embed.
+        type: call
+        targetComponent: project-adapter
+        targetMethod: readNamespaceTree
+      - stepNumber: 13
+        description: >-
+          Compile the manifest body from the authored manifest and the artifacts that were actually
+          located.
+        type: call
+        targetComponent: manifest-compiler
+        targetMethod: compileManifestBody
+      - stepNumber: 14
+        description: Compute the deterministic package uuid, which names the namespace segment file.
+        type: call
+        targetComponent: manifest-compiler
+        targetMethod: packageUuidFor
+      - stepNumber: 15
+        description: >-
+          The plan: identity, uuid, compiled manifest body, located artifacts, namespace files, and
+          the directory it all came from. NO BYTES AND NO HASHES — those are facts about an archive
+          that does not exist yet.
+        type: return
+        outcome: a bundle plan
+    detail: full
+  - name: validateProject
+    narrative:
+      - stepNumber: 1
+        description: Read the authored manifest.
+        type: call
+        targetComponent: project-adapter
+        targetMethod: readAuthoredManifest
+      - stepNumber: 2
+        description: >-
+          Check it against every rule the registry will apply, collecting all violations rather than
+          the first.
+        type: call
+        targetComponent: manifest-compiler
+        targetMethod: validateAuthored
+      - stepNumber: 3
+        description: >-
+          The violations, and no build. THE CHEAP CHECK AVAILABLE ALONE is the point: a tool whose
+          only way to check a manifest is to build the package teaches people not to check.
+        type: return
+        outcome: the violation list
+    detail: full
+  - name: buildProject
+    narrative:
+      - stepNumber: 1
+        description: Read the authored manifest to learn which crate to build.
+        type: call
+        targetComponent: project-adapter
+        targetMethod: readAuthoredManifest
+      - stepNumber: 2
+        description: Build it, in the profile a publishable bundle requires.
+        type: call
+        targetComponent: build-adapter
+        targetMethod: buildRustCrate
+      - stepNumber: 3
+        description: >-
+          The report, naming the crate and the profile. NOT A CARGO ALIAS: a developer who runs
+          `cargo build`, then packs, and gets a different binary has met the failure this removes.
+        type: return
+        outcome: a build report
+    detail: full
+  - name: scaffoldProject
+    narrative:
+      - stepNumber: 1
+        description: Render the project files in memory.
+        type: call
+        targetComponent: scaffold-specialist
+        targetMethod: renderProject
+      - stepNumber: 2
+        description: >-
+          Write them, refusing a non-empty directory unless overwrite was asked for. The refusal
+          happens before the first file is written, so a collision never leaves half a project
+          behind.
+        type: call
+        targetComponent: project-adapter
+        targetMethod: writeProjectFiles
+      - stepNumber: 3
+        description: Created.
+        type: return
+        outcome: success
+    detail: full
+status: draft
+createdAt: '2026-09-10T00:16:35.451Z'
+updatedAt: '2026-09-10T00:17:31.059Z'

@@ -1,0 +1,74 @@
+id: ipublish-portal
+name: Publish Command Contract
+description: >-
+  The `pack` and `publish` commands.
+
+
+  OUTPUT NAMES THE REGISTRY AND THE SHAPE. Every run says which registry it resolved, how it
+  resolved it, and whether the artifact carries a publisher signature. Those three facts are what a
+  developer needs to know they did what they meant to, and all three were unavailable in the
+  previous tool.
+component: publish-portal
+methods:
+  - name: pack
+    description: Build a bundle and stop. No network, no credential, nothing uploaded.
+    signature: 'pack(directory: string, outputPath: string, skipBuild: boolean): WrittenBundle'
+    returns: sdk_cli::written-bundle
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+      - name: outputPath
+        type: string
+        description: Where to write the bundle.
+      - name: skipBuild
+        type: boolean
+        description: Reuse already-built artifacts.
+    endpoint:
+      transport: CLI
+      command: pack
+  - name: publish
+    description: Build a bundle if needed and upload it to the resolved registry.
+    signature: >-
+      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean):
+      PublishOutcome
+    returns: sdk_cli::publish-outcome
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+      - name: bundlePath
+        type: string
+        description: An already-built bundle to publish instead.
+        optional: true
+      - name: registryFlag
+        type: string
+        description: A `--registry` override.
+        optional: true
+      - name: skipBuild
+        type: boolean
+        description: Reuse already-built artifacts.
+    endpoint:
+      transport: CLI
+      command: publish
+  - name: unpublish
+    description: Withdraw a published version, naming the registry it is being withdrawn from.
+    signature: 'unpublish(fqid: string, version: string, registryFlag: string?): void'
+    returns: void
+    params:
+      - name: fqid
+        type: string
+        description: The package to withdraw from.
+      - name: version
+        type: string
+        description: The version to withdraw.
+      - name: registryFlag
+        type: string
+        description: A `--registry` override.
+        optional: true
+    endpoint:
+      transport: CLI
+      command: unpublish
+status: draft
+createdAt: '2026-09-10T00:13:15.668Z'
+updatedAt: '2026-09-10T00:23:31.429Z'

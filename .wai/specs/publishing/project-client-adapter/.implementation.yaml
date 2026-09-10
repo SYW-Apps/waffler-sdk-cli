@@ -1,0 +1,20 @@
+id: project_client_adapter_impl
+name: Project Client Adapter Implementation
+description: One call across the boundary, in one file.
+contract: iproject-client-adapter
+sourcePath: sdk/cli/src/publishing/project_client_adapter.rs
+methods:
+  - name: planFromDirectory
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Ask Project for a bundle plan. THIS IS THE ONLY PLACE Publishing enters Project, which is
+          what keeps the orchestrator that decides publishing ORDER from becoming a second reader of
+          the project model.
+        type: call
+        targetComponent: project-portal
+        targetMethod: plan
+detail: calls-only
+status: draft
+createdAt: '2026-09-10T00:22:06.779Z'
+updatedAt: '2026-09-10T00:22:06.781Z'

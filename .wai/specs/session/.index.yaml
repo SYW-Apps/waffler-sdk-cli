@@ -40,8 +40,26 @@ description: >-
   pre-judges authorization is a client that disagrees with the server about permission, and the one
   that disagrees silently is this one.
 parentSystem: Waffler Developer CLI
-publicInterfaces: []
+publicInterfaces:
+  - type: Custom
+    details: >-
+      In-process library call on the Portal's own methods, the same ones the
+      `login`/`logout`/`whoami`/`use` commands bind to. Publishing asks two things and never more:
+      which registry does this invocation address, and what bearer should be presented to it.
+      Session never learns what is being published — it resolves an address and produces a
+      credential, so a change to what a bundle contains can never change who the tool authenticates
+      as.
+    component: session-portal
+lifecycle:
+  - phase: init
+    component: session-store
+    method: load
+    description: >-
+      Process start. The persisted session document is read back before any command runs — every
+      command needs the `use` default, including one that only reports which registry it resolved,
+      and a credential that was not hydrated is a browser login the developer already performed
+      being asked for again.
 trustedLinks: []
 status: draft
 createdAt: '2026-09-09T23:11:53.494Z'
-updatedAt: '2026-09-09T23:11:53.697Z'
+updatedAt: '2026-09-10T00:20:51.808Z'

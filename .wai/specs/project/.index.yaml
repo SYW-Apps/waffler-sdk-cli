@@ -39,8 +39,18 @@ description: >-
   WHAT IT DOES NOT DO. It does not sign, upload, or talk to a registry. It produces a validated
   project and built artifacts; everything after that belongs to Publishing.
 parentSystem: Waffler Developer CLI
-publicInterfaces: []
+publicInterfaces:
+  - type: Custom
+    details: >-
+      In-process library call on the Portal's own methods — the same methods the CLI commands bind
+      to, which is the point: argument parsing sits ABOVE the front door, so the docker image build
+      drives this tool as a library and reaches exactly what a developer at a terminal reaches.
+      Publishing asks for a BUNDLE PLAN (the identity, the compiled declarations, the artifact files
+      located on disk) and for nothing else. The direction is one-way by design: Project never
+      learns which registry a bundle is going to, which is what lets a container image build a
+      bundle with no network at all.
+    component: project-portal
 trustedLinks: []
 status: draft
 createdAt: '2026-09-09T23:12:08.565Z'
-updatedAt: '2026-09-09T23:12:08.797Z'
+updatedAt: '2026-09-10T00:04:27.173Z'

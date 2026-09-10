@@ -1,0 +1,58 @@
+kind: value-object
+id: declared-capability
+name: Declared Capability
+description: >-
+  A capability this package contributes to a host: what it is called, which host serves it, and
+  which artifact realizes it.
+
+
+  THE CALLING CONTRACT IS DECLARED OR IT IS ABSENT, and the difference matters at the far end.
+  `inputs` names the parameters IN THE ORDER THE PRIMITIVE READS THEM; declaring them gives the
+  capability input pins in the designer and tells the compiler how to weave a node's arguments.
+  Omitting them leaves the contract UNDECLARED and the compiler falls back to sorting pin names
+  alphabetically — a convention the callee never agreed to, and one that silently reorders arguments
+  the day a parameter is renamed. A genuinely variadic primitive declares nothing, on purpose.
+
+
+  IT NAMES ITS ARTIFACT AND THE NAME IS CHECKED. A capability pointing at an artifact the manifest
+  does not declare is refused here and again by the registry's bundle reader, which aligns declared
+  artifacts to zip entries in both directions.
+subsystem: project
+fields:
+  - name: fqid
+    type: string
+    description: >-
+      The capability's own fully-qualified id, e.g. `sim.echo` — distinct from the package's fqid,
+      since one package may contribute several.
+    optional: false
+  - name: kind
+    type: string
+    description: '`RuntimePrimitive` for a blueprint-callable node; other kinds target other hosts.'
+    optional: false
+  - name: targetHost
+    type: string
+    description: >-
+      Which host serves it, e.g. `runtime-wack`. This is also what the supervisor derives a legacy
+      fast-lane grant set from on pre-field records, so it is not merely a label.
+    optional: false
+  - name: artifact
+    type: string
+    description: >-
+      The declared artifact `name` that realizes this capability. Must match one the manifest
+      declares.
+    optional: false
+  - name: symbol
+    type: string
+    description: >-
+      The C symbol the runtime binds, for a RuntimePrimitive. Rides in the node descriptor alongside
+      the `wf_prim_v1` ffi signature.
+    optional: true
+  - name: inputs
+    type: sdk_cli::declared-parameter[]
+    description: >-
+      The calling contract, in READ ORDER. Empty means undeclared, which is a real and different
+      statement from zero parameters.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:07:43.376Z'
+updatedAt: '2026-09-10T00:07:43.590Z'

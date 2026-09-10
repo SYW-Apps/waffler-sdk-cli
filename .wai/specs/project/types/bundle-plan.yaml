@@ -1,0 +1,63 @@
+kind: value-object
+id: bundle-plan
+name: Bundle Plan
+description: >-
+  Everything needed to write a bundle, and nothing that requires having written one. The one value
+  that crosses from Project into Publishing.
+
+
+  IT IS A PLAN, NOT A BUNDLE. No bytes, no hashes, no signature — those are facts about an archive
+  that does not exist yet, and a plan that carried them would be asserting them before they were
+  true. The writer measures what it writes.
+
+
+  THE MANIFEST BODY IS ALREADY COMPILED. Publishing must not have a second opinion about how an
+  authored manifest becomes an installable one: that mapping lives in exactly one component, and by
+  the time this crosses the boundary it is decided. What Publishing adds is the artifacts array,
+  because only the writer knows the hashes.
+subsystem: project
+fields:
+  - name: fqid
+    type: string
+    description: >-
+      The package identity, repeated at the top level because the publish URL is built from it and
+      reaching into the manifest body for it would make the body's shape the publish route's
+      problem.
+    optional: false
+  - name: version
+    type: string
+    description: The version being published.
+    optional: false
+  - name: packageUuid
+    type: string
+    description: >-
+      The deterministic package uuid, `uuidv5(NAMESPACE_OID, "waffler.package:<fqid>")`. Computed
+      rather than authored so the ingested entity, the install-call uuid and the `/namespace`
+      segment agree by construction — three places that must never be allowed to disagree.
+    optional: false
+  - name: manifestBody
+    type: json
+    description: >-
+      The compiled `/.manifest` declarations, complete except for the artifacts array the writer
+      fills in. Carried as opaque JSON on purpose: re-modelling core's InstalledPackage here would
+      create a second definition of a format this tool does not own.
+    optional: false
+  - name: artifacts
+    type: sdk_cli::located-artifact[]
+    description: The files to embed under `artifact/<name>`, each already confirmed to exist.
+    optional: false
+  - name: namespaceFiles
+    type: json[]
+    description: >-
+      Entity segment files from the project's `namespace/` tree, as relative-path and absolute-path
+      pairs. Read as bytes and never interpreted — the format belongs to VFS's staged reader.
+    optional: false
+  - name: projectDirectory
+    type: string
+    description: >-
+      Where the project was read from. Carried for messages only, so a failure can name the
+      directory a developer is actually in.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:08:18.113Z'
+updatedAt: '2026-09-10T00:08:18.547Z'

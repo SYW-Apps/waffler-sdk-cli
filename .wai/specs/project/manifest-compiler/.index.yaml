@@ -1,0 +1,46 @@
+id: manifest-compiler
+name: Manifest Compiler
+description: >-
+  Turns what a developer AUTHORED into what a node INSTALLS: the `/.manifest` declarations, and the
+  refusals that catch a wrong project before a build and an upload pay for it.
+
+
+  THE TWO MODELS ARE DELIBERATELY DIFFERENT, and this component is the only place that knows both.
+  `InstalledPackage` — the shape core decodes — mixes three populations that a developer must not be
+  asked to tell apart: DECLARED (fqid, version, dependencies, capabilities, permission groups,
+  fast-lane requests, ui plugins, core compatibility), DERIVED (the artifacts array, whose content
+  hashes are facts about bytes that do not exist until a build runs), and RUNTIME-MANAGED (identity,
+  enabled, approved_group_ids, fast_lane_grants — minted by a node, meaningless in a bundle). An
+  authoring manifest that exposed all three would invite a developer to write an identity and a
+  hash, and both would be silently overwritten or, worse, believed.
+
+
+  SO THE AUTHORING MANIFEST CARRIES ONLY THE DECLARED POPULATION. Everything derived is computed
+  downstream from bytes; everything runtime-managed is absent by construction rather than by
+  convention. A field a developer cannot write is a field that cannot be wrong.
+
+
+  HOSTING MODE IS DERIVED, NOT DECLARED. A package with a loadable artifact is DIRECT and one
+  without is HOSTED, which is a fact about what was built rather than an option — the previous tool
+  asked for it as `module.runtime` and let a project claim a hosting mode its artifacts could not
+  support.
+
+
+  EVERY REFUSAL HERE MIRRORS A REGISTRY RULE, AND THE REGISTRY IS THE AUTHORITY. This side exists so
+  a developer learns about a malformed manifest in a second rather than after a release build and a
+  100 MiB upload. Where the two disagree the registry is right and this component is the bug — so a
+  check is added here only when the registry already has it, never the reverse. A local check the
+  registry lacks is a rule enforced against honest developers and against nobody else.
+
+
+  IT REFUSES A CAPABILITY WHOSE ARTIFACT IS NOT DECLARED, and a ui plugin whose bundle is not
+  declared, in both directions. The registry's bundle reader aligns on-disk entries against declared
+  artifacts strictly both ways; a mismatch found here names the field, and the same mismatch found
+  there names a zip entry.
+subsystem: project
+componentType: Specialist
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-10T00:01:34.383Z'
+updatedAt: '2026-09-10T00:01:34.390Z'

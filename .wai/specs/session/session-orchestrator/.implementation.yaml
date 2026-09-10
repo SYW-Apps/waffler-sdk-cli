@@ -1,0 +1,269 @@
+id: session_orchestrator_impl
+name: Session Orchestrator Implementation
+description: Resolution order, credential lifetime, and nothing held.
+contract: isession-orchestrator
+sourcePath: sdk/cli/src/session/session_orchestrator.rs
+methods:
+  - name: resolveRegistry
+    narrative:
+      - stepNumber: 1
+        description: Did the command carry a --registry flag?
+        type: branch
+        condition: flagValue is present and non-blank
+        onFalseStep: 4
+      - stepNumber: 2
+        label: have-raw
+        description: >-
+          Take it, source `flag`. THE MOST EXPLICIT WINS, which is what makes a one-off publish to a
+          different registry possible without disturbing a persisted default.
+        type: local
+      - stepNumber: 3
+        description: Normalise what was found.
+        type: jump
+        toStep: 12
+      - stepNumber: 4
+        label: try-env
+        description: Is WAFFLER_REGISTRY set?
+        type: branch
+        condition: the environment variable is set and non-blank
+        onFalseStep: 7
+      - stepNumber: 5
+        description: >-
+          Take it, source `environment`. Second because a shell that was configured once is less
+          deliberate than a flag typed now, and more deliberate than a default persisted weeks ago.
+        type: local
+      - stepNumber: 6
+        description: Normalise what was found.
+        type: jump
+        toStep: 12
+      - stepNumber: 7
+        label: try-default
+        description: Read the persisted `use` default.
+        type: call
+        targetComponent: session-store
+        targetMethod: defaultRegistry
+      - stepNumber: 8
+        description: Is there one?
+        type: branch
+        condition: a default is persisted
+        onFalseStep: 11
+      - stepNumber: 9
+        description: Take it, source `default`.
+        type: local
+      - stepNumber: 10
+        description: Normalise what was found.
+        type: jump
+        toStep: 12
+      - stepNumber: 11
+        label: builtin
+        description: >-
+          Fall back to the built-in public registry, source `builtin`. It is LAST, not first,
+          because a compiled-in registry as the primary answer is exactly the assumption this
+          subsystem exists to remove.
+        type: local
+      - stepNumber: 12
+        label: normalise
+        description: >-
+          Normalise: lowercase the host, drop a trailing slash, drop a port that is the scheme's
+          default, and refuse a URL with no scheme or no host — naming which of the three rules it
+          broke.
+
+
+          ONCE, HERE. The credential store keys on exactly this string; a second normalisation
+          anywhere would let two spellings of one registry hold two credentials and pick whichever
+          the current spelling found.
+        type: local
+      - stepNumber: 13
+        description: >-
+          The URL and the source that produced it. THE SOURCE IS RETURNED, not merely used:
+          'publishing to X' answers a different question from 'publishing to X, because
+          WAFFLER_REGISTRY is set in this shell', and only the second one lets a developer notice
+          before the upload.
+        type: return
+        outcome: a target registry
+    detail: full
+  - name: bearerFor
+    narrative:
+      - stepNumber: 1
+        description: Look up the credential held for this registry.
+        type: call
+        targetComponent: session-store
+        targetMethod: credentialFor
+      - stepNumber: 2
+        description: Is there one?
+        type: branch
+        condition: a credential exists for this registry
+        onFalseStep: 13
+      - stepNumber: 3
+        description: Is the access token still comfortably valid?
+        type: branch
+        condition: expiry is more than the refresh margin away
+        onFalseStep: 5
+      - stepNumber: 4
+        description: The access token.
+        type: return
+        outcome: a usable bearer
+      - stepNumber: 5
+        label: needs-refresh
+        description: Is there a refresh token to exchange?
+        type: branch
+        condition: the credential carries a refresh token
+        onFalseStep: 12
+      - stepNumber: 6
+        description: >-
+          Exchange it. REFRESHED BEFORE THE TOKEN IS HANDED OUT, NOT AFTER IT FAILS — a token that
+          expires between the check and a large upload wastes the upload, and refreshing on a margin
+          costs one request.
+        type: call
+        targetComponent: oidc-adapter
+        targetMethod: refresh
+      - stepNumber: 7
+        description: Did the refresh succeed?
+        type: branch
+        condition: the issuer returned a token set
+        onFalseStep: 10
+      - stepNumber: 8
+        description: Persist the refreshed credential, replacing the old entry.
+        type: call
+        targetComponent: session-store
+        targetMethod: putCredential
+      - stepNumber: 9
+        description: The new access token.
+        type: return
+        outcome: a usable bearer
+      - stepNumber: 10
+        label: refresh-failed
+        description: >-
+          Remove the credential. A STALE ENTRY THAT KEEPS FAILING LOOKS TO A DEVELOPER LIKE THE
+          REGISTRY REJECTING THEM — removing it makes the next message 'you are not signed in',
+          which is both true and actionable.
+        type: call
+        targetComponent: session-store
+        targetMethod: removeCredential
+      - stepNumber: 11
+        description: Refuse, naming the registry and the command that signs in to it.
+        type: throw
+        error: SessionExpired
+      - stepNumber: 12
+        label: expired-no-refresh
+        description: >-
+          Refuse: the session expired and the issuer granted no refresh token, so a browser login is
+          the only way forward. Said plainly rather than reported as a refresh failure, because
+          there was nothing to refresh.
+        type: throw
+        error: SessionExpired
+      - stepNumber: 13
+        label: not-signed-in
+        description: >-
+          Refuse, naming the registry and how to sign in to it. NEVER AN EMPTY BEARER: falling
+          through to an unauthenticated request converts a local, actionable refusal into a remote
+          401 that reads like a server problem.
+        type: throw
+        error: NotSignedIn
+    detail: full
+  - name: signIn
+    narrative:
+      - stepNumber: 1
+        description: Ask the registry what it is.
+        type: call
+        targetComponent: registry-metadata-adapter
+        targetMethod: fetchProfile
+      - stepNumber: 2
+        description: Does this registry authenticate at all?
+        type: branch
+        condition: the profile says authentication is available
+        onFalseStep: 8
+      - stepNumber: 3
+        description: Did it name an issuer and an audience?
+        type: branch
+        condition: the profile carries an issuer and an audience
+        onFalseStep: 7
+      - stepNumber: 4
+        description: Run the authorization-code flow against THAT issuer.
+        type: call
+        targetComponent: oidc-adapter
+        targetMethod: authorize
+      - stepNumber: 5
+        description: Persist the result against this registry and no other.
+        type: call
+        targetComponent: session-store
+        targetMethod: putCredential
+      - stepNumber: 6
+        description: Signed in, naming the registry and the identity.
+        type: return
+        outcome: a persisted credential
+      - stepNumber: 7
+        label: no-issuer
+        description: >-
+          Refuse, and say that the REGISTRY did not name an issuer — not that the login failed.
+          Substituting a default would authenticate the developer against someone else's identity
+          provider and send the token here, where it would be refused for reasons naming neither.
+        type: throw
+        error: RegistryAnnouncesNoIssuer
+      - stepNumber: 8
+        label: no-auth
+        description: >-
+          Refuse: this deployment accepts no credentials, so there is nothing to sign in to. A
+          read-only mirror is a legitimate configuration and saying so is more useful than
+          attempting a flow that cannot end anywhere.
+        type: throw
+        error: RegistryHasNoAuthentication
+    detail: full
+  - name: signOut
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Remove the credential for this registry, leaving every other session intact. Clearing
+          every session on a machine because a developer wanted to leave one is a data-loss shape
+          small enough that nobody reports it.
+        type: call
+        targetComponent: session-store
+        targetMethod: removeCredential
+    detail: calls-only
+  - name: whoAmI
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Read the credential held for this registry, if any. Reported PER REGISTRY, because that is
+          what a credential is — asking who I am without naming one is a question with as many
+          answers as there are sessions.
+        type: call
+        targetComponent: session-store
+        targetMethod: credentialFor
+    detail: calls-only
+  - name: setDefault
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Normalise the URL with the same rule the resolver uses, refusing one with no scheme or no
+          host.
+        type: local
+      - stepNumber: 2
+        description: Persist it as the default.
+        type: call
+        targetComponent: session-store
+        targetMethod: setDefaultRegistry
+      - stepNumber: 3
+        description: Look up whether there is a credential for it.
+        type: call
+        targetComponent: session-store
+        targetMethod: credentialFor
+      - stepNumber: 4
+        description: >-
+          The new default, and — when there is no credential — the fact that this registry has no
+          session yet. Otherwise a `use` to an unauthenticated registry looks like a working session
+          until the first publish fails.
+        type: return
+        outcome: the persisted default
+    detail: full
+  - name: profileOf
+    narrative:
+      - stepNumber: 1
+        description: Ask the registry what it accepts and what it signs with.
+        type: call
+        targetComponent: registry-metadata-adapter
+        targetMethod: fetchProfile
+    detail: calls-only
+status: draft
+createdAt: '2026-09-10T00:19:47.854Z'
+updatedAt: '2026-09-10T00:19:47.856Z'

@@ -1,0 +1,47 @@
+id: session-store
+name: Session Store
+description: >-
+  The persisted session: which registry is the default, and one credential per registry.
+
+
+  KEYED BY REGISTRY, AND THAT IS A SECURITY PROPERTY RATHER THAN A DATA-MODEL PREFERENCE. Signing in
+  to one registry says nothing about another — different services, different identity providers,
+  different namespace ownership. A single cached token would let a `use` change carry an identity
+  across a trust boundary without anyone asking for it, and the request that arrived at the wrong
+  registry would carry a valid bearer for somewhere else. The key is the normalised base URL,
+  because two spellings of one registry must resolve to one credential and never to two.
+
+
+  IT PERSISTS A REFRESH TOKEN, WHICH IS A LONG-LIVED SECRET. It is written to the user's own config
+  directory with owner-only permissions, and never to the project tree — a credential file that can
+  be committed will eventually be committed. `logout` removes the entry rather than blanking it, so
+  an expired-looking record and an absent one cannot be confused.
+
+
+  DURABLE, AND THE HYDRATION IS THE POINT. A tool that re-prompted for a browser login on every
+  command would be a tool people script around with a raw token in an environment variable, which is
+  strictly worse than the file this holds.
+
+
+  IT INTERPRETS NO TOKEN. What a credential is allowed to do is the registry's answer; this stores
+  bytes and an expiry and nothing else. A client that reads scopes out of a JWT and pre-judges a
+  publish is a client that can disagree with the server about permission, silently and in the
+  permissive direction.
+subsystem: session
+componentType: Store
+owns: []
+dependsOn: []
+durability: durable
+lint:
+  allow:
+    - code: UNOWNED_STORE
+      reason: >-
+        Deliberately standalone. The held state is one small record — a default registry plus a
+        credential per registry — read and written only by session-orchestrator, which is the
+        workflow layer. A Repository facade over it would add a Registry and an Index projecting a
+        map that is already a map, and the indirection would be the only thing either of them did.
+        There is no second consumer, no query shape beyond lookup-by-registry, and no projection to
+        rebuild.
+status: draft
+createdAt: '2026-09-10T00:02:19.902Z'
+updatedAt: '2026-09-10T00:02:25.309Z'

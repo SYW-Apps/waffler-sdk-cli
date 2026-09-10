@@ -1,0 +1,78 @@
+id: iproject-portal
+name: Project Command Contract
+description: >-
+  The project-side commands, and Project's front door for in-process callers.
+
+
+  THESE METHODS ARE THE LIBRARY API. Argument parsing sits ABOVE them, which is what lets the docker
+  image build drive this tool without a process and reach exactly what a developer at a terminal
+  reaches. A check written in a command handler instead of here is a check the library path silently
+  skips.
+component: project-portal
+methods:
+  - name: plan
+    description: Produce a bundle plan for a project directory. Publishing's only question of Project.
+    signature: 'plan(directory: string, skipBuild: boolean): BundlePlan'
+    returns: sdk_cli::bundle-plan
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+      - name: skipBuild
+        type: boolean
+        description: Reuse already-built artifacts.
+    endpoint:
+      transport: CLI
+      command: pack --plan-only
+  - name: validate
+    description: >-
+      Check the manifest and the declaration consistency without building. Answers with every
+      violation, so a manifest is fixed once rather than once per field.
+    signature: 'validate(directory: string): Violation[]'
+    returns: json[]
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+    endpoint:
+      transport: CLI
+      command: validate
+  - name: build
+    description: Build the project's declared artifacts and report which crate and profile were used.
+    signature: 'build(directory: string): BuildReport'
+    returns: sdk_cli::build-report
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+    endpoint:
+      transport: CLI
+      command: build
+  - name: scaffold
+    description: Create a new package project.
+    signature: >-
+      scaffold(directory: string, fqid: string, version: string, description: string, overwrite:
+      boolean): void
+    returns: void
+    params:
+      - name: directory
+        type: string
+        description: Where to create it.
+      - name: fqid
+        type: string
+        description: The new package's fully-qualified id.
+      - name: version
+        type: string
+        description: Its starting version.
+      - name: description
+        type: string
+        description: Catalog prose.
+      - name: overwrite
+        type: boolean
+        description: Permission to write into a non-empty directory.
+    endpoint:
+      transport: CLI
+      command: scaffold
+status: draft
+createdAt: '2026-09-10T00:10:29.511Z'
+updatedAt: '2026-09-10T00:14:12.058Z'

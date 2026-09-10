@@ -1,0 +1,36 @@
+id: session-portal
+name: Session Portal
+description: >-
+  The `login`, `logout`, `whoami` and `use` commands: argument parsing, and rendering what happened.
+
+
+  `use` IS THE COMMAND THE PREVIOUS TOOL HAD NO ROOM FOR. With two registries compiled in there was
+  nothing to select, so a developer working against a private or self-hosted registry had to pass a
+  flag on every invocation or set an environment variable and remember it was set. Persisting a
+  default makes the ordinary case ordinary — and because a persisted default is exactly the kind of
+  state that goes stale in a shell nobody restarted, every command prints the registry it resolved
+  rather than only this one.
+
+
+  `whoami` REPORTS PER REGISTRY, because that is what a credential is. Asking "who am I" without
+  naming a registry is asking a question with as many answers as there are sessions, and the
+  previous tool answered it with one.
+
+
+  `logout` TAKES A REGISTRY AND MEANS IT. Clearing every session on a machine because a developer
+  wanted to sign out of one is a data-loss shape, small enough that nobody reports it and annoying
+  enough that they stop using the command.
+
+
+  IT CONTAINS NO LOGIC, for the same reason the other two portals do not: the library path must be
+  able to do everything the binary can, or a check written in a command handler is one the library
+  silently skips.
+subsystem: session
+componentType: Portal
+owns: []
+dependsOn:
+  - session-orchestrator
+portalType: CLI
+status: draft
+createdAt: '2026-09-10T00:03:16.979Z'
+updatedAt: '2026-09-10T00:03:16.987Z'

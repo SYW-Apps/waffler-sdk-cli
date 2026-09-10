@@ -1,0 +1,44 @@
+kind: value-object
+id: build-report
+name: Build Report
+description: >-
+  What a build did, in the terms of the tool that did it.
+
+
+  IT SAYS WHETHER IT BUILT OR REUSED. 'It packed the wrong binary' and 'it packed a binary it did
+  not build' are the same incident seen a day apart, and only one of them is discoverable after the
+  fact — so the run states which happened while it is still cheap to notice.
+
+
+  THE TOOL'S OWN OUTPUT IS CARRIED WHOLE. Cargo names a file, a line and a type; any sentence
+  substituted for that is strictly less useful to whoever has to fix it.
+subsystem: project
+fields:
+  - name: ran
+    type: boolean
+    description: Whether a toolchain was actually invoked, or existing artifacts were reused.
+    optional: false
+  - name: crateManifest
+    type: string
+    description: >-
+      Which crate manifest was built — named, never inferred from the package fqid, because the two
+      differing once meant building the wrong crate and packing its artifact under the right name.
+    optional: true
+  - name: profile
+    type: string
+    description: >-
+      The build profile. Release for anything publishable: a debug module exceeds core's inline
+      custody cap and produces a bundle a node refuses with a message about custody rather than
+      about the profile.
+    optional: false
+  - name: succeeded
+    type: boolean
+    description: Whether the toolchain exited zero. Exit status decides, not output parsing.
+    optional: false
+  - name: output
+    type: string
+    description: The toolchain's own stdout and stderr, unchanged.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:14:09.403Z'
+updatedAt: '2026-09-10T00:14:09.581Z'

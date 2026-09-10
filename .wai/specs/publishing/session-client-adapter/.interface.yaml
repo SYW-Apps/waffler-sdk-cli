@@ -1,0 +1,58 @@
+id: isession-client-adapter
+name: Session Access Contract
+description: >-
+  Publishing's one door into Session: an address, a description, and a bearer — asked in that order
+  for reasons that are about timing rather than tidiness.
+
+
+  THE ADDRESS IS RESOLVED ONCE PER COMMAND. If the orchestrator asked twice — once to report the
+  target and again to upload — a concurrent `use` or a differently-read environment could answer
+  differently, and the registry NAMED in the output would not be the registry PUBLISHED to.
+
+
+  SESSION IS TOLD NOTHING ABOUT WHAT IS BEING PUBLISHED. No fqid, no version, no size. Session
+  resolving an address it cannot see the contents of is what makes it impossible for a change in
+  what a bundle contains to change who the tool authenticates as.
+component: session-client-adapter
+methods:
+  - name: target
+    description: >-
+      Which registry this command addresses, and which source said so. Called once, before anything
+      irreversible, so the answer can be reported.
+    signature: 'target(flagValue: string?): TargetRegistry'
+    returns: sdk_cli::target-registry
+    params:
+      - name: flagValue
+        type: string
+        description: A `--registry` value, when the command carried one.
+        optional: true
+  - name: describe
+    description: >-
+      What that registry accepts and whether it can publish at all. Read before a build, because
+      'this instance only serves downloads' is worth the request that saves the build.
+    signature: 'describe(registry: TargetRegistry): RegistryProfile'
+    returns: sdk_cli::registry-profile
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The resolved registry.
+  - name: bearer
+    description: >-
+      A usable access token, fetched LATE and refreshed against the moment of upload.
+
+
+      A token checked before a long build and used after it can expire in between, which is why this
+      is a separate call rather than a field on the target.
+
+
+      A MISSING CREDENTIAL COMES BACK AS A REFUSAL naming the registry and how to sign in to it,
+      never as an empty bearer.
+    signature: 'bearer(registry: TargetRegistry): string'
+    returns: string
+    params:
+      - name: registry
+        type: sdk_cli::target-registry
+        description: The resolved registry.
+status: draft
+createdAt: '2026-09-10T00:12:52.508Z'
+updatedAt: '2026-09-10T00:12:52.543Z'

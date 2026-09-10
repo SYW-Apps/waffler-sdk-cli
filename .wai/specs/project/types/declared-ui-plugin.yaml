@@ -1,0 +1,39 @@
+kind: value-object
+id: declared-ui-plugin
+name: Declared UI Plugin
+description: >-
+  A frontend plugin this package ships, riding as an artifact inside its own bundle.
+
+
+  THE SLOT MAY BE EMPTY, AND EMPTY IS THE HONEST VALUE FOR A PLUGIN THAT MOUNTS NOWHERE. Slot names
+  are dotted regions the frontend declares (`app.sidebar.nav.top` and its siblings); the host reads
+  `slot` only as the fallback for a contribution that names none, so a plugin contributing a route
+  and a nav item never has it read at all. An invented name is INERT rather than rejected, which is
+  exactly how one gets shipped and believed — the first bundle packed this way declared a region
+  that does not exist and nothing anywhere said so. So an empty string, meaning "none declared", is
+  permitted and preferred over a plausible-looking lie.
+
+
+  THIS TOOL DOES NOT VALIDATE THE SLOT NAME. A packer has no business knowing the frontend's
+  regions, and coupling it to that list would make every new region a change here.
+subsystem: project
+fields:
+  - name: id
+    type: string
+    description: The plugin id the host registers it under.
+    optional: false
+  - name: slot
+    type: string
+    description: >-
+      A frontend region name, or empty for a plugin that declares no slot. Never invented to look
+      plausible.
+    optional: true
+  - name: artifact
+    type: string
+    description: >-
+      The declared artifact `name` (kind `UiBundle`) that IS the plugin. Must match one the manifest
+      declares.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:07:56.341Z'
+updatedAt: '2026-09-10T00:07:56.612Z'

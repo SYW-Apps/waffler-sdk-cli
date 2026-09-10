@@ -1,0 +1,48 @@
+kind: value-object
+id: written-bundle
+name: Written Bundle
+description: >-
+  A bundle that exists on disk: its path, its identity, and the shape of its trailing bytes.
+
+
+  ONCE WRITTEN IT IS OPAQUE. Nothing downstream may re-zip, re-compress or normalise it — a
+  transformation that looks harmless invalidates a signature over the whole payload and produces an
+  artifact core refuses as IntegrityFailure, discovered on a stranger's machine rather than here.
+  The registry holds the same invariant from the other side and calls it opaque custody.
+
+
+  THE FRAMING IS RECORDED BECAUSE IT DECIDES WHERE THE BUNDLE MAY GO. Unsigned is the shape a
+  registry publish requires, since the registry signs alone on that path and refuses an upload that
+  already carries a registry signature — it cannot safely decide which trailing bytes are signature
+  and which are content, and guessing wrong publishes a corrupt package successfully.
+subsystem: publishing
+fields:
+  - name: path
+    type: string
+    description: >-
+      Where the bundle was written. Kept after a failed upload rather than cleaned up: the developer
+      can inspect it and the next attempt does not rebuild.
+    optional: false
+  - name: fqid
+    type: string
+    description: The package identity, from the manifest that was written into it.
+    optional: false
+  - name: version
+    type: string
+    description: The version written.
+    optional: false
+  - name: framing
+    type: string
+    description: >-
+      `Unsigned` | `Legacy` | `Dual` — what follows the archive. Unsigned is the only shape a
+      registry publish accepts.
+    optional: false
+  - name: sizeBytes
+    type: integer
+    description: >-
+      The whole artifact's size, checked against what the registry said it accepts before the upload
+      starts.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:09:05.334Z'
+updatedAt: '2026-09-10T00:09:05.637Z'

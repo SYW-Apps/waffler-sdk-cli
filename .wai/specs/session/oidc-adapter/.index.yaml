@@ -1,0 +1,46 @@
+id: oidc-adapter
+name: OIDC Adapter
+description: >-
+  The OpenID Connect conversation: discovery, the authorization-code flow with a loopback listener,
+  and refresh.
+
+
+  WHAT SURVIVES FROM THE PREVIOUS TOOL, BECAUSE IT WAS RIGHT. An authorization-code flow with PKCE,
+  a loopback HTTP listener on an ephemeral port for the redirect, a browser handed the authorize
+  URL, and a refresh token exchanged rather than a re-prompt. That shape is correct and is kept.
+  What was wrong was the assumption around it: one issuer, one client id, both compiled in.
+
+
+  THE ISSUER COMES FROM THE REGISTRY BEING ADDRESSED, EVERY TIME. Discovery is performed against
+  what that instance advertises, and the endpoints used are the ones its discovery document names. A
+  client that knows an issuer in advance can only ever talk to one deployment, which is the
+  limitation this whole subsystem exists to remove.
+
+
+  PKCE IS NOT OPTIONAL, and the loopback redirect is why. A redirect to `http://127.0.0.1:<port>` is
+  reachable by any other process on the machine, so an authorization code delivered there is a code
+  anybody local could race for. PKCE binds the code to the verifier only this process holds, which
+  turns a stolen code into nothing. A public client on a loopback redirect without PKCE is the
+  textbook shape of this vulnerability, not a hardening opportunity.
+
+
+  THE STATE PARAMETER IS CHECKED, AND A MISMATCH ABORTS. The listener accepts one request from
+  anywhere on the loopback interface; without the check, another local process can complete the flow
+  with a code for a different account and this tool would cache it as the developer's.
+
+
+  TOKENS ARE RETURNED, NEVER STORED. Persistence belongs to the session store, and a component that
+  both obtains and caches credentials is one where an "obtain" that quietly returned a cached value
+  would be indistinguishable from a real sign-in.
+
+
+  IT VERIFIES NO TOKEN. This is a client; the registry validates signatures against the issuer's key
+  set and is the only party whose verdict matters. A client that validated a token locally and
+  refused to send it would be enforcing its own reading of a policy it does not own.
+subsystem: session
+componentType: Adapter
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-10T00:02:52.053Z'
+updatedAt: '2026-09-10T00:02:52.065Z'

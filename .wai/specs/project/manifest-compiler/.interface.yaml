@@ -1,0 +1,83 @@
+id: imanifest-compiler
+name: Manifest Compilation Contract
+description: >-
+  Turning an authored manifest into the declarations a node installs, and refusing the ones that
+  cannot be.
+
+
+  BOTH COMPILATION METHODS ARE PURE. Given the same authored manifest and the same located artifacts
+  they answer identically, with no clock, no disk and no network — which is what makes the refusals
+  testable without a project on disk and the compilation testable without a build.
+component: manifest-compiler
+methods:
+  - name: validateAuthored
+    description: >-
+      Check an authored manifest against the rules the registry will apply, and answer with every
+      violation rather than the first.
+
+
+      EVERY CHECK MIRRORS A REGISTRY RULE, AND THE REGISTRY IS THE AUTHORITY. This exists so a
+      developer learns about a malformed manifest in a second instead of after a release build and a
+      large upload; where the two disagree this side is the bug. A check added here that the
+      registry lacks is a rule enforced against honest developers and against nobody else.
+
+
+      ALL VIOLATIONS, NOT THE FIRST. Fixing a manifest one refused field per build is how a
+      five-minute correction becomes an afternoon.
+    signature: 'validateAuthored(authored: AuthoredPackage): Violation[]'
+    returns: json[]
+    params:
+      - name: authored
+        type: sdk_cli::authored-package
+        description: The manifest as written.
+    guarantees:
+      - idempotent
+  - name: compileManifestBody
+    description: >-
+      Produce the `/.manifest` declarations from an authored manifest and the artifacts that were
+      actually located.
+
+
+      HOSTING MODE IS DERIVED HERE: a package with a loadable Dll is DIRECT, one without is HOSTED.
+      It is a fact about what was built, not an option — the previous tool accepted it as a
+      declaration and let a project claim a mode its artifacts could not support.
+
+
+      RUNTIME-MANAGED FIELDS ARE ABSENT BY CONSTRUCTION. Identity, enabled, approved group ids and
+      fast-lane grants are minted by a node; emitting them empty would make a bundle that declares
+      nothing indistinguishable from one whose author wrote a blank, and core's own warnings depend
+      on telling those apart.
+
+
+      THE ARTIFACTS ARRAY IS LEFT FOR THE WRITER, because its hashes are facts about bytes that do
+      not exist yet.
+    signature: 'compileManifestBody(authored: AuthoredPackage, located: LocatedArtifact[]): ManifestBody'
+    returns: json
+    params:
+      - name: authored
+        type: sdk_cli::authored-package
+        description: The manifest as written.
+      - name: located
+        type: sdk_cli::located-artifact[]
+        description: The artifacts found on disk after the build.
+    guarantees:
+      - idempotent
+  - name: packageUuidFor
+    description: >-
+      The deterministic package uuid for an fqid: `uuidv5(NAMESPACE_OID, "waffler.package:<fqid>")`.
+
+
+      COMPUTED, NEVER AUTHORED, so the ingested entity, the install-call uuid and the
+      `/namespace/<uuid>.json` segment agree by construction. Three places that must never disagree,
+      reduced to one function.
+    signature: 'packageUuidFor(fqid: string): string'
+    returns: string
+    params:
+      - name: fqid
+        type: string
+        description: The package's fully-qualified id.
+    guarantees:
+      - idempotent
+status: draft
+createdAt: '2026-09-10T00:09:59.835Z'
+updatedAt: '2026-09-10T00:14:22.396Z'

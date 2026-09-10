@@ -1,0 +1,37 @@
+id: scaffold-specialist
+name: Scaffold Specialist
+description: >-
+  Writes a new package project: an authoring manifest, a Cargo crate wired to the SDK, and a
+  capability that answers.
+
+
+  A SCAFFOLD IS A CLAIM ABOUT THE CURRENT FORMAT, which is why it is held to the same standard as
+  `pack`. A generated project that does not pack, publish and install is worse than none: it teaches
+  a shape, the developer builds on it, and the refusal arrives from a registry or a node that cannot
+  explain which of the twenty things they changed was already wrong. The previous scaffold wrote the
+  legacy `package.json` model and had been generating unpublishable projects for as long as the
+  registry had refused them.
+
+
+  WHAT IT GENERATES MUST ANSWER, NOT MERELY LOAD. The generated package serves one capability that
+  echoes its input along with its own fqid and version, because "installed" and "working" are
+  different observations and a scaffold whose output can only prove the first teaches a developer to
+  stop testing one step too early. It is the same reason the lifecycle fixture exists rather than
+  reusing a package with no capabilities.
+
+
+  THE GENERATED PROJECT IS PINNED TO A CORE CONTRACT RANGE. A bundle that declares nothing installs
+  UNCHECKED, and core says so in a warning nobody reads. A scaffold is the one place where the right
+  declaration costs the developer nothing, so omitting it here would be choosing the silent path on
+  their behalf.
+
+
+  IT NEVER OVERWRITES. A scaffold that clobbers is a scaffold that eventually eats work, and the
+  cost of refusing into a non-empty directory is one flag.
+subsystem: project
+componentType: Specialist
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-10T00:01:45.651Z'
+updatedAt: '2026-09-10T00:01:45.656Z'

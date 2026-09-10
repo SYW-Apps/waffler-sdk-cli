@@ -1,0 +1,62 @@
+id: publication_adapter_impl
+name: Publication Adapter Implementation
+description: Three routes, written down once.
+contract: ipublication-adapter
+sourcePath: sdk/cli/src/publishing/publication_adapter.rs
+methods:
+  - name: uploadBundle
+    narrative: []
+    detail: intent
+    intent: >-
+      POST to `<baseUrl>/v1/packages/<namespace>/publish` as multipart, with the bundle in a field
+      named `bundle` and the bearer in an Authorization header.
+
+
+      THE ROUTE IS A FACT HERE RATHER THAN A RECOLLECTION. The previous tool addressed this as `POST
+      /v1/packages` — one of four wrong routes spread across three files. One component is what
+      makes a route checkable in one place.
+
+
+      The field name is the canonical one. The registry also accepts `file` and `package`, and
+      relying on that leniency is relying on it continuing to exist.
+
+
+      The body is STREAMED from the file rather than read into memory. A bundle may be a hundred
+      megabytes, and the size limit lives on the route as a body limit applied before buffering — a
+      client that buffers first has already paid the cost the server's limit exists to avoid.
+
+
+      A non-2xx answer is decoded for the registry's own message and carried through verbatim. Its
+      pipeline maps distinct refusals to distinct statuses on purpose — not a publisher, no
+      authority over this tag, a malformed manifest, and a version already published are four
+      different situations, and an automated publisher told only 'error' retries forever against a
+      conflict. A 401 or 403 is surfaced, never pre-empted.
+  - name: fetchPublishedPackage
+    narrative: []
+    detail: intent
+    intent: >-
+      GET `<baseUrl>/v1/packages/<namespace>` and read back what the registry holds: the versions,
+      and for each whether it carries a publisher signature.
+
+
+      A 404 IS AN ABSENCE, NOT AN ERROR. A first publish is the ordinary case, and turning it into a
+      failure would make the common path explain itself.
+
+
+      This is what makes the downgrade refusal honest: whether a package has ever carried a
+      publisher key is the registry's fact. Assuming it from local state would let a fresh clone
+      downgrade a package silently, which is the whole attack.
+  - name: withdrawVersion
+    narrative: []
+    detail: intent
+    intent: >-
+      DELETE `<baseUrl>/v1/packages/<namespace>/versions/<version>` with the bearer presented.
+
+
+      The catalog row goes and the artifact stays in custody, because another version may reference
+      the same bytes. That is the registry's decision and is stated in the output, so a developer is
+      not told the bytes were deleted when they were not.
+detail: intent
+status: draft
+createdAt: '2026-09-10T00:22:00.978Z'
+updatedAt: '2026-09-10T00:22:00.980Z'

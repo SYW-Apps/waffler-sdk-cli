@@ -1,0 +1,48 @@
+kind: value-object
+id: declared-artifact
+name: Declared Artifact
+description: >-
+  One file a project builds and embeds, as the DEVELOPER declares it: a path, a kind, and an entry
+  point.
+
+
+  NO HASH, AND THE ABSENCE IS THE DESIGN. A hash a developer writes is a claim about bytes that do
+  not exist yet; a hash computed over the bytes actually being written is a fact. The two
+  disagreeing is precisely what a content hash exists to detect, so only one of them may be
+  authorable, and it is neither.
+
+
+  THE PATH IS RELATIVE TO THE PROJECT AND IS NOT SEARCHED FOR. The previous tool tried
+  `target/release`, then the wasm target dir, then the project root, and took the first hit — so a
+  stale artifact from a build the developer had forgotten was as good as a fresh one, and nothing
+  could report that it had happened.
+subsystem: project
+fields:
+  - name: path
+    type: string
+    description: >-
+      Project-relative path to the built file, e.g. `target/release/libwaffler_probe_echo.so`.
+      Resolved exactly, never searched.
+    optional: false
+  - name: kind
+    type: string
+    description: >-
+      `Dll` for a loadable module, `UiBundle` for a frontend bundle. A Dll is what makes a package
+      DIRECT; a UiBundle is loaded by the frontend and starts nothing, so a package shipping only
+      one stays HOSTED.
+    optional: false
+  - name: entryPoint
+    type: string
+    description: >-
+      The symbol a host calls to initialize a Dll — `wf_init` for the Rust SDK's
+      `waffler_direct_package!`. Absent for a UiBundle, which no process host loads.
+    optional: true
+  - name: name
+    type: string
+    description: >-
+      The name the artifact takes inside the bundle. Defaults to the file name of `path`; declared
+      only when the on-disk name and the shipped name legitimately differ.
+    optional: true
+methods: []
+createdAt: '2026-09-10T00:07:25.189Z'
+updatedAt: '2026-09-10T00:07:25.397Z'

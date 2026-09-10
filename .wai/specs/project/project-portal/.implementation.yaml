@@ -1,0 +1,41 @@
+id: project_portal_impl
+name: Project Portal Implementation
+description: >-
+  Delegation only. Clap's argument structs sit ABOVE these methods and are not part of them — which
+  is what lets the docker image build call `plan` directly and reach exactly what a developer at a
+  terminal reaches.
+contract: iproject-portal
+sourcePath: sdk/cli/src/project/project_portal.rs
+methods:
+  - name: plan
+    narrative:
+      - stepNumber: 1
+        description: Delegate to the workflow.
+        type: call
+        targetComponent: project-orchestrator
+        targetMethod: planBundle
+  - name: validate
+    narrative:
+      - stepNumber: 1
+        description: Delegate to the workflow.
+        type: call
+        targetComponent: project-orchestrator
+        targetMethod: validateProject
+  - name: build
+    narrative:
+      - stepNumber: 1
+        description: Delegate to the workflow.
+        type: call
+        targetComponent: project-orchestrator
+        targetMethod: buildProject
+  - name: scaffold
+    narrative:
+      - stepNumber: 1
+        description: Delegate to the workflow.
+        type: call
+        targetComponent: project-orchestrator
+        targetMethod: scaffoldProject
+detail: calls-only
+status: draft
+createdAt: '2026-09-10T00:16:42.294Z'
+updatedAt: '2026-09-10T00:16:42.294Z'

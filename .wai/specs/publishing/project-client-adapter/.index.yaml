@@ -1,0 +1,34 @@
+id: project-client-adapter
+name: Project Client Adapter
+description: >-
+  Publishing's one door into Project: turn a directory into a bundle plan, or accept a bundle
+  already built.
+
+
+  IT IS THIN, AND SAYING SO IS BETTER THAN DRESSING IT UP. Both subsystems are modules of one
+  binary, so this is a function call and the boundary it crosses is conceptual rather than physical.
+  What it buys is that the crossing happens in ONE place: when the plan's shape changes, exactly one
+  file in Publishing has to know, and the orchestrator that decides publishing ORDER does not become
+  a second reader of the project model.
+
+
+  IT OWNS THE `--bundle` FORK, which is the part that is not bookkeeping. A publish may start from a
+  project directory or from a bundle file somebody already packed — in a container build, in CI, or
+  by a developer inspecting what `pack` produced. Those are genuinely different inputs, and the
+  second one must not touch the project tree at all: re-reading a manifest to describe a bundle that
+  already exists is how a bundle's declared identity and its actual contents come to disagree. So a
+  pre-built bundle is carried through as OPAQUE BYTES with its identity read from the bundle itself,
+  and no project is loaded.
+
+
+  IT NEVER BUILDS AND NEVER WRITES. Everything it can do is ask Project a question; a component in
+  Publishing that could invoke cargo would be a second build path, and the second one is the one
+  nobody keeps current.
+subsystem: publishing
+componentType: Adapter
+owns: []
+dependsOn:
+  - project-portal
+status: draft
+createdAt: '2026-09-10T00:05:45.764Z'
+updatedAt: '2026-09-10T00:05:45.782Z'

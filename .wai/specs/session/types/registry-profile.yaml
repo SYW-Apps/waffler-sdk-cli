@@ -1,0 +1,65 @@
+kind: value-object
+id: registry-profile
+name: Registry Profile
+description: >-
+  What a registry says about itself: whether it authenticates, where, and what it will accept.
+
+
+  THIS IS WHAT REPLACES A COMPILED-IN ISSUER. A registry's auth is generic OIDC over a discovery URL
+  and an audience, so an operator pointing an instance at their own account provider is deployment
+  configuration — but only if the instance SAYS so to a client. The metadata route today answers
+  that authentication is available without naming an issuer or an audience, which tells a client a
+  login exists and not where to perform one. Those fields are a registry change this depends on.
+
+
+  AN ABSENT ISSUER IS REPORTED AS MISSING, NEVER SUBSTITUTED. Falling back to a default issuer would
+  authenticate a developer against someone else's identity provider and send the resulting token to
+  this one, where it would be refused for reasons that name neither.
+subsystem: session
+fields:
+  - name: authenticationAvailable
+    type: boolean
+    description: >-
+      Whether the instance accepts credentials at all. False means every write route refuses
+      regardless of what is presented.
+    optional: false
+  - name: issuer
+    type: string
+    description: >-
+      The OIDC issuer this instance trusts. Absent means the instance did not say, which is a
+      refusal to log in rather than a licence to guess.
+    optional: true
+  - name: audience
+    type: string
+    description: >-
+      The audience this instance requires in a token. A token minted for a different audience is
+      refused by the registry, so getting it from the registry is the only way to be right.
+    optional: true
+  - name: clientId
+    type: string
+    description: >-
+      The public OAuth client this tool should identify as against that issuer. Deployment
+      configuration, like the issuer.
+    optional: true
+  - name: maxPackageSizeBytes
+    type: integer
+    description: >-
+      The largest upload this instance accepts. Read before a publish so an oversized bundle is
+      refused locally rather than after the body has been transferred and paid for.
+    optional: false
+  - name: publishingAvailable
+    type: boolean
+    description: >-
+      Whether this instance can sign and accept publishes at all. A mirror that only serves
+      downloads answers false, and telling a developer that before a build is worth the request.
+    optional: false
+  - name: signingIdentities
+    type: json[]
+    description: >-
+      The keys this registry signs bundles with, as it reports them. Carried so a publish can state
+      which identity will vouch for the artifact; this tool verifies nothing — the node that
+      installs it holds the trust anchors and is the only party whose verdict matters.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:08:56.016Z'
+updatedAt: '2026-09-10T00:08:56.413Z'

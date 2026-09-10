@@ -1,0 +1,31 @@
+id: iregistry-metadata-adapter
+name: Registry Metadata Contract
+description: >-
+  Asking a registry what it is.
+
+
+  AN UNREACHABLE OR UNPARSEABLE REGISTRY IS A REFUSAL NAMING THE URL, never a fallback to defaults.
+  Defaulting to 'no authentication required' on a failed probe is how a tool sends an
+  unauthenticated publish to a registry that would have taken a credential, and then reports the 401
+  as the registry's fault.
+component: registry-metadata-adapter
+methods:
+  - name: fetchProfile
+    description: >-
+      Read a registry's self-description: whether it authenticates, which issuer and audience it
+      trusts, what it accepts, and what it signs with.
+
+
+      READ BEFORE A LOGIN AND BEFORE A PUBLISH, FOR DIFFERENT REASONS. Before a login, to learn
+      where to authenticate at all. Before a publish, because the maximum accepted upload size is
+      the registry's to state, and a client that guesses it discovers the real number by having a
+      large body refused after transferring it.
+    signature: 'fetchProfile(baseUrl: string): RegistryProfile'
+    returns: sdk_cli::registry-profile
+    params:
+      - name: baseUrl
+        type: string
+        description: The normalised registry base URL.
+status: draft
+createdAt: '2026-09-10T00:10:56.337Z'
+updatedAt: '2026-09-10T00:10:56.350Z'

@@ -1,0 +1,210 @@
+id: manifest_compiler_impl
+name: Manifest Compiler Implementation
+description: >-
+  Pure functions over the authored model. No clock, no disk, no network — which is what makes every
+  refusal testable from a literal and every compilation testable without a build.
+contract: imanifest-compiler
+sourcePath: sdk/cli/src/project/manifest_compiler.rs
+methods:
+  - name: validateAuthored
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Start an empty violation list. Every check below APPENDS; none returns early. Fixing a
+          manifest one refused field per build is how a five-minute correction becomes an afternoon.
+        type: local
+      - stepNumber: 2
+        description: >-
+          The fqid must be non-empty and must contain a dot. It is the registry namespace, the
+          install key and the seed of the deterministic package uuid, so a malformed one is wrong in
+          three places at once and none of them says so.
+        type: local
+      - stepNumber: 3
+        description: >-
+          The version must parse as SemVer. The registry parses it too, and a version it cannot
+          order is one the resolver cannot answer a range with.
+        type: local
+      - stepNumber: 4
+        description: Was a core compatibility range declared?
+        type: branch
+        condition: authored.coreCompatibility is present and non-blank
+        onFalseStep: 6
+      - stepNumber: 5
+        description: >-
+          It must parse as a SemVer REQUIREMENT, not as a version. `^0.1` is the shape; `0.1` is a
+          narrower one that still parses; a string that parses as neither installs unchecked while
+          looking declared, which is the worst of the three outcomes.
+        type: local
+      - stepNumber: 6
+        label: artifact-names
+        description: >-
+          Collect the set of names the declared artifacts take inside the bundle — the explicit
+          `name`, or the file name of the declared path. Every cross-reference below resolves
+          against this set.
+        type: local
+      - stepNumber: 7
+        description: For each declared capability.
+        type: loop
+        loopKind: forEach
+        over: authored.capabilities
+        endStep: 8
+      - stepNumber: 8
+        label: cap-check
+        description: >-
+          It must name an artifact in the set, and a RuntimePrimitive must carry a symbol. The
+          registry's bundle reader aligns declared artifacts to zip entries strictly in BOTH
+          directions, so a capability pointing at nothing is refused there too — with a message
+          about a zip entry rather than about the field the developer wrote.
+        type: local
+      - stepNumber: 9
+        description: For each declared UI plugin.
+        type: loop
+        loopKind: forEach
+        over: authored.uiPlugins
+        endStep: 10
+      - stepNumber: 10
+        label: ui-check
+        description: >-
+          It must name an artifact in the set whose kind is UiBundle. The slot is NOT checked
+          against any list of region names: a packer has no business knowing the frontend's regions,
+          and coupling it to that list makes every new region a change here.
+        type: local
+      - stepNumber: 11
+        description: For each declared artifact.
+        type: loop
+        loopKind: forEach
+        over: authored.artifacts
+        endStep: 12
+      - stepNumber: 12
+        label: artifact-check
+        description: >-
+          The kind must be Dll or UiBundle, its path must be non-empty and relative, and a Dll must
+          declare an entry point — a process host with no symbol to call loads a module that does
+          nothing and reports success. A path that escapes the project directory is refused: a
+          bundle assembled from files outside the project is one nobody can reproduce from the
+          repository.
+        type: local
+      - stepNumber: 13
+        description: For each declared dependency.
+        type: loop
+        loopKind: forEach
+        over: authored.dependencies
+        endStep: 14
+      - stepNumber: 14
+        label: dep-check
+        description: >-
+          The fqid must be non-empty and the version must parse as a REQUIREMENT. A pin where a
+          range belongs makes every upstream patch a republish here; a string that parses as neither
+          becomes a dependency the registry's resolver cannot satisfy and cannot explain.
+        type: local
+      - stepNumber: 15
+        description: Every violation found, in declaration order.
+        type: return
+        outcome: the complete violation list, empty when the manifest is sound
+    detail: full
+  - name: compileManifestBody
+    narrative:
+      - stepNumber: 1
+        description: 'Partition the located artifacts by kind: the loadable modules and the UI bundles.'
+        type: local
+      - stepNumber: 2
+        description: Did the build produce a loadable module?
+        type: branch
+        condition: at least one located artifact has kind Dll
+        onFalseStep: 5
+      - stepNumber: 3
+        description: >-
+          Hosting mode is DIRECT — the package loads in-process. DERIVED, never declared: it is a
+          fact about what was built, and the previous tool let a project claim a mode its artifacts
+          could not support.
+        type: local
+      - stepNumber: 4
+        description: Continue to the capability declarations.
+        type: jump
+        toStep: 6
+      - stepNumber: 5
+        label: hosted
+        description: >-
+          Hosting mode is HOSTED. A package shipping only a UI bundle stays HOSTED and starts
+          nothing, because a UI bundle is loaded by the frontend and not by a process host.
+        type: local
+      - stepNumber: 6
+        label: capabilities
+        description: >-
+          Build the capability declarations, resolving each one's named artifact into an artifact
+          reference. A RuntimePrimitive carries its node descriptor — the C symbol and the
+          `wf_prim_v1` ffi signature — and its inputs IN DECLARATION ORDER, because that order is
+          the calling contract and an empty list means UNDECLARED rather than zero parameters.
+        type: local
+      - stepNumber: 7
+        description: >-
+          Build the ui plugin declarations the same way, each pointing at its UiBundle artifact and
+          carrying the package's own version. A plugin numbered separately from the package it ships
+          inside is a second thing to keep in step for no gain.
+        type: local
+      - stepNumber: 8
+        description: >-
+          Assemble the body: fqid, version, hosting mode, the authored permission groups and
+          fast-lane requests passed through as written, the dependencies, the capabilities, the ui
+          plugins, an empty middleware list, and enabled true.
+
+
+          RUNTIME-MANAGED FIELDS ARE OMITTED, not emitted empty. Identity, approved group ids and
+          fast-lane grants are minted by a node; writing them blank would make a bundle that
+          declares nothing indistinguishable from one whose author wrote an empty value, and core's
+          own warnings depend on telling those apart.
+
+
+          THE ARTIFACTS ARRAY IS LEFT ABSENT. Its hashes are facts about bytes the writer has not
+          written yet.
+        type: local
+      - stepNumber: 9
+        description: Was a core compatibility range declared?
+        type: branch
+        condition: authored.coreCompatibility is present and non-blank
+        onFalseStep: 11
+      - stepNumber: 10
+        description: >-
+          Set the field. Emitted ONLY when declared — absent must stay absent so core's warning
+          tells the truth about which case it is looking at.
+        type: local
+      - stepNumber: 11
+        label: done
+        description: The compiled manifest body, complete but for the artifacts array.
+        type: return
+        outcome: the /.manifest declarations
+    detail: full
+  - name: packageUuidFor
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Build the seed string `waffler.package:<fqid>` — the runtime's own spelling, byte for
+          byte. The prefix is part of the input, so a uuid computed over the bare fqid is a
+          different uuid that looks equally plausible.
+        type: local
+      - stepNumber: 2
+        description: >-
+          Compute UUIDv5 over the OID namespace with those bytes.
+
+
+          COPIED FROM THE RUNTIME RATHER THAN INVENTED. The ingested package entity, the
+          install-call uuid and the `/namespace/<uuid>.json` segment must all agree; three places
+          computing it three ways is three chances to disagree with nothing able to notice, because
+          each one is internally consistent.
+        type: local
+      - stepNumber: 3
+        description: The uuid, hyphenated.
+        type: return
+        outcome: the deterministic package uuid
+    detail: full
+    intent: >-
+      UUIDv5 over the OID namespace of the bytes `waffler.package:<fqid>`.
+
+
+      The formula is the runtime's own, and copying it here rather than inventing one is the entire
+      point: the ingested entity, the install-call uuid and the `/namespace/<uuid>.json` segment
+      must agree, and three places computing it three ways is three chances to disagree with no way
+      to notice.
+status: draft
+createdAt: '2026-09-10T00:15:58.087Z'
+updatedAt: '2026-09-10T00:18:25.573Z'

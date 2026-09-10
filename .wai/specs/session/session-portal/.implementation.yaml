@@ -1,0 +1,77 @@
+id: session_portal_impl
+name: Session Portal Implementation
+description: Delegation only, and the front door in-process callers use.
+contract: isession-portal
+sourcePath: sdk/cli/src/session/session_portal.rs
+methods:
+  - name: resolve
+    narrative:
+      - stepNumber: 1
+        description: Delegate.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: resolveRegistry
+  - name: bearer
+    narrative:
+      - stepNumber: 1
+        description: Delegate.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: bearerFor
+  - name: profile
+    narrative:
+      - stepNumber: 1
+        description: Delegate.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: profileOf
+  - name: login
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Resolve which registry is being signed in to, and report it before the browser opens — a
+          login that silently targeted the wrong registry produces a credential filed under a name
+          the developer did not intend.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: resolveRegistry
+      - stepNumber: 2
+        description: Sign in against whatever issuer that registry advertises.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: signIn
+  - name: logout
+    narrative:
+      - stepNumber: 1
+        description: Resolve which registry is being left.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: resolveRegistry
+      - stepNumber: 2
+        description: Forget that one session.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: signOut
+  - name: whoami
+    narrative:
+      - stepNumber: 1
+        description: Resolve the registry being asked about.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: resolveRegistry
+      - stepNumber: 2
+        description: Report the identity held for it, naming the registry alongside.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: whoAmI
+  - name: use
+    narrative:
+      - stepNumber: 1
+        description: Persist the default and say whether there is a credential for it.
+        type: call
+        targetComponent: session-orchestrator
+        targetMethod: setDefault
+detail: calls-only
+status: draft
+createdAt: '2026-09-10T00:19:58.247Z'
+updatedAt: '2026-09-10T00:19:58.247Z'

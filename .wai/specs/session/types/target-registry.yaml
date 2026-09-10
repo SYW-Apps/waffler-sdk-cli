@@ -1,0 +1,35 @@
+kind: value-object
+id: target-registry
+name: Target Registry
+description: >-
+  Which registry this invocation addresses, and which of the four sources said so.
+
+
+  THE SOURCE IS CARRIED BECAUSE THE ANSWER ALONE IS NOT ENOUGH. Four resolution sources means four
+  ways to be surprised, and "publishing to https://registry.waffler.dev" answers a different
+  question from "publishing to https://registry.waffler.dev, because WAFFLER_REGISTRY is set in this
+  shell". The second one is what lets a developer notice, before the upload, that they are not where
+  they thought.
+
+
+  THE URL IS NORMALISED, ONCE, AT RESOLUTION. Trailing slashes, host case, an explicitly written
+  default port — all name one registry, and a credential store keyed on the raw string would hold
+  two entries for it and use whichever spelling the current command produced.
+subsystem: session
+fields:
+  - name: baseUrl
+    type: string
+    description: >-
+      The normalised base URL, with no trailing slash — the v1 paths already begin with one. This
+      exact string is the credential store's key.
+    optional: false
+    key: primary
+  - name: source
+    type: string
+    description: >-
+      `flag` | `environment` | `default` | `builtin`, in resolution precedence order. Reported on
+      every command, not just on the one that set it.
+    optional: false
+methods: []
+createdAt: '2026-09-10T00:08:26.216Z'
+updatedAt: '2026-09-10T00:08:26.507Z'

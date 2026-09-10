@@ -1,0 +1,41 @@
+id: project-orchestrator
+name: Project Orchestrator
+description: >-
+  The workflow from a directory to a bundle plan: load, validate, build, locate, compile. The
+  subsystem's public face.
+
+
+  THE ORDER IS THE DESIGN. Validate the authoring manifest BEFORE building, because a release build
+  of a Rust package costs minutes and a malformed fqid costs microseconds to detect — the previous
+  tool built first and validated at upload, so every manifest mistake was paid for at full price.
+  Then build, then locate the artifacts the build was supposed to produce, then compile the
+  declarations. Locating AFTER building is what makes "the build succeeded and produced nothing at
+  the declared path" a distinct, sayable failure rather than a stale artifact silently taking its
+  place.
+
+
+  WHAT IT HANDS ON IS A PLAN, NOT A BUNDLE. The result names the identity, the declarations, and the
+  artifact files by path — it holds no bytes and computes no hashes. Hashes are facts about the
+  bytes actually written, and the writer that writes them is the honest place to measure them; a
+  hash computed here and copied there is a claim that can disagree with the artifact it describes.
+
+
+  IT DOES NOT TALK TO A REGISTRY, and Publishing never reads a project tree. That split is what lets
+  the docker image build a bundle with no network and lets a publish of a pre-built bundle skip the
+  project entirely.
+
+
+  A FAILURE NAMES THE STAGE IT FAILED IN. "Invalid manifest", "build failed", "declared artifact
+  missing" and "declaration inconsistent" are four different problems with four different fixes, and
+  a tool that reports them as "pack failed" has converted a diagnosis into a search.
+subsystem: project
+componentType: Orchestrator
+owns: []
+dependsOn:
+  - project-adapter
+  - build-adapter
+  - manifest-compiler
+  - scaffold-specialist
+status: draft
+createdAt: '2026-09-10T00:01:58.328Z'
+updatedAt: '2026-09-10T00:14:29.789Z'

@@ -1,0 +1,31 @@
+id: project-portal
+name: Project Portal
+description: >-
+  The `scaffold`, `build` and `validate` commands: argument parsing, and rendering what happened.
+
+
+  `validate` EXISTS SO THE CHEAP CHECK IS AVAILABLE ALONE. It runs everything `pack` would run up to
+  the build and stops, so a developer editing a manifest gets an answer in a second rather than
+  after a release build. A tool whose only way to check a manifest is to build the package teaches
+  people not to check.
+
+
+  IT CONTAINS NO LOGIC, and the reason is the same one that keeps it out of the publish portal: the
+  docker image build is expected to drive this tool as a library rather than a binary, so everything
+  below the argument layer must be reachable without a process. A check implemented in a command
+  handler is a check the library path silently skips.
+
+
+  `build` IS NOT A CARGO ALIAS. It builds what the project manifest declares, in the profile a
+  publishable bundle requires, and states which crate and which profile it used. A developer who
+  runs `cargo build` and then `waffler pack` and gets a different binary has met the failure this
+  command exists to remove.
+subsystem: project
+componentType: Portal
+owns: []
+dependsOn:
+  - project-orchestrator
+portalType: CLI
+status: draft
+createdAt: '2026-09-10T00:02:08.174Z'
+updatedAt: '2026-09-10T00:02:08.178Z'

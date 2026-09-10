@@ -89,10 +89,19 @@ fn has_internal_run(line: &str) -> bool {
 
 /// Is this line one the scan should look at?
 ///
-/// EXTRACTED FROM THE WALKER SO IT CAN BE KILLED. Both halves were inline `continue`s, and
-/// neutralising either left the suite green — not because they do nothing, but because nothing could
-/// observe them. A filter inside a loop is a decision no test can reach; a named predicate is one
-/// that can be handed the shapes it exists to reject.
+/// ## TWO INLINE FILTERS IN ONE LOOP MUTUALLY SHIELD EACH OTHER
+///
+/// Both halves were inline `continue`s, and neutralising either left the suite green. Not because
+/// they do nothing — because nothing could observe them, and the reason is sharper than "an inline
+/// filter is untested":
+///
+///   a fixture for the COMMENT half must carry a quote, which the literal half rejects;
+///   a fixture for the LITERAL half must be a comment, which the comment half rejects.
+///
+/// So neither was reachable even by a test written to reach it, and the shielding SCALES — three
+/// filters would be worse. The fix is therefore not "test the filter". It is: extract them, and write
+/// the case that satisfies all of them at once. Core found the identical pair in their own copy, which
+/// is what makes this a property of the shape rather than of either codebase.
 fn is_scannable(line: &str) -> bool {
     // A comment may align things on purpose and none of them is a message a user sees.
     if line.trim_start().starts_with("//") {

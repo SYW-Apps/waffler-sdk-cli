@@ -177,6 +177,23 @@ that had simply already been run.
 A suite that goes red for reasons unrelated to the thing it tests is a suite people stop reading,
 which is the state that hides a real failure. It now refuses to start and names what it needs.
 
+## Reading the node's log, which several of these checks depend on
+
+Some evidence is only in the boot log — `DependencyUnmet` is not reachable over the bus, because the
+`package.error` event has already fired by the time a script connects.
+
+**`grep -c "kind=version_mismatch"` returns 0 while the lines are right there.** The log renders
+field names with ANSI escapes between the token and its `=`, so `kind=` is not the string in the
+stream. Grep the *value* alone:
+
+```bash
+docker logs waffler-beta 2>&1 | grep DependencyUnmet
+docker logs waffler-beta 2>&1 | grep version_mismatch
+```
+
+Worth knowing before concluding a path did not fire. A zero from a grep that could never match reads
+exactly like a zero from a check that ran — which is the same shape as the rest of this file.
+
 ## `AccessDenied` cannot tell "not granted" from "not running"
 
 `03-grant-and-call.py` reads `AccessDenied` on its baseline call as "installed, running, and not yet

@@ -223,3 +223,104 @@ fn an_end_record_signature_in_the_LAST_21_BYTES_does_not_panic() {
         let _ = detect_framing(&bytes);
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// The producer
+// ---------------------------------------------------------------------------------------------
+
+fn signed_bundle(dir: &std::path::Path, seed: &[u8; 32]) -> std::path::PathBuf {
+    std::fs::create_dir_all(dir).unwrap();
+    let path = dir.join("bundle.zip");
+    std::fs::write(&path, archive(b"")).unwrap();
+    assert_eq!(sign_as_publisher(&path, seed).unwrap(), Framing::Dual);
+    path
+}
+
+#[test]
+fn a_signed_bundle_is_the_UNCHANGED_archive_with_a_trailer_appended() {
+    let dir = tempfile::tempdir().unwrap();
+    let before = archive(b"");
+    let path = dir.path().join("bundle.zip");
+    std::fs::write(&path, &before).unwrap();
+
+    sign_as_publisher(&path, &[9u8; 32]).unwrap();
+    let after = std::fs::read(&path).unwrap();
+
+    // THE PAYLOAD IS BYTE-IDENTICAL. The signature covers it, so anything that re-zipped, re-compressed
+    // or normalised it would produce an artifact core refuses as an integrity failure — on a stranger's
+    // machine, days later, naming nothing about this function.
+    assert_eq!(&after[..before.len()], &before[..], "the archive must not be touched");
+    assert!(after.len() > before.len());
+}
+
+#[test]
+fn what_this_writes_is_what_SHARED_reads_back() {
+    // THE INTEROP CHECK, AND THE ONLY ONE THAT MATTERS. A producer verified against its own reader
+    // agrees with itself forever; what has to hold is that the crate a NODE parses with decodes these
+    // exact bytes. If this fails, every other assertion in this file is a statement about my encoder.
+    let dir = tempfile::tempdir().unwrap();
+    let seed = [11u8; 32];
+    let path = signed_bundle(dir.path(), &seed);
+    let bytes = std::fs::read(&path).unwrap();
+
+    let parsed = waffler_shared::parse_bundle_frame(&bytes).unwrap();
+    // The payload range SHARED identified, taken before the frame is destructured — asserting against
+    // a range this test computed for itself would pass for a signature over the wrong bytes.
+    let payload = parsed.payload(&bytes).to_vec();
+    let waffler_shared::BundleFrame::Signed(trailer) = parsed.frame else {
+        panic!("shared did not read a signature trailer");
+    };
+
+    assert_eq!(trailer.signatures.len(), 1, "a publisher signs alone; the registry countersigns later");
+    let sig = &trailer.signatures[0];
+    // ROLE PUBLISHER, NEVER REGISTRY. A tool that emitted a registry signature would be claiming an
+    // authority it does not have, and the chain verifier refuses the arrangement before verifying.
+    assert_eq!(sig.role, waffler_shared::SignatureRole::Publisher);
+
+    // The key carried is the one the seed produces — a verifier needs nothing pre-shared to check the
+    // maths, so a wrong key here verifies nowhere and names nothing.
+    let expected = ed25519_dalek::SigningKey::from_bytes(&seed).verifying_key().to_bytes();
+    assert_eq!(sig.public_key, expected.to_vec());
+
+    // AND THE SIGNATURE ACTUALLY VERIFIES OVER THE PAYLOAD SHARED IDENTIFIED — not over the file, and
+    // not over a range this test computed for itself. Both sides deriving the payload the same way is
+    // the property; asserting the bytes without it would pass for a signature over the wrong range.
+    use ed25519_dalek::Verifier;
+    let verifying = ed25519_dalek::VerifyingKey::from_bytes(&expected).unwrap();
+    let signature = ed25519_dalek::Signature::from_slice(&sig.signature).unwrap();
+    assert!(verifying.verify(&payload, &signature).is_ok(), "the signature must cover the archive shared identified");
+}
+
+#[test]
+fn signing_an_already_signed_bundle_is_refused() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = signed_bundle(dir.path(), &[5u8; 32]);
+    let before = std::fs::read(&path).unwrap();
+
+    let e = sign_as_publisher(&path, &[6u8; 32]).unwrap_err().to_string();
+    // Re-signing means either re-zipping — destroying the payload the existing signature covers — or
+    // appending blindly, and both produce artifacts refused later on somebody else's machine.
+    assert!(e.contains("already carries a signature"), "got {e}");
+    assert_eq!(std::fs::read(&path).unwrap(), before, "a refused signing must not have written anything");
+}
+
+#[test]
+fn a_publisher_signed_bundle_may_NOT_be_uploaded_unsigned_to_a_registry() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = signed_bundle(dir.path(), &[4u8; 32]);
+    // The registry signs what it accepts and refuses an artifact that already carries a signature. The
+    // publisher path is a countersignature the registry adds on receipt — not something this tool
+    // uploads twice.
+    assert!(refuse_if_signed(&path).is_err());
+}
+
+#[test]
+fn two_signings_of_one_archive_with_one_key_are_byte_identical() {
+    // Ed25519 is deterministic, so a bundle signed twice from the same source and key is the same
+    // artifact. That is what keeps a signed bundle reproducible in the same sense an unsigned one is —
+    // and it is worth pinning, because a scheme that added randomness would silently take that away.
+    let dir = tempfile::tempdir().unwrap();
+    let a = signed_bundle(&dir.path().join("a"), &[13u8; 32]);
+    let b = signed_bundle(&dir.path().join("b"), &[13u8; 32]);
+    assert_eq!(std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap());
+}

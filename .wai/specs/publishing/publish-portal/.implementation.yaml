@@ -33,7 +33,17 @@ methods:
         targetComponent: publish-orchestrator
         targetMethod: unpublish
     detail: calls-only
+  - name: newPublisherKey
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Delegate, then print the PUBLIC half and what the private half commits its owner to — the
+          pin, the refused rotation, and the un-updatable package a lost key produces.
+        type: call
+        targetComponent: publish-orchestrator
+        targetMethod: newPublisherKey
+    detail: calls-only
 detail: calls-only
 status: draft
 createdAt: '2026-09-10T00:22:45.609Z'
-updatedAt: '2026-09-10T00:23:34.705Z'
+updatedAt: '2026-09-10T07:50:18.698Z'

@@ -1,0 +1,88 @@
+id: publisher_key_adapter_impl
+name: Publisher Key Adapter Implementation
+description: >-
+  A hex-encoded 32-byte seed in a file, owner-only.
+
+
+  THE ENCODING IS THE ONE THE ECOSYSTEM ALREADY USES — the same shape a registry's own signing key
+  is configured with. A second encoding for the same kind of secret is a second thing to get wrong,
+  and the two would be indistinguishable to anyone holding a file.
+contract: ipublisher-key-adapter
+sourcePath: sdk/cli/src/publishing/publisher_key_adapter.rs
+technologies:
+  - ed25519
+methods:
+  - name: loadSigningKey
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Read the file, refusing with the PATH named when it is absent. A signing key that is not
+          where the developer said it is is the ordinary mistake, and a message about decoding would
+          send them to look at its contents instead.
+        type: local
+      - stepNumber: 2
+        description: Can this platform report the file's permissions, and do they let anyone else read it?
+        type: branch
+        condition: permissions are readable AND the mode grants group or other access
+        onFalseStep: 4
+      - stepNumber: 3
+        description: >-
+          REFUSE, naming the file and the permission. A signing key anyone on the machine can read
+          belongs to anyone on the machine; using it anyway would treat the developer's mistake as
+          consent. Refused rather than warned, because a warning on a path that then succeeds is a
+          warning nobody reads twice.
+        type: throw
+        error: KeyIsWorldReadable
+      - stepNumber: 4
+        label: decode
+        description: >-
+          Decode the hex and check the LENGTH before anything uses it. A seed of the wrong size is
+          refused naming both lengths — a library that padded or truncated one would produce a key
+          that signs consistently and matches nothing.
+        type: local
+      - stepNumber: 5
+        description: The key material.
+        type: return
+        outcome: a signing key
+    detail: full
+  - name: generateSigningKey
+    narrative:
+      - stepNumber: 1
+        description: Does anything already exist at that path?
+        type: branch
+        condition: the path exists
+        onFalseStep: 3
+      - stepNumber: 2
+        description: >-
+          REFUSE, AND NO FLAG OVERRIDES IT. Replacing a publisher key destroys the only copy of
+          something that cannot be reissued: every node that installed the package pins the old
+          publisher, rotation is refused, and the package becomes permanently un-updatable on all of
+          them. There is no default for which that is reasonable.
+        type: throw
+        error: KeyAlreadyExists
+      - stepNumber: 3
+        label: generate
+        description: >-
+          Draw 32 bytes from a cryptographically secure source and derive the verifying half. Not a
+          hash of anything a developer chose — a key derived from a passphrase is a key an attacker
+          can search offline, and there is no rotation to recover with.
+        type: local
+      - stepNumber: 4
+        description: >-
+          Write the seed as hex, owner-only, with the permission set BEFORE the bytes land at the
+          final path. A file created with default permissions and tightened afterwards is
+          world-readable for the length of that window, and a private key is exactly the file for
+          which the window matters.
+        type: local
+      - stepNumber: 5
+        description: >-
+          The PUBLIC half, and a statement of what the private half now commits its owner to: every
+          node that installs a package signed with it pins this publisher; a different key is
+          refused because rotation is not built; and losing the file means a package that can never
+          be updated on any node that already has it.
+        type: return
+        outcome: the public key, and the commitment stated
+    detail: full
+status: draft
+createdAt: '2026-09-10T07:48:59.876Z'
+updatedAt: '2026-09-10T07:48:59.876Z'

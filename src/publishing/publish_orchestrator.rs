@@ -28,7 +28,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Result};
 
 use super::types::{PublishOutcome, WrittenBundle};
-use super::{bundle_writer, project_client_adapter, publication_adapter, session_client_adapter, signature_specialist};
+use super::{bundle_writer, project_client_adapter, publication_adapter, publisher_key_adapter, session_client_adapter, signature_specialist};
 use crate::project::types::BuildReport;
 use crate::session::types::{PersistedSession, TargetRegistry};
 
@@ -38,14 +38,38 @@ use crate::session::types::{PersistedSession, TargetRegistry};
 /// inspectable without publishing it is how a developer checks their own work and how the container
 /// image build consumes this tool — that build has no network and no session, and a pack that reached
 /// for either would fail there for a reason that has nothing to do with packing.
-pub fn pack(directory: &Path, output_path: Option<&Path>, skip_build: bool) -> Result<(WrittenBundle, BuildReport)> {
+pub fn pack(
+    directory: &Path,
+    output_path: Option<&Path>,
+    skip_build: bool,
+    publisher_key_path: Option<&Path>,
+) -> Result<(WrittenBundle, BuildReport)> {
     let (plan, report) = project_client_adapter::plan_from_directory(directory, skip_build)?;
     let output = match output_path {
         Some(p) => p.to_path_buf(),
         None => crate::project::project_adapter::default_bundle_path(directory, &plan.fqid),
     };
-    let written = bundle_writer::write_bundle(&plan, &output)?;
+    let mut written = bundle_writer::write_bundle(&plan, &output)?;
+
+    // A PUBLISHER KEY IS OPTIONAL AND SIGNING IS OPT-IN. A registry-only bundle stays completely
+    // legal: the registry signs what it accepts, and a package that never carries a publisher
+    // signature installs and updates exactly as it always has. Making the key mandatory would push
+    // every existing package through a door that cannot be reopened.
+    if let Some(key_path) = publisher_key_path {
+        let key = publisher_key_adapter::load_signing_key(key_path)?;
+        written.framing = signature_specialist::sign_as_publisher(&written.path, &key)?;
+        written.size_bytes = std::fs::metadata(&written.path)?.len();
+    }
     Ok((written, report))
+}
+
+/// Create a publisher signing key.
+///
+/// HERE RATHER THAN AT THE PORTAL because a portal may not reach an adapter — and the rule earns
+/// itself even for a one-line delegation: the statement that has to accompany a new key is workflow,
+/// and putting it in a command handler would leave the library path able to mint one silently.
+pub fn new_publisher_key(path: &Path) -> Result<[u8; 32]> {
+    publisher_key_adapter::generate_signing_key(path)
 }
 
 /// Pack if needed, then upload.
@@ -56,6 +80,7 @@ pub async fn publish(
     bundle_path: Option<&Path>,
     registry_flag: Option<&str>,
     skip_build: bool,
+    publisher_key_path: Option<&Path>,
 ) -> Result<PublishOutcome> {
     let registry = session_client_adapter::target(session, registry_flag)?;
     // REPORTED NOW, BEFORE ANYTHING IRREVERSIBLE. The tool knows the answer at the moment it is
@@ -89,42 +114,63 @@ pub async fn publish(
     // finding it out after the upload costs the upload.
     signature_specialist::refuse_if_signed(&bundle.path)?;
 
-    if profile.max_package_size_bytes > 0 && bundle.size_bytes > profile.max_package_size_bytes {
+    let held = publication_adapter::fetch_published_package(client, &registry.base_url, &bundle.fqid).await?;
+    let already_publisher_signed =
+        held.as_ref().is_some_and(super::types::PublishedPackage::has_publisher_signature);
+
+    // ASKED BEFORE SIGNING, which is what makes the downgrade refusal possible at all. Discovering
+    // after signing that an unsigned publish was illegal would mean either uploading something that
+    // will be refused or silently changing shape.
+    if let Some(key_path) = publisher_key_path {
+        let key = publisher_key_adapter::load_signing_key(key_path)?;
+        if !already_publisher_signed {
+            // SAID BEFORE IT HAPPENS, because this is the last moment at which there is a decision.
+            // Signing a package for the FIRST time commits every node that installs it to this
+            // publisher: a different key is refused, rotation is not built, and a lost key is a
+            // package that can never be updated on any node that already has it.
+            println!(
+                "  {} this is the FIRST publisher signature for {}.\n{}",
+                console::style("note:").yellow().bold(),
+                bundle.fqid,
+                publisher_key_adapter::COMMITMENT
+            );
+        }
+        signature_specialist::sign_as_publisher(&bundle.path, &key)?;
+    } else if already_publisher_signed {
+        // REFUSED, WITH NO FLAG TO WAIVE IT.
+        //
+        // A package that has ever carried a publisher signature may never publish one without:
+        // accepting it would let anyone who obtains publish rights strip the binding to whoever built
+        // the software, and every node afterwards would verify a registry signature and find nothing
+        // missing.
+        //
+        // THE REFUSAL NOW NAMES ITS CURE, which it could not before — this tool can produce a
+        // publisher signature, so the fix is the key rather than a different tool entirely.
+        bail!(
+            "{} already has publisher-signed versions on {}, and an unsigned publish would strip that \
+             binding.\n  Publish with --publisher-key <path>, using the SAME key the existing versions \
+             were signed with — a different one is refused, because rotation is not built.",
+            bundle.fqid,
+            registry.base_url
+        );
+    }
+
+    // THE SIZE IS CHECKED AFTER SIGNING, so it measures the artifact that is actually uploaded. A
+    // trailer is only a couple of hundred bytes, but checking before appending it means checking
+    // something other than what goes on the wire — and a limit that is right about the wrong artifact
+    // is the shape that passes for years and then does not.
+    let size_bytes = std::fs::metadata(&bundle.path)?.len();
+    if profile.max_package_size_bytes > 0 && size_bytes > profile.max_package_size_bytes {
         // The bundle on disk is KEPT: the developer can inspect it, and the next attempt does not
         // rebuild.
         bail!(
-            "{} is {} bytes and {} accepts at most {}.\n  The bundle is left at {} — nothing was \
-             uploaded.",
+            "{} is {size_bytes} bytes and {} accepts at most {}.\n  The bundle is left at {} — nothing \
+             was uploaded.",
             bundle.path.display(),
-            bundle.size_bytes,
             registry.base_url,
             profile.max_package_size_bytes,
             bundle.path.display()
         );
-    }
-
-    let held = publication_adapter::fetch_published_package(client, &registry.base_url, &bundle.fqid).await?;
-    if let Some(held) = held.as_ref() {
-        if held.has_publisher_signature() {
-            // REFUSED, WITH NO FLAG TO WAIVE IT.
-            //
-            // A package that has ever carried a publisher signature may never publish one without:
-            // accepting it would let anyone who obtains publish rights strip the binding to whoever
-            // built the software, and every node afterwards would verify a registry signature and find
-            // nothing missing.
-            //
-            // This tool cannot yet PRODUCE a publisher signature — see `signature_specialist` for why
-            // the producer half is deliberately absent — so reaching this branch means the package was
-            // signed by something else and this tool must not be the way that gets undone.
-            bail!(
-                "{} already has publisher-signed versions on {}, and an unsigned publish would strip \
-                 that binding.\n  This tool does not produce publisher signatures yet, so it cannot \
-                 publish to this package without downgrading it. Publish with the tool that signed the \
-                 existing versions.",
-                bundle.fqid,
-                registry.base_url
-            );
-        }
     }
 
     // THE BEARER IS FETCHED HERE, after the build and before the upload. A token checked before a

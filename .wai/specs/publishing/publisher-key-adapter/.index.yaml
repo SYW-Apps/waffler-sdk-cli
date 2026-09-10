@@ -1,0 +1,42 @@
+id: publisher-key-adapter
+name: Publisher Key Adapter
+description: >-
+  Reading the publisher's signing key off disk, and creating one.
+
+
+  IT IS SEPARATE FROM THE SIGNER BECAUSE A KEY IS A SECRET AND A SIGNATURE IS A COMPUTATION. The
+  specialist that signs takes bytes and a key and is pure; everything about where a key lives, what
+  permissions it carries, and what it commits its owner to lives here. Merging them would put file
+  handling inside the one component whose correctness is checkable by reading it.
+
+
+  ## THE KEY IS A ONE-WAY DOOR AND THIS COMPONENT SAYS SO
+
+
+  Once a package has shipped a publisher signature, every node that installed it PINS that
+  publisher, and a bundle offering a different one is refused — rotation is not built, and a lost
+  key means a package that can never be updated on any node that already has it. That is not a
+  caveat to put in a changelog; it is the single most consequential fact about the file this
+  component creates, so creating one states it at the moment of creation and the tool never
+  generates one implicitly.
+
+
+  ## A PATH, NEVER A RAW KEY IN THE ENVIRONMENT
+
+
+  An environment variable holding a private key appears in process listings, in a crashed process's
+  dump, and in the log of any CI system that echoes its environment. A path does not. CI systems
+  already write secrets to files for exactly this reason, so taking a path costs an automated
+  publisher nothing and removes a whole class of leak.
+
+
+  IT REFUSES A WORLD-READABLE KEY on platforms that can tell. A signing key whose permissions let
+  anyone on the machine read it is a signing key that belongs to anyone on the machine, and a tool
+  that used it anyway would be treating the developer's mistake as consent.
+subsystem: publishing
+componentType: Adapter
+owns: []
+dependsOn: []
+status: draft
+createdAt: '2026-09-10T07:47:33.180Z'
+updatedAt: '2026-09-10T07:47:33.198Z'

@@ -17,8 +17,18 @@ use crate::project::types::BuildReport;
 use crate::session::types::{PersistedSession, TargetRegistry};
 
 /// Build a bundle and stop. No network, no credential, nothing uploaded.
-pub fn pack(directory: &Path, output_path: Option<&Path>, skip_build: bool) -> Result<(WrittenBundle, BuildReport)> {
-    publish_orchestrator::pack(directory, output_path, skip_build)
+pub fn pack(
+    directory: &Path,
+    output_path: Option<&Path>,
+    skip_build: bool,
+    publisher_key_path: Option<&Path>,
+) -> Result<(WrittenBundle, BuildReport)> {
+    publish_orchestrator::pack(directory, output_path, skip_build, publisher_key_path)
+}
+
+/// Create a publisher signing key.
+pub fn new_publisher_key(path: &Path) -> Result<[u8; 32]> {
+    publish_orchestrator::new_publisher_key(path)
 }
 
 /// Build a bundle if needed and upload it to the resolved registry.
@@ -29,8 +39,10 @@ pub async fn publish(
     bundle_path: Option<&Path>,
     registry_flag: Option<&str>,
     skip_build: bool,
+    publisher_key_path: Option<&Path>,
 ) -> Result<PublishOutcome> {
-    publish_orchestrator::publish(client, session, directory, bundle_path, registry_flag, skip_build).await
+    publish_orchestrator::publish(client, session, directory, bundle_path, registry_flag, skip_build, publisher_key_path)
+        .await
 }
 
 /// Withdraw a published version.

@@ -28,6 +28,7 @@ pub mod project_client_adapter;
 pub mod publication_adapter;
 pub mod publish_orchestrator;
 pub mod publish_portal;
+pub mod publisher_key_adapter;
 pub mod session_client_adapter;
 pub mod signature_specialist;
 pub mod types;

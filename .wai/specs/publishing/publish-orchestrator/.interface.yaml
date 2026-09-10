@@ -18,7 +18,15 @@ methods:
       STOPPING AT AN ARTIFACT IS THE POINT. Producing something inspectable without publishing it is
       how a developer checks their own work, and how our own build scripts consume this tool — the
       docker image build packs with no network and no credential at all.
-    signature: 'pack(directory: string, outputPath: string, skipBuild: boolean): WrittenBundle'
+
+
+      A PUBLISHER KEY IS OPTIONAL AND SIGNING IS OPT-IN. A registry-only bundle stays completely
+      legal: the registry signs what it accepts, and a package that never carries a publisher
+      signature installs and updates exactly as it always has. Making the key mandatory would
+      silently push every existing package through a door that cannot be reopened.
+    signature: >-
+      pack(directory: string, outputPath: string, skipBuild: boolean, publisherKeyPath: string?):
+      WrittenBundle
     returns: sdk_cli::written-bundle
     params:
       - name: directory
@@ -30,6 +38,12 @@ methods:
       - name: skipBuild
         type: boolean
         description: Reuse already-built artifacts.
+      - name: publisherKeyPath
+        type: string
+        description: >-
+          A publisher signing key to sign the bundle with. ABSENT IS THE ORDINARY CASE and produces
+          the unsigned bundle a registry publish expects.
+        optional: true
   - name: publish
     description: >-
       Pack if needed, then upload, in the order that makes each refusal possible.
@@ -46,18 +60,21 @@ methods:
       refused or silently changing shape.
 
 
-      REPORTING THE REGISTRY FIRST IS WHAT MAKES IT ACTIONABLE. The tool knows the answer at the
-      moment it is cheapest to say, and a publish that quietly went to the wrong registry is the
-      failure an operator discovers last and trusts least.
+      THE DOWNGRADE REFUSAL NOW HAS A CURE, WHICH IT DID NOT BEFORE. A package with publisher-signed
+      versions used to be unpublishable by this tool at all, because it could not produce a
+      publisher signature; now the refusal names the key as the fix. The refusal itself still has no
+      flag — a package that has ever carried a publisher signature may never publish one without,
+      because accepting that would let anyone who obtains publish rights strip the binding to
+      whoever built the software.
 
 
-      A BUNDLE THAT IS ALREADY SIGNED BY A REGISTRY IS REFUSED BEFORE UPLOAD. The registry cannot
-      safely decide which trailing bytes are signature and which are content, so it refuses one —
-      and finding that out locally costs nothing while finding it out after the upload costs the
-      upload.
+      AND THE OPPOSITE DIRECTION IS SAID BEFORE IT HAPPENS. Signing a package for the FIRST time
+      commits every node that installs it to that publisher forever — rotation is refused and a lost
+      key is a package that can never be updated — so a first signature is announced rather than
+      performed quietly.
     signature: >-
-      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean):
-      PublishOutcome
+      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean,
+      publisherKeyPath: string?): PublishOutcome
     returns: sdk_cli::publish-outcome
     params:
       - name: directory
@@ -67,8 +84,7 @@ methods:
         type: string
         description: >-
           An already-built bundle to publish instead. Carried through as opaque bytes with its
-          identity read from itself — re-reading a project manifest to describe a bundle that
-          already exists is how the two come to disagree.
+          identity read from itself.
         optional: true
       - name: registryFlag
         type: string
@@ -77,6 +93,10 @@ methods:
       - name: skipBuild
         type: boolean
         description: Reuse already-built artifacts.
+      - name: publisherKeyPath
+        type: string
+        description: A publisher signing key. Absent keeps the registry-only shape.
+        optional: true
   - name: unpublish
     description: >-
       Withdraw a published version from a registry.
@@ -106,6 +126,21 @@ methods:
         type: string
         description: A `--registry` override.
         optional: true
+  - name: newPublisherKey
+    description: >-
+      Create a publisher signing key, and report what it commits its owner to.
+
+
+      HERE RATHER THAN AT THE PORTAL because a portal may not reach an adapter — and the rule earns
+      itself even for a one-line delegation: the statement that has to accompany a new key is
+      workflow, and putting it in a command handler would leave the library path able to mint one
+      silently.
+    signature: 'newPublisherKey(path: string): PublicKey'
+    returns: bytes
+    params:
+      - name: path
+        type: string
+        description: Where to write it. Refused if anything is already there.
 status: draft
 createdAt: '2026-09-10T00:13:07.519Z'
-updatedAt: '2026-09-10T00:23:19.474Z'
+updatedAt: '2026-09-10T07:50:09.488Z'

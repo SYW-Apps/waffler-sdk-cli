@@ -62,6 +62,77 @@ pub fn detect_framing_of_file(path: &std::path::Path) -> Result<Framing> {
     detect_framing(&bytes)
 }
 
+/// Append a publisher signature to an unsigned archive.
+///
+/// ## THE PUBLISHER SIGNS FIRST AND THE REGISTRY LAST
+///
+/// Coverage is STRUCTURAL: `signatures[i]` covers `zip || signatures[0..i].signature`, so the ORDER
+/// in the trailer is the countersigning chain. There is deliberately no field saying what a signature
+/// covers — a verifier reading one would be letting attacker-supplied data decide what to verify.
+///
+/// So this only ever produces a trailer holding ONE signature, role Publisher. The registry
+/// countersigns on receipt and its signature must be the final element, committing to the publisher's
+/// beneath it; reversed, both still verify and the publisher signature becomes swappable. A tool that
+/// emitted a Registry signature would be claiming an authority it does not have, and `verify_chain`
+/// refuses the arrangement before it verifies anything.
+///
+/// ## THIS IS A ONE-WAY DOOR FOR THE PACKAGE
+///
+/// Once an fqid has shipped a publisher signature, every node that installed it pins that publisher.
+/// An unsigned publish afterwards is refused as a downgrade, and a DIFFERENT publisher is refused
+/// outright because rotation is not built. The caller states that before calling this, not after.
+pub fn sign_as_publisher(bundle_path: &std::path::Path, signing_key: &[u8; 32]) -> Result<Framing> {
+    let bytes = std::fs::read(bundle_path)
+        .map_err(|e| anyhow::anyhow!("reading {}: {e}", bundle_path.display()))?;
+
+    // THE SAME PARSER THE DETECTION PATH USES, so the producer and the detector cannot disagree about
+    // where the archive ends.
+    let parsed = waffler_shared::parse_bundle_frame(&bytes).map_err(|e| anyhow::anyhow!("{}", e.message))?;
+    if parsed.frame != waffler_shared::BundleFrame::Unsigned {
+        bail!(
+            "{} already carries a signature. Re-signing means either re-zipping — which destroys the \
+             payload the existing signature covers — or appending blindly, and both produce an artifact \
+             refused later on somebody else's machine.",
+            bundle_path.display()
+        );
+    }
+
+    // SIGN THE PARSER'S PAYLOAD, not the file length. For an unsigned bundle they are the same, and
+    // writing it as the parser's answer is what keeps it true once a publisher signature is followed
+    // by a registry one.
+    let payload = parsed.payload(&bytes);
+    let key = ed25519_dalek::SigningKey::from_bytes(signing_key);
+    let signature = ed25519_dalek::Signer::sign(&key, payload);
+
+    let trailer = waffler_shared::SignatureTrailer {
+        signatures: vec![waffler_shared::BundleSignature {
+            role: waffler_shared::SignatureRole::Publisher,
+            public_key: key.verifying_key().to_bytes().to_vec(),
+            signature: signature.to_bytes().to_vec(),
+        }],
+    };
+
+    // NAMED MessagePack, so a later addition to the trailer is non-breaking. The encoding, the length
+    // and the magic all come from `shared` rather than being restated here.
+    let body = rmp_serde::to_vec_named(&trailer)
+        .map_err(|e| anyhow::anyhow!("encoding the signature trailer: {e}"))?;
+
+    // BODY, THEN LENGTH, THEN MAGIC — the frame is read back to front, which is why the two
+    // self-describing parts come last.
+    let mut out = payload.to_vec();
+    out.extend_from_slice(&body);
+    out.extend_from_slice(&(body.len() as u32).to_le_bytes());
+    out.extend_from_slice(&waffler_shared::SIGNATURE_TRAILER_MAGIC);
+
+    std::fs::write(bundle_path, &out)
+        .map_err(|e| anyhow::anyhow!("writing {}: {e}", bundle_path.display()))?;
+
+    // READ BACK THROUGH THE PARSER RATHER THAN ASSERTED. What was written is only right if the reader
+    // that matters agrees, and this is the cheapest possible moment to find out that it does not —
+    // rather than on a node, months later, as an integrity failure naming nothing.
+    detect_framing(&out)
+}
+
 /// Whether a bundle may be uploaded to a registry that signs what it accepts.
 ///
 /// A SEPARATE FUNCTION SO THE REASON TRAVELS WITH THE ANSWER. The registry refuses an artifact that

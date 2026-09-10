@@ -51,7 +51,7 @@ methods:
         description: Can this deployment accept publishes?
         type: branch
         condition: the profile says publishing is available
-        onFalseStep: 22
+        onFalseStep: 27
       - stepNumber: 5
         description: Was a pre-built bundle given instead of a project?
         type: branch
@@ -103,23 +103,56 @@ methods:
         description: Is the artifact within what this registry accepts?
         type: branch
         condition: the bundle size is at most the profile's maximum
-        onFalseStep: 21
+        onFalseStep: 26
       - stepNumber: 14
         description: Ask the registry what it already holds for this fqid.
         type: call
         targetComponent: publication-adapter
         targetMethod: fetchPublishedPackage
       - stepNumber: 15
+        description: Was a publisher key given?
+        type: branch
+        condition: publisherKeyPath is present
+        onFalseStep: 22
+      - stepNumber: 16
+        description: Load it. A path, never a raw key in the environment.
+        type: call
+        targetComponent: publisher-key-adapter
+        targetMethod: loadSigningKey
+      - stepNumber: 17
+        description: Has this package ever shipped a publisher signature before?
+        type: branch
+        condition: the registry reports a publisher-signed version
+        onTrueStep: 19
+        onFalseStep: 18
+      - stepNumber: 18
+        label: state-commitment
+        description: >-
+          SAY WHAT THIS FIRST SIGNATURE COMMITS THE PACKAGE TO, before doing it. Every node that
+          installs it pins this publisher; a different key is refused because rotation is not built;
+          and losing the key means a package that can never be updated on any node that already has
+          it. Announced rather than performed quietly — it is the last moment at which there is a
+          decision.
+        type: local
+      - stepNumber: 19
+        label: sign
+        description: >-
+          Append the publisher signature. The registry countersigns on receipt and its signature
+          must be last.
+        type: call
+        targetComponent: signature-specialist
+        targetMethod: signAsPublisher
+      - stepNumber: 20
         description: Has this package ever carried a publisher signature?
         type: branch
         condition: a published version carries a publisher signature
-        onFalseStep: 17
-      - stepNumber: 16
+        onFalseStep: 22
+      - stepNumber: 21
         description: Does this publish carry one?
         type: branch
         condition: the framing is Dual with a publisher signature
-        onFalseStep: 20
-      - stepNumber: 17
+        onFalseStep: 25
+      - stepNumber: 22
         label: obtain-bearer
         description: >-
           Obtain a bearer, refreshed against this moment.
@@ -131,19 +164,19 @@ methods:
         type: call
         targetComponent: session-client-adapter
         targetMethod: bearer
-      - stepNumber: 18
+      - stepNumber: 23
         description: Upload.
         type: call
         targetComponent: publication-adapter
         targetMethod: uploadBundle
-      - stepNumber: 19
+      - stepNumber: 24
         description: >-
           What the registry answered, the registry it answered from, and where the artifact sits
           locally — present on success too, so a developer wanting to inspect what was accepted need
           not re-derive the path.
         type: return
         outcome: a publish outcome
-      - stepNumber: 20
+      - stepNumber: 25
         label: downgrade
         description: >-
           REFUSE, WITH NO FLAG TO WAIVE IT. A package that has ever carried a publisher signature
@@ -156,14 +189,14 @@ methods:
           uploading something that will be refused or silently changing shape.
         type: throw
         error: PublisherSignatureDowngrade
-      - stepNumber: 21
+      - stepNumber: 26
         label: too-large
         description: >-
           Refuse, naming both sizes. The bundle on disk is kept: the developer can inspect it, and
           the next attempt does not rebuild.
         type: throw
         error: BundleTooLarge
-      - stepNumber: 22
+      - stepNumber: 27
         label: cannot-publish
         description: >-
           Refuse: this deployment serves downloads and signs nothing. Said before a build rather
@@ -198,6 +231,16 @@ methods:
         type: return
         outcome: the version is no longer listed
     detail: full
+  - name: newPublisherKey
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Create the key, refusing if anything is already at the path — replacing one destroys the
+          only copy of something that cannot be reissued.
+        type: call
+        targetComponent: publisher-key-adapter
+        targetMethod: generateSigningKey
+    detail: calls-only
 status: draft
 createdAt: '2026-09-10T00:22:39.553Z'
-updatedAt: '2026-09-10T00:23:25.479Z'
+updatedAt: '2026-09-10T07:50:14.298Z'

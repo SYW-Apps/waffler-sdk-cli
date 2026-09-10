@@ -1,8 +1,8 @@
 id: signature_specialist_impl
 name: Signature Specialist Implementation
 description: >-
-  The boundary parser, mirrored from `registry::publication::bundle_framing::archive_end_offset`.
-  Every clause exists because of something that got through a simpler version of it.
+  The boundary parser is `shared`'s and is no longer restated here; what remains local is the
+  producer and the mapping from a parse result to a publish decision.
 contract: isignature-specialist
 sourcePath: sdk/cli/src/publishing/signature_specialist.rs
 methods:
@@ -113,6 +113,58 @@ methods:
         type: throw
         error: NoCoherentArchiveEnd
     detail: full
+  - name: signAsPublisher
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Parse the bundle with the shared frame parser — the same call the detection path makes, so
+          the producer and the detector cannot disagree about where the archive ends.
+        type: local
+      - stepNumber: 2
+        description: Is it unsigned?
+        type: branch
+        condition: the frame is Unsigned
+        onFalseStep: 7
+      - stepNumber: 3
+        description: >-
+          Sign the ARCHIVE BYTES — the payload the parser identified, not the whole file. For an
+          unsigned bundle those are the same, and writing it as the parser's answer rather than as
+          the file length is what keeps it true when a publisher signature is later followed by a
+          registry one.
+        type: local
+      - stepNumber: 4
+        description: >-
+          Build a trailer holding ONE signature, role Publisher.
+
+
+          THE REGISTRY'S SIGNATURE IS NOT THIS TOOL'S TO EMIT. It countersigns on receipt and must
+          be LAST, so it commits to the publisher signature beneath it; reversed, both still verify
+          and the publisher's becomes swappable. A tool that emitted a registry signature would be
+          claiming an authority it does not have, and the verifier refuses the arrangement before it
+          verifies anything.
+        type: local
+      - stepNumber: 5
+        description: >-
+          Encode the trailer body as NAMED MessagePack, then append the body, its length as a
+          little-endian u32, and the magic — in that order, because the frame is read back to front.
+          Named so a later addition to the trailer is non-breaking; the encoding, the length and the
+          magic all come from `shared` rather than being restated.
+        type: local
+      - stepNumber: 6
+        description: >-
+          The same archive with a publisher signature appended, reported as Dual so a caller can see
+          what it now holds.
+        type: return
+        outcome: a publisher-signed bundle
+      - stepNumber: 7
+        label: already-signed
+        description: >-
+          Refuse. Re-signing means either re-zipping, which destroys the payload the existing
+          signature covers, or appending blindly — both produce artifacts refused later on somebody
+          else's machine, with a message about integrity that names nothing about this step.
+        type: throw
+        error: AlreadySigned
+    detail: full
 status: draft
 createdAt: '2026-09-10T00:21:47.541Z'
-updatedAt: '2026-09-10T00:46:40.233Z'
+updatedAt: '2026-09-10T07:49:13.471Z'

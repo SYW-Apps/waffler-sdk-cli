@@ -11,8 +11,12 @@ description: >-
 component: publish-portal
 methods:
   - name: pack
-    description: Build a bundle and stop. No network, no credential, nothing uploaded.
-    signature: 'pack(directory: string, outputPath: string, skipBuild: boolean): WrittenBundle'
+    description: >-
+      Build a bundle and stop. No network, no credential, nothing uploaded. A publisher key is
+      optional; without one the bundle is unsigned, which is what a registry publish expects.
+    signature: >-
+      pack(directory: string, outputPath: string, skipBuild: boolean, publisherKeyPath: string?):
+      WrittenBundle
     returns: sdk_cli::written-bundle
     params:
       - name: directory
@@ -24,14 +28,18 @@ methods:
       - name: skipBuild
         type: boolean
         description: Reuse already-built artifacts.
+      - name: publisherKeyPath
+        type: string
+        description: A publisher signing key.
+        optional: true
     endpoint:
       transport: CLI
       command: pack
   - name: publish
     description: Build a bundle if needed and upload it to the resolved registry.
     signature: >-
-      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean):
-      PublishOutcome
+      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean,
+      publisherKeyPath: string?): PublishOutcome
     returns: sdk_cli::publish-outcome
     params:
       - name: directory
@@ -48,6 +56,10 @@ methods:
       - name: skipBuild
         type: boolean
         description: Reuse already-built artifacts.
+      - name: publisherKeyPath
+        type: string
+        description: A publisher signing key.
+        optional: true
     endpoint:
       transport: CLI
       command: publish
@@ -69,6 +81,25 @@ methods:
     endpoint:
       transport: CLI
       command: unpublish
+  - name: newPublisherKey
+    description: >-
+      Create a publisher signing key, stating what it commits its owner to.
+
+
+      A COMMAND RATHER THAN AN IMPLICIT STEP. Generating a key as a side effect of the first signed
+      pack would hand someone an irreversible commitment as a convenience — every node that installs
+      the package pins that publisher, rotation is refused, and a lost key is a package that can
+      never be updated. Making it a thing a developer asks for is what makes the statement land
+      while there is still a decision to make.
+    signature: 'newPublisherKey(path: string): PublicKey'
+    returns: bytes
+    params:
+      - name: path
+        type: string
+        description: Where to write it. Refused if anything is already there.
+    endpoint:
+      transport: CLI
+      command: key new
 status: draft
 createdAt: '2026-09-10T00:13:15.668Z'
-updatedAt: '2026-09-10T00:23:31.429Z'
+updatedAt: '2026-09-10T07:48:40.574Z'

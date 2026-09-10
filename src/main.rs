@@ -43,6 +43,8 @@ enum Commands {
     Publish(PublishArgs),
     /// Withdraw a published version from the registry
     Unpublish(UnpublishArgs),
+    /// Create a publisher signing key
+    Key(KeyArgs),
     /// Sign in to a registry, against whatever issuer that registry advertises
     Login(RegistryArgs),
     /// Sign out of one registry, leaving every other session intact
@@ -86,6 +88,21 @@ struct ScaffoldArgs {
 }
 
 #[derive(clap::Args)]
+struct KeyArgs {
+    #[command(subcommand)]
+    action: KeyAction,
+}
+
+#[derive(Subcommand)]
+enum KeyAction {
+    /// Create a publisher signing key. Read what it commits you to before using it
+    New {
+        /// Where to write it. Refused if anything is already there
+        path: PathBuf,
+    },
+}
+
+#[derive(clap::Args)]
 struct PackArgs {
     #[arg(default_value = ".")]
     path: PathBuf,
@@ -95,6 +112,9 @@ struct PackArgs {
     /// Reuse already-built artifacts
     #[arg(long)]
     no_build: bool,
+    /// Sign the bundle as its publisher. A ONE-WAY DOOR for this package on every node
+    #[arg(long, env = "WAFFLER_PUBLISHER_KEY_FILE")]
+    publisher_key: Option<PathBuf>,
 }
 
 #[derive(clap::Args)]
@@ -108,6 +128,9 @@ struct PublishArgs {
     registry: Option<String>,
     #[arg(long)]
     no_build: bool,
+    /// Sign the bundle as its publisher. A ONE-WAY DOOR for this package on every node
+    #[arg(long, env = "WAFFLER_PUBLISHER_KEY_FILE")]
+    publisher_key: Option<PathBuf>,
 }
 
 #[derive(clap::Args)]
@@ -162,6 +185,20 @@ async fn run(cli: Cli) -> Result<()> {
             Ok(())
         }
 
+        Commands::Key(a) => match a.action {
+            KeyAction::New { path } => {
+                let public = publish_portal::new_publisher_key(&path)?;
+                println!("{} wrote a publisher signing key to {}", style("✓").green().bold(), path.display());
+                // THE PUBLIC HALF, so a developer can record who they are publishing as without ever
+                // opening the private file.
+                println!("  public key: {}", style(hex::encode(public)).cyan());
+                // AND THE COMMITMENT, at the moment of creation. It comes from the module that makes it
+                // true rather than being restated here, so the two cannot drift apart.
+                println!("\n{}", style(waffler_cli::publishing::publisher_key_adapter::COMMITMENT).yellow());
+                Ok(())
+            }
+        },
+
         Commands::Build(a) => {
             let report = project_portal::build(&a.path)?;
             print!("{}", report.output);
@@ -193,7 +230,7 @@ async fn run(cli: Cli) -> Result<()> {
         }
 
         Commands::Pack(a) => {
-            let (bundle, report) = publish_portal::pack(&a.path, a.output.as_deref(), a.no_build)?;
+            let (bundle, report) = publish_portal::pack(&a.path, a.output.as_deref(), a.no_build, a.publisher_key.as_deref())?;
             // WHETHER IT BUILT OR REUSED IS ALWAYS SAID. "It packed the wrong binary" and "it packed a
             // binary it did not build" are the same incident a day apart, and only one is discoverable
             // after the fact.
@@ -224,6 +261,7 @@ async fn run(cli: Cli) -> Result<()> {
                 a.bundle.as_deref(),
                 a.registry.as_deref(),
                 a.no_build,
+                a.publisher_key.as_deref(),
             )
             .await?;
             println!(

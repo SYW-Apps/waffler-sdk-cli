@@ -60,6 +60,12 @@ console = "0.15"
 zip = "2"
 walkdir = "2"
 
+# The publisher signature. Core's verifiers are deployed and live-verified, so the producer ships —
+# readers first, and the gate that held this is satisfied.
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+# The trailer body is NAMED MessagePack, the same encoding shared decodes it with.
+rmp-serde = "1"
+
 # Hashing / encoding / entropy
 sha2 = "0.10"
 hex = "0.4"

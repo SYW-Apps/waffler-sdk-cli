@@ -35,7 +35,8 @@ dependsOn:
   - session-client-adapter
   - bundle-writer
   - signature-specialist
+  - publisher-key-adapter
   - publication-adapter
 status: draft
 createdAt: '2026-09-09T23:13:33.716Z'
-updatedAt: '2026-09-10T00:06:03.677Z'
+updatedAt: '2026-09-10T07:48:08.777Z'

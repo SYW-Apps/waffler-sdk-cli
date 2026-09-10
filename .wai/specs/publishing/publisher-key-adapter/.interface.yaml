@@ -1,0 +1,62 @@
+id: ipublisher-key-adapter
+name: Publisher Key Contract
+description: >-
+  Where a publisher's signing key comes from.
+
+
+  NOTHING HERE SIGNS. It hands back key material and takes responsibility for how that material
+  reached memory; the signature itself is a pure computation elsewhere.
+component: publisher-key-adapter
+methods:
+  - name: loadSigningKey
+    description: >-
+      Read a publisher signing key from a file.
+
+
+      A PATH, NEVER A RAW KEY IN THE ENVIRONMENT. A private key in an environment variable appears
+      in process listings, in a crashed process's dump, and in the log of any CI system that echoes
+      its environment; a path does not, and CI systems already write secrets to files for exactly
+      this reason.
+
+
+      IT REFUSES A WORLD-READABLE FILE where the platform can tell. A signing key anyone on the
+      machine can read belongs to anyone on the machine, and using it anyway would treat the
+      developer's mistake as consent.
+
+
+      THE ENCODING IS THE ONE THE ECOSYSTEM ALREADY USES — a hex-encoded 32-byte seed, the same
+      shape a registry's own signing key is configured with. A second encoding for the same kind of
+      secret is a second thing to get wrong.
+    signature: 'loadSigningKey(path: string): SigningKey'
+    returns: bytes
+    params:
+      - name: path
+        type: string
+        description: The key file.
+  - name: generateSigningKey
+    description: >-
+      Create a new publisher signing key at a path, and say what it commits its owner to.
+
+
+      THE STATEMENT IS THE POINT, not the bytes. Once a package has shipped a publisher signature,
+      every node that installed it PINS that publisher; a bundle offering a different one is
+      refused, rotation is not built, and a lost key means a package that can never be updated on
+      any node that already has it. A tool that generated one silently would be handing someone an
+      irreversible commitment as a convenience.
+
+
+      IT NEVER OVERWRITES. Replacing an existing key file is destroying the only copy of something
+      that cannot be reissued, and no flag makes that a reasonable default.
+
+
+      Written owner-only, for the same reason `loadSigningKey` refuses a world-readable one.
+    signature: 'generateSigningKey(path: string): PublicKey'
+    returns: bytes
+    params:
+      - name: path
+        type: string
+        description: Where to write it. Refused if anything is already there.
+    effect: write
+status: draft
+createdAt: '2026-09-10T07:47:46.894Z'
+updatedAt: '2026-09-10T07:47:46.921Z'

@@ -137,20 +137,33 @@ fn no_user_facing_string_carries_a_run_of_spaces_from_a_lost_line_continuation()
 }
 
 #[test]
-fn the_guard_detects_the_shape_it_exists_for() {
-    // A GUARD THAT CANNOT FAIL IS A GUARD NOBODY NOTICED STOPPED WORKING. The pattern is built here
-    // rather than written literally, so the scan above does not report this test as an offender.
+fn the_predicate_still_detects_the_shape_it_exists_for() {
+    // THE HALF THAT STOPS THIS CHECK DYING QUIETLY. Narrowing the predicate to nothing makes the scan
+    // pass, and narrowing-to-silence-a-false-positive is exactly how that happens - it happened once
+    // already, when the first version flagged nine deliberate alignments and the obvious response was
+    // to loosen it until they stopped.
+    //
+    // SEPARATE FROM THE NEGATIVE CASES, because the two failures are opposite and want opposite
+    // fixes: this one failing means the guard no longer detects, the other failing means it cries
+    // wolf. A single test covering both says only "the predicate is wrong".
+    //
+    // The pattern is built here rather than written literally, so the scan does not report this file.
     let gap = " ".repeat(RUN);
     // The two real instances: one from this tree's registry, one core shipped inside a security
     // refusal. A letter before in both; a letter after in one, an apostrophe in the other.
     assert!(has_internal_run(&format!("over the{gap}limit for bundle metadata")));
     assert!(has_internal_run(&format!("to call{gap}'devbot.signed.p1:echo'")));
+}
 
-    // And the shapes it must NOT flag — every one of these is a real line this crate prints, and the
-    // first version of the guard reported all of them.
+#[test]
+fn the_predicate_does_not_flag_DELIBERATE_alignment() {
+    // Every one of these is a real line this crate prints, and the first version of the guard
+    // reported all of them. A guard whose failures are all false is one someone deletes - and
+    // deleting it would be the correct response, which is the worst way for a check to fail.
+    let gap = " ".repeat(RUN);
     assert!(!has_internal_run("        let indented = source_code();"), "leading indentation is not a gap");
     assert!(!has_internal_run(&format!("  publishing:{gap} {{}}")), "an aligned label is deliberate");
-    assert!(!has_internal_run(&format!("    {{}}")), "an indented list item is deliberate");
+    assert!(!has_internal_run("    {}"), "an indented list item is deliberate");
     assert!(!has_internal_run("  Run: waffler login --registry https://r.example"), "a two-space indent is deliberate");
     assert!(!has_internal_run("  * every node that installs such a package PINS this publisher;"));
     assert!(!has_internal_run(&format!("trailing spaces are not a gap either{gap}")), "a run at the end has nothing after it");

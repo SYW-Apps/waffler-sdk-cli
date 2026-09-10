@@ -45,16 +45,32 @@ toolchain emits `libfoo.so` on Linux and `foo.dll` on Windows, and the module a 
 those. Packing for a Linux node means packing on Linux. It is also the CI story.
 
 ```bash
-# from the repository root
-docker run --rm --network waffler_default \
+# from the repository root. MSYS_NO_PATHCONV=1 is REQUIRED on Windows and harmless elsewhere — see below.
+MSYS_NO_PATHCONV=1 docker run --rm --network waffler_default \
   -v "$PWD":/work -v "$PWD/sdk/cli/live_dev":/scripts \
   -v syw-cli-cargo-target:/cargo-target -v syw-cli-cargo-home:/usr/local/cargo/registry \
   -e CARGO_TARGET_DIR=/cargo-target \
   rust:1 bash /scripts/01-pack-publish.sh
 
-docker run --rm --network waffler_default -v "$PWD/sdk/cli/live_dev":/scripts \
+MSYS_NO_PATHCONV=1 docker run --rm --network waffler_default -v "$PWD/sdk/cli/live_dev":/scripts \
   python:3.12-slim sh -c 'pip -q install msgpack websockets && python /scripts/02-install.py'
 ```
+
+**Why the prefix.** Git Bash on Windows rewrites a bare `/unix/path` in argv into a Windows path
+before docker ever sees it, so the command above without it produces:
+
+```
+bash: C:/Program Files/Git/scripts/01-pack-publish.sh: No such file or directory
+```
+
+Measured, not assumed — that is the documented command run verbatim on this machine, exit 127. It
+fails loudly here, which is the good case. **The dangerous version is the same rewrite inside a probe
+whose failure is swallowed**: `docker exec c grep -c X /usr/local/bin/prog 2>/dev/null` never looks at
+the file and reports a confident `0`, indistinguishable from "the string is not there". A path that
+travels inside a quoted `sh -c '...'` is left alone, which is why the second command needs no
+escaping of its `/scripts/02-install.py`.
+
+The `docker logs | grep` lines further down carry no path in argv and are unaffected.
 
 The node legs go through `/api/ws` — the seam the browser uses, carrying JSON-RPC 2.0 as MessagePack.
 **Driving anything else would prove the bus works and say nothing about whether an operator can do
@@ -209,6 +225,18 @@ present proves the pattern and the stream are both what you think:
 docker logs waffler-beta 2>&1 | grep -c "packages provisioning"   # must be > 0
 docker logs waffler-beta 2>&1 | grep -c DependencyUnmet
 ```
+
+And a probe has **three** outcomes, not two. `grep` says so in its exit code and a count discards it:
+
+```
+grep -ac <present> <file>   → 1, exit 0    found it
+grep -ac <absent>  <file>   → 0, exit 1    LOOKED, and it is not there
+grep -ac <any>     <gone>   →    exit 2    COULD NOT LOOK
+```
+
+Only the middle one is evidence. Treating the third as "not there" claims a measurement the run did
+not make — which is the same defect as a check whose output asserts something it did not measure,
+one layer down. **A probe that cannot report "I could not look" will report "it is not there."**
 
 ## `AccessDenied` cannot tell "not granted" from "not running"
 

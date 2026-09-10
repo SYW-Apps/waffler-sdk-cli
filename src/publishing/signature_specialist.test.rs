@@ -193,3 +193,33 @@ fn an_unsigned_bundle_may_be_published_and_a_signed_one_may_not() {
     assert!(e.contains("already"), "the refusal must say what is wrong with the artifact: {e}");
     assert!(e.contains("unsigned bundle"), "and what to do instead: {e}");
 }
+
+#[test]
+fn an_end_record_signature_in_the_LAST_21_BYTES_does_not_panic() {
+    // CORE FOUND THIS BY MUTATION, IN THEIR PARSER, AND IT IS WORTH HAVING ON THIS SIDE TOO.
+    //
+    // The scan walks to `len - 4`, so those four bytes can sit close enough to the end that fewer than
+    // the 22 a fixed record needs remain — and the very next read is at `i + 20`. Out of bounds.
+    //
+    // It matters more than a bounds check usually would: this parser's entire input is
+    // attacker-supplied and it runs BEFORE any signature is verified, so a panic here is a node
+    // crashed by an unsigned file anyone can upload. Their mutation of the length check broke no test,
+    // because no fixture had ever put those bytes that close to the end.
+    //
+    // A REFUSAL OR A CLEAN ANSWER ARE BOTH FINE. What is asserted is that it RETURNS — the failure this
+    // guards against is not a wrong verdict, it is no verdict at all.
+    let base = archive(b"");
+    for trailing in 0..=21usize {
+        let mut bytes = base.clone();
+        bytes.extend_from_slice(&[0x50, 0x4b, 0x05, 0x06]);
+        bytes.extend_from_slice(&vec![0xAB; trailing]);
+        let _ = detect_framing(&bytes);
+    }
+
+    // And the same four bytes as the ENTIRE input, at every length a scan could reach into.
+    for len in 4..=25usize {
+        let mut bytes = vec![0x50, 0x4b, 0x05, 0x06];
+        bytes.extend_from_slice(&vec![0u8; len - 4]);
+        let _ = detect_framing(&bytes);
+    }
+}

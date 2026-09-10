@@ -24,7 +24,9 @@ methods:
       IT PINS A CORE CONTRACT RANGE. A bundle declaring none installs UNCHECKED behind a warning
       nobody reads; a scaffold is the one place where the right declaration costs the developer
       nothing.
-    signature: 'renderProject(fqid: string, version: string, description: string): RenderedFile[]'
+    signature: >-
+      renderProject(fqid: string, version: string, description: string, sdkPath: string):
+      RenderedFile[]
     returns: json[]
     params:
       - name: fqid
@@ -36,8 +38,19 @@ methods:
       - name: description
         type: string
         description: Catalog prose.
+      - name: sdkPath
+        type: string
+        description: >-
+          Where the Waffler SDK crates live, relative to the generated project or absolute.
+
+
+          A PARAMETER BECAUSE THE SDK IS NOT PUBLISHED TO A PACKAGE REGISTRY. A generated crate has
+          to point its dependencies somewhere real, and a scaffold emitting a line that points
+          nowhere would generate a project that cannot build — the exact failure this component
+          exists to prevent, moved from the manifest into the crate manifest. Found by implementing
+          it: the shape looked complete until there was a dependency line to write.
     guarantees:
       - idempotent
 status: draft
 createdAt: '2026-09-10T00:10:07.625Z'
-updatedAt: '2026-09-10T00:10:07.632Z'
+updatedAt: '2026-09-10T00:45:59.417Z'

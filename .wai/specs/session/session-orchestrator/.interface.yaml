@@ -47,12 +47,35 @@ methods:
       NO CREDENTIAL IS A REFUSAL, NEVER AN EMPTY BEARER. Falling through to an unauthenticated
       request converts a local, actionable 'you are not signed in to this registry' into a remote
       401 that reads like a server problem.
+
+
+      ## AN ENVIRONMENT TOKEN IS ACCEPTED, AND ITS SCOPE IS A SECURITY PROPERTY
+
+
+      Added on implementing this: CI has no browser, so an automated publisher cannot run an
+      interactive authorization-code flow. A tool that requires one is a tool people work around by
+      writing a token into the credential file with a script — which is strictly worse, because it
+      persists.
+
+
+      So a bearer supplied in the environment is honoured, and it is honoured ONLY FOR A REGISTRY
+      NAMED IN THE SAME INVOCATION — by a flag or by the registry environment variable. The
+      narrowing is the point. A developer who exports a token for registry A and later runs a
+      command whose registry comes from a persisted default would send A's bearer to B: a real
+      credential leak to a third party, caused by two facts that were each correct when they were
+      set. Requiring the pairing to be made in one breath means it is always something someone did
+      on purpose.
+
+
+      A token that is set and NOT used is said out loud rather than silently ignored — that state is
+      exactly where a developer concludes the tool is broken, and the fix is one sentence naming
+      what to add.
     signature: 'bearerFor(registry: TargetRegistry): string'
     returns: string
     params:
       - name: registry
         type: sdk_cli::target-registry
-        description: The resolved registry.
+        description: The resolved registry, whose SOURCE decides whether an environment token applies to it.
   - name: signIn
     description: >-
       Authenticate against whatever issuer a registry advertises, and persist the result for that
@@ -128,4 +151,4 @@ methods:
         description: The registry to describe.
 status: draft
 createdAt: '2026-09-10T00:11:31.265Z'
-updatedAt: '2026-09-10T00:11:31.275Z'
+updatedAt: '2026-09-10T00:46:56.426Z'

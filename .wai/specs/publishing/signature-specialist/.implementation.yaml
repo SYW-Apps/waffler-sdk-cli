@@ -1,10 +1,8 @@
 id: signature_specialist_impl
 name: Signature Specialist Implementation
 description: >-
-  The producer side of a frame the registry already reads. Its algorithm is not invented here —
-  `registry::publication::bundle_framing` implements the same boundary detection, and the two must
-  agree byte for byte or an artifact reads one way locally and another way at the registry, which is
-  the entire attack this detection exists to close.
+  The boundary parser, mirrored from `registry::publication::bundle_framing::archive_end_offset`.
+  Every clause exists because of something that got through a simpler version of it.
 contract: isignature-specialist
 sourcePath: sdk/cli/src/publishing/signature_specialist.rs
 methods:
@@ -14,7 +12,8 @@ methods:
         description: >-
           Scan backwards for end-of-central-directory records. A zip comment may contain bytes that
           look like one, so several candidates appear in a hostile file and the last one is not
-          necessarily the real one.
+          necessarily the real one. The scan floor is bounded by the maximum comment length plus a
+          trailer, so a large file is not scanned end to end.
         type: local
       - stepNumber: 2
         description: For each candidate record found.
@@ -27,10 +26,15 @@ methods:
         description: >-
           Accept it only if its central-directory pointer actually addresses a central directory:
           the pointer plus the declared size must land at or before the record, and the bytes at the
-          pointer must carry the directory header signature. An archive declaring zero entries
-          qualifies only when the record sits at offset zero — without that, a zeroed plant reads as
-          a legitimate empty archive, which is how the first version of this check passed its own
-          test while being wrong.
+          pointer must carry the directory header signature. The addition is CHECKED — both halves
+          are attacker-supplied 32-bit values whose sum overflows a pointer-sized integer on a
+          32-bit target, where a wrap would make a bogus pointer pass the bounds test.
+
+
+          An archive declaring zero entries qualifies only when its record sits at offset zero.
+          Without that, a zeroed plant declares 'no entries, zero-length directory at offset 0' and
+          reads as a legitimate empty archive — which is how the first version of this check passed
+          its own test while being wrong.
         type: local
       - stepNumber: 4
         description: Did more than one candidate qualify?
@@ -43,7 +47,7 @@ methods:
           whole attack: the bundle a developer inspects and the bundle a registry validates would
           differ, and neither could report it.
         type: throw
-        error: AmbiguousArchiveEnd
+        error: NoCoherentArchiveEnd
       - stepNumber: 6
         label: one-or-none
         description: Did any candidate qualify?
@@ -78,7 +82,8 @@ methods:
         description: >-
           Dual — a signature trailer. THE LENGTH MUST AGREE: a magic alone is a byte pattern content
           can contain, and only the declared length agreeing with the measured suffix makes it a
-          frame rather than a coincidence.
+          frame rather than a coincidence. Requiring the agreement also removes the unbounded-length
+          question by arithmetic, before anything parses attacker-supplied content.
         type: return
         outcome: Dual
       - stepNumber: 12
@@ -101,55 +106,13 @@ methods:
         error: UnrecognisedTrailer
       - stepNumber: 15
         label: not-an-archive
-        description: 'Refuse: no valid archive end was found, so this is not a bundle.'
+        description: >-
+          Refuse: no valid archive end was found, so this is not a bundle. On the producer side this
+          is the same refusal as ambiguity — both mean the tool cannot promise what is appended to
+          these bytes.
         type: throw
-        error: NotAnArchive
-    detail: full
-  - name: signAsPublisher
-    narrative:
-      - stepNumber: 1
-        description: Detect what the file already carries.
-        type: call
-        targetComponent: signature-specialist
-        targetMethod: detectFraming
-      - stepNumber: 2
-        description: Is it unsigned?
-        type: branch
-        condition: the framing is Unsigned
-        onFalseStep: 6
-      - stepNumber: 3
-        description: >-
-          Sign the archive bytes and build a trailer holding one publisher signature.
-
-
-          COVERAGE IS STRUCTURAL, NOT DECLARED. Signature `i` covers the archive plus the signature
-          bytes of every signature before it, so the ORDER in the trailer is the countersigning
-          chain. There is deliberately no field saying what a signature covers — a verifier reading
-          such a field would be letting attacker-supplied data decide what to verify.
-        type: local
-      - stepNumber: 4
-        description: >-
-          Append the encoded trailer, its length, and the magic, in that order. The frame is read
-          back-to-front, which is why the length and the magic come last.
-        type: local
-      - stepNumber: 5
-        description: >-
-          The same archive with a publisher signature appended. PARKED UNTIL THE VERIFIERS SHIP:
-          specified now so both sides agree on the shape, emitted only once the nodes that must read
-          it already can — readers first, because a signature shape consumers cannot read produces
-          artifacts nobody can install.
-        type: return
-        outcome: a dual-framed bundle
-      - stepNumber: 6
-        label: already-signed
-        description: >-
-          Refuse. Re-signing means either re-zipping, which destroys the payload the existing
-          signature covers, or appending blindly — and both produce artifacts refused later on
-          somebody else's machine, with a message about integrity that names nothing about this
-          step.
-        type: throw
-        error: AlreadySigned
+        error: NoCoherentArchiveEnd
     detail: full
 status: draft
 createdAt: '2026-09-10T00:21:47.541Z'
-updatedAt: '2026-09-10T00:21:47.542Z'
+updatedAt: '2026-09-10T00:46:40.233Z'

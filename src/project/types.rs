@@ -1,0 +1,315 @@
+//! The project subsystem's data model.
+//!
+//! Spec: `sdk_cli::project` types — `authored-package`, `declared-artifact`, `declared-dependency`,
+//! `declared-capability`, `declared-parameter`, `declared-ui-plugin`, `located-artifact`,
+//! `bundle-plan`, `build-report`.
+//!
+//! ## THE AUTHORED MODEL CARRIES ONLY WHAT A DEVELOPER MAY WRITE
+//!
+//! `waffler_shared::InstalledPackage` — the shape core decodes from a bundle's `/.manifest` — mixes
+//! three populations that a developer must not be asked to tell apart:
+//!
+//!   * DECLARED — fqid, version, dependencies, capabilities, permission groups, fast-lane
+//!     requests, ui plugins, core compatibility;
+//!   * DERIVED — the `artifacts` array, whose content hashes are facts about bytes that do not
+//!     exist until a build has run;
+//!   * RUNTIME-MANAGED — `identity`, `enabled`, `approved_group_ids`, `fast_lane_grants`, minted by
+//!     a node and meaningless in a bundle.
+//!
+//! An authoring manifest exposing all three would invite a developer to write an identity and a
+//! hash, and both would be silently overwritten or, worse, believed. So only the first population
+//! appears here. A field a developer cannot write is a field that cannot be wrong.
+
+use serde::{Deserialize, Serialize};
+
+/// The name of the authoring manifest. NOT `package.json`, and the difference is the safety.
+///
+/// The legacy tool's `package.json` model shares exactly one field NAME with the format core
+/// installs (`version`) and no meaning: `namespace` became `fqid`, `module.runtime` became
+/// `hosting_mode`, `permissions` became `permission_groups`, and artifacts gained content hashes
+/// that did not previously exist. Read as this model, such a file PARSES — every field it does not
+/// carry is defaulted — and produces a bundle that is wrong in every field. A distinct filename
+/// turns that silent misread into "this project has no waffler.json", which is a sentence a
+/// developer can act on.
+pub const MANIFEST_FILE: &str = "waffler.json";
+
+/// The name of the file whose presence means a project predates this model.
+pub const LEGACY_MANIFEST_FILE: &str = "package.json";
+
+/// `waffler.json` — everything a developer writes about their package.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct AuthoredPackage {
+    /// The fully-qualified package id, e.g. `syw.probe.echo`. It is the registry namespace, the
+    /// install key, and the seed of the deterministic package uuid — one string doing three jobs.
+    pub fqid: String,
+    /// SemVer.
+    pub version: String,
+    #[serde(default)]
+    pub description: String,
+    /// The core CONTRACT range this package is built against, e.g. `^0.1`.
+    ///
+    /// ABSENT MEANS THE BUNDLE DECLARED NOTHING and installs UNCHECKED behind a warning — which is
+    /// not the same as compatible. Optional here only so an existing project keeps packing; a
+    /// scaffold always writes one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub core_compatibility: Option<String>,
+    /// The files to build and embed. Empty means the package ships no loadable code and installs
+    /// HOSTED.
+    #[serde(default)]
+    pub artifacts: Vec<DeclaredArtifact>,
+    #[serde(default)]
+    pub dependencies: Vec<DeclaredDependency>,
+    #[serde(default)]
+    pub capabilities: Vec<DeclaredCapability>,
+    /// Passed through as authored. The schema belongs to security, and re-modelling it here would
+    /// create a second definition that drifts from the one the registry validates.
+    #[serde(default)]
+    pub permission_groups: Vec<serde_json::Value>,
+    /// Requested fast lanes. The reviewable ASK; a GRANT is what an approval produces on a node and
+    /// can never be declared here.
+    #[serde(default)]
+    pub fast_lane_requests: Vec<FastLaneRequest>,
+    #[serde(default)]
+    pub ui_plugins: Vec<DeclaredUiPlugin>,
+    /// The crate manifest to build, project-relative. Absent means nothing is built and the
+    /// declared artifacts are expected to exist already.
+    ///
+    /// NAMED, NEVER INFERRED. Deriving a cargo package name from the package fqid worked until the
+    /// two differed, and then it built the wrong crate and packed its artifact under the right
+    /// name — a bundle that installs and is not the software anyone wrote.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub build: Option<BuildDeclaration>,
+}
+
+/// What to build, and with what.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct BuildDeclaration {
+    /// Path to the crate manifest, relative to the project directory.
+    pub manifest_path: String,
+}
+
+/// One file a project builds and embeds, as the DEVELOPER declares it.
+///
+/// NO HASH, AND THE ABSENCE IS THE DESIGN. A hash a developer writes is a claim about bytes that do
+/// not exist yet; a hash computed over the bytes actually being written is a fact. The two
+/// disagreeing is precisely what a content hash exists to detect, so only one of them may be
+/// authorable — and it is neither.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct DeclaredArtifact {
+    /// Project-relative path to the built file. Resolved exactly, never searched.
+    pub path: String,
+    /// `Dll` for a loadable module, `UiBundle` for a frontend bundle.
+    pub kind: String,
+    /// The symbol a host calls to initialize a Dll — `wf_init` for the Rust SDK. Absent for a
+    /// UiBundle, which no process host loads.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub entry_point: Option<String>,
+    /// The name the artifact takes inside the bundle. Defaults to the file name of `path`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+}
+
+impl DeclaredArtifact {
+    /// The name this artifact takes inside the bundle.
+    ///
+    /// ONE DERIVATION, USED EVERYWHERE. The cross-reference check, the manifest's artifact refs and
+    /// the zip entry path all resolve a declaration to a name; three implementations of that would
+    /// be three chances for a capability to name an artifact that the writer files under something
+    /// else, and the bundle would be internally inconsistent with nothing able to say so.
+    pub fn bundle_name(&self) -> String {
+        if let Some(name) = self.name.as_deref().filter(|n| !n.is_empty()) {
+            return name.to_string();
+        }
+        // Forward slashes only: a declaration is project-relative and written with `/`, and a
+        // Windows path separator in a declaration is a portability bug rather than a path.
+        self.path.rsplit(['/', '\\']).next().unwrap_or(&self.path).to_string()
+    }
+}
+
+/// A package this package needs: an fqid and a version REQUIREMENT.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct DeclaredDependency {
+    pub fqid: String,
+    /// A SemVer requirement the registry resolves, e.g. `^1.0`. A RANGE, not a pin — a pin makes
+    /// every upstream patch a republish here.
+    pub version: String,
+}
+
+/// A capability this package contributes to a host.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct DeclaredCapability {
+    /// The capability's own fully-qualified id — distinct from the package's, since one package may
+    /// contribute several.
+    pub fqid: String,
+    /// `RuntimePrimitive` for a blueprint-callable node; other kinds target other hosts.
+    pub kind: String,
+    /// Which host serves it, e.g. `runtime-wack`.
+    pub target_host: String,
+    /// The declared artifact `name` that realizes this capability.
+    pub artifact: String,
+    /// The C symbol the runtime binds, for a RuntimePrimitive.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbol: Option<String>,
+    /// The calling contract, IN READ ORDER.
+    ///
+    /// Empty means UNDECLARED, which is a real and different statement from zero parameters:
+    /// declaring inputs gives the capability pins in the designer and tells the compiler how to
+    /// weave a node's arguments, while omitting them makes the compiler fall back to sorting pin
+    /// names alphabetically — a convention the callee never agreed to, which silently reorders
+    /// arguments the day a parameter is renamed. A genuinely variadic primitive declares nothing.
+    #[serde(default)]
+    pub inputs: Vec<DeclaredParameter>,
+}
+
+/// One parameter of a capability's calling contract. Its POSITION is the contract.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct DeclaredParameter {
+    pub key: String,
+    /// A WafflerDataType kind. Absent means `Dynamic`, which is accepted and defers every type
+    /// error to runtime.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#type: Option<String>,
+}
+
+/// A frontend plugin this package ships, riding as an artifact inside its own bundle.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct DeclaredUiPlugin {
+    pub id: String,
+    /// A frontend region name, or empty for a plugin that declares no slot.
+    ///
+    /// EMPTY IS THE HONEST VALUE FOR A PLUGIN THAT MOUNTS NOWHERE. The host reads `slot` only as the
+    /// fallback for a contribution naming none, so a plugin contributing a route and a nav item
+    /// never has it read at all — an invented name is INERT rather than rejected, which is exactly
+    /// how one gets shipped and believed. This tool does NOT validate the name: a packer has no
+    /// business knowing the frontend's regions, and coupling it to that list would make every new
+    /// region a change here.
+    #[serde(default)]
+    pub slot: String,
+    /// The declared artifact `name` (kind `UiBundle`) that IS the plugin.
+    pub artifact: String,
+}
+
+/// A requested fast lane. `{target, secure}` — the reviewable ask.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct FastLaneRequest {
+    pub target: String,
+    #[serde(default)]
+    pub secure: bool,
+}
+
+/// A declared artifact that has been found on disk after the build.
+///
+/// IT HOLDS A PATH, NOT BYTES, AND CARRIES NO HASH. A package artifact may be a hundred megabytes;
+/// loading every one into memory to hand across a subsystem boundary buys nothing, because the only
+/// component that needs the bytes is the one streaming them into the archive — and that is where
+/// the hash is measured, over the bytes actually written.
+#[derive(Debug, Clone)]
+pub struct LocatedArtifact {
+    /// The name this artifact takes inside the bundle, at `artifact/<name>`.
+    pub name: String,
+    pub kind: String,
+    pub entry_point: Option<String>,
+    pub absolute_path: std::path::PathBuf,
+    /// Measured at location time so an oversized bundle can be refused before an upload rather than
+    /// during one.
+    pub size_bytes: u64,
+}
+
+/// A file from the project's `namespace/` tree, as a relative and absolute path pair.
+#[derive(Debug, Clone)]
+pub struct NamespaceFile {
+    /// Forward-slashed, because it becomes a zip entry path and a backslash there is a filename
+    /// component on every reader that matters.
+    pub relative: String,
+    pub absolute: std::path::PathBuf,
+}
+
+/// Everything needed to write a bundle, and nothing that requires having written one.
+///
+/// IT IS A PLAN, NOT A BUNDLE. No bytes, no hashes, no signature — those are facts about an archive
+/// that does not exist yet, and a plan carrying them would be asserting them before they were true.
+#[derive(Debug, Clone)]
+pub struct BundlePlan {
+    /// Repeated at the top level because the publish URL is built from it, and reaching into the
+    /// manifest body for it would make the body's shape the publish route's problem.
+    pub fqid: String,
+    pub version: String,
+    /// `uuidv5(NAMESPACE_OID, "waffler.package:<fqid>")`.
+    pub package_uuid: String,
+    /// The compiled `/.manifest` declarations, complete except for the artifacts array the writer
+    /// fills in. Carried as opaque JSON on purpose: re-modelling core's `InstalledPackage` here
+    /// would create a second definition of a format this tool does not own.
+    pub manifest_body: serde_json::Value,
+    pub artifacts: Vec<LocatedArtifact>,
+    pub namespace_files: Vec<NamespaceFile>,
+    /// Carried for messages only, so a failure can name the directory a developer is actually in.
+    pub project_directory: std::path::PathBuf,
+}
+
+/// What a build did, in the terms of the tool that did it.
+#[derive(Debug, Clone)]
+pub struct BuildReport {
+    /// Whether a toolchain was actually invoked, or existing artifacts were reused.
+    ///
+    /// REPORTED, ALWAYS. "It packed the wrong binary" and "it packed a binary it did not build" are
+    /// the same incident seen a day apart, and only one of them is discoverable after the fact.
+    pub ran: bool,
+    pub crate_manifest: Option<String>,
+    pub profile: String,
+    pub succeeded: bool,
+    /// The toolchain's own stdout and stderr, unchanged.
+    pub output: String,
+}
+
+/// One thing wrong with an authored manifest: the field, and what is wrong with it.
+///
+/// A STRUCT RATHER THAN A STRING because the field is what a developer needs to find, and a message
+/// that embeds it is a message something downstream has to parse to group by.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Violation {
+    pub field: String,
+    pub problem: String,
+}
+
+impl Violation {
+    pub fn new(field: impl Into<String>, problem: impl Into<String>) -> Self {
+        Self { field: field.into(), problem: problem.into() }
+    }
+}
+
+impl std::fmt::Display for Violation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.field, self.problem)
+    }
+}
+
+/// A file a scaffold renders, before anything is written.
+#[derive(Debug, Clone)]
+pub struct RenderedFile {
+    pub relative_path: String,
+    pub contents: String,
+}

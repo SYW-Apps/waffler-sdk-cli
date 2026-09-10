@@ -16,21 +16,19 @@ methods:
 
       HYDRATION, AND THE ONLY REASON THIS STORE IS DURABLE. A tool that re-prompted for a browser
       login on every command is a tool people script around with a raw token in an environment
-      variable — strictly worse than the file this holds.
+      variable — strictly worse than the file this holds. Reached from the subsystem's init
+      lifecycle, because every command needs the persisted default, including one that only reports
+      which registry it resolved.
 
 
       AN ABSENT FILE IS AN EMPTY SESSION, NOT AN ERROR. A first run has no credentials and that is
-      the ordinary case.
+      the ordinary case. A MALFORMED file IS an error naming the path: silently replacing an
+      unreadable credential file with an empty session is how a developer's stored logins vanish
+      with no event that says so.
     signature: 'load(): PersistedSession'
     returns: json
     params: []
     effect: read
-    invokedBy:
-      kind: runtime
-      caller: >-
-        Process start. The orchestrator hydrates the persisted session before serving any command,
-        because every command — including one that only reports which registry it resolved — needs
-        the persisted default.
   - name: credentialFor
     description: >-
       The credential held for one normalised registry URL, or none.
@@ -38,7 +36,7 @@ methods:
 
       THE KEY IS THE NORMALISED URL, produced by the resolver and by nothing else. A second
       normalisation would let two spellings of one registry hold two credentials and use whichever
-      the current command's spelling found.
+      the current spelling found.
     signature: 'credentialFor(registry: string): RegistryCredential?'
     returns: sdk_cli::registry-credential
     params:
@@ -52,7 +50,9 @@ methods:
 
 
       WRITTEN OWNER-ONLY AND NEVER INTO A PROJECT TREE. The refresh token is a long-lived secret,
-      and a credential file that can be committed eventually is.
+      and a credential file that can be committed eventually is. The write is ATOMIC — a temporary
+      file in the same directory, then a rename — because a process interrupted mid-write otherwise
+      leaves a truncated document, and the next run reports every stored login as gone.
     signature: 'putCredential(credential: RegistryCredential): void'
     returns: void
     params:
@@ -61,6 +61,7 @@ methods:
         description: The session to persist.
     guarantees:
       - idempotent
+      - atomic
     effect: write
   - name: removeCredential
     description: >-
@@ -69,18 +70,22 @@ methods:
 
       DELETED, NOT BLANKED. A record with cleared fields is indistinguishable from an expired one,
       and the two need different sentences: 'you are not signed in to this registry' versus 'your
-      session expired'.
-    signature: 'removeCredential(registry: string): void'
-    returns: void
+      session expired'. Removing an entry that is not there is SUCCESS — signing out twice is not a
+      mistake — and the return says which happened without making one of them a failure.
+    signature: 'removeCredential(registry: string): boolean'
+    returns: boolean
     params:
       - name: registry
         type: string
         description: The normalised registry base URL.
     guarantees:
       - idempotent
+      - atomic
     effect: write
   - name: defaultRegistry
-    description: The persisted `use` default, or none.
+    description: >-
+      The persisted `use` default, or none. A tool that has never had `use` run against it has no
+      default, and that is the ordinary first-run state.
     signature: 'defaultRegistry(): string?'
     returns: string
     params: []
@@ -92,7 +97,7 @@ methods:
 
       SETTING IT DOES NOT SIGN ANYONE IN. The default decides which registry a command addresses;
       whether there is a credential for it is a separate fact, and conflating them is how a `use` to
-      an unauthenticated registry looks like a working session.
+      an unauthenticated registry looks like a working session until the first publish.
     signature: 'setDefaultRegistry(registry: string): void'
     returns: void
     params:
@@ -101,7 +106,8 @@ methods:
         description: The normalised registry base URL.
     guarantees:
       - idempotent
+      - atomic
     effect: write
 status: draft
 createdAt: '2026-09-10T00:10:49.747Z'
-updatedAt: '2026-09-10T00:21:02.948Z'
+updatedAt: '2026-09-10T00:47:36.832Z'

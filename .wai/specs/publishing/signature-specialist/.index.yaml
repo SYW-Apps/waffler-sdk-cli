@@ -56,14 +56,6 @@ lint:
         describing the format in terms that make disagreement undetectable. Both are wire facts, not
         swappable backends: changing either is a coordinated change on both sides, never a local
         substitution.
-    - code: UNUSED_METHOD
-      reason: >-
-        `signAsPublisher` has no caller ON PURPOSE, and wiring one is the change that must NOT
-        happen yet. Emitting a signature shape that deployed verifiers cannot read produces
-        artifacts nobody can install — so readers ship first, and the producer is specified now only
-        so both sides agree on the frame before either builds it. The allow is the record that this
-        is a gate rather than an oversight, and it is retired by the commit that wires the call, not
-        by anything here.
 status: draft
 createdAt: '2026-09-09T23:13:04.468Z'
-updatedAt: '2026-09-10T00:23:46.020Z'
+updatedAt: '2026-09-10T00:46:43.770Z'

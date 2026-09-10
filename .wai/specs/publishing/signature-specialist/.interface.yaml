@@ -1,19 +1,36 @@
 id: isignature-specialist
 name: Bundle Framing Contract
 description: >-
-  What follows the archive, and who vouches for it.
+  Deciding what follows the archive.
 
 
-  THE FRAME IS THE SAME ONE THE REGISTRY READS, and there must be exactly one description of it in
-  the world that both sides agree on. The registry's reader already implements it; this is the
-  producer that must not drift from it.
+  ## THERE IS NO `signAsPublisher` HERE, AND ITS REMOVAL IS A DESIGN CHANGE RATHER THAN A DEFERRAL
 
 
-  THE PRODUCER HALF IS GATED, AND THE GATE IS A RULE RATHER THAN A SCHEDULE. Appending a signature
-  shape that consumers cannot yet read produces artifacts nobody can install — so READERS SHIP
-  FIRST, and this tool starts emitting a dual frame only once the nodes that must verify it already
-  can. Detection ships immediately, because refusing to upload a bundle whose trailing bytes are not
-  the shape the registry accepts is useful the day it exists.
+  It was specified and then taken out, on implementing it. The frame already has a producer AND a
+  reader in `registry::publication::bundle_framing` — `frame` writes it, `read_framing` reads it —
+  and `waffler_core` needs a reader of its own. A publisher signer here would have been the THIRD
+  implementation of one wire format, with two of the three unexercised on any given day. A wire
+  format with three definitions drifts in whichever copy nobody runs, and the drift is silent on
+  both sides until a bundle crosses.
+
+
+  SO THE REAL FIX IS SMALLER AND ELSEWHERE: when the producer half is needed, the frame types belong
+  in ONE crate both sides depend on (`shared`), not re-declared per consumer. Writing the small
+  wrong version here first is how the larger right one stops being possible — a third copy in the
+  tree becomes a thing to keep in step rather than a thing to delete.
+
+
+  The gate that was recorded against it — readers ship before producers — still holds and is now the
+  `shared`-crate work's gate rather than this component's.
+
+
+  ## THE DETECTION ALGORITHM IS MIRRORED, NOT INVENTED
+
+
+  Two readers picking different ends of one file is the entire attack it closes: the bundle a
+  developer inspects and the bundle a registry validates would differ, and neither could report it.
+  The registry's parser is the reference; this must not diverge from it except where stated.
 component: signature-specialist
 methods:
   - name: detectFraming
@@ -25,15 +42,27 @@ methods:
       THE ARCHIVE'S END IS FOUND BY VALIDATING THE CENTRAL DIRECTORY, not by trusting the first
       end-of-central-directory record that scans. A comment-aware scan finds several candidate
       records in a hostile file; the one whose directory pointer actually addresses a directory is
-      the real end, and when two candidates both qualify the file is REFUSED rather than guessed at.
-      Guessing produces a bundle that reads one way here and another way at the registry, which is
-      the entire attack.
+      the real end, and an archive declaring zero entries qualifies only when its record sits at
+      offset zero — a zeroed plant otherwise reads as a legitimate empty archive.
+
+
+      TWO QUALIFYING CANDIDATES IS A REFUSAL. Which one is 'the' boundary is not a question the
+      bytes answer, and guessing decides where a signature begins.
 
 
       A SUFFIX THAT MATCHES NOTHING IS A REFUSAL. Sixty-four trailing bytes are a legacy signature;
       a trailer ending in the magic whose declared length agrees with the suffix is a dual frame;
       anything else is refused rather than trimmed, because deciding which trailing bytes are
       signature and which are content by guessing publishes a corrupt package successfully.
+
+
+      STRICTER THAN THE REGISTRY IN ONE PLACE, DELIBERATELY AND IN THE SAFE DIRECTION. The registry
+      treats 'no single coherent archive end' as 'not an archive' and carries on to its reader —
+      sound THERE, because on its unsigned path the payload it signs is the whole artifact, so its
+      boundary opinion never has to match anyone else's. This is the producer, holding the file,
+      deciding whether to upload it: a file whose end cannot be established is one this tool cannot
+      promise carries no signature, and refusing costs one clear local message while accepting costs
+      an artifact nobody can install.
     signature: 'detectFraming(bundlePath: string): Framing'
     returns: string
     params:
@@ -42,33 +71,6 @@ methods:
         description: The bundle to inspect.
     guarantees:
       - idempotent
-  - name: signAsPublisher
-    description: >-
-      Append a publisher signature to an unsigned archive, producing a dual-signature frame.
-
-
-      COVERAGE IS STRUCTURAL, NOT DECLARED. Signature `i` covers the archive plus the signature
-      bytes of every signature before it, so the order in the trailer IS the countersigning chain.
-      There is no field saying what a signature covers, deliberately: a verifier that read such a
-      field would be letting attacker-supplied data decide what to verify.
-
-
-      IT REFUSES AN ALREADY-SIGNED ARCHIVE. Re-signing means either re-zipping — which destroys the
-      payload a signature covers — or appending blindly, and both produce artifacts refused later on
-      somebody else's machine.
-
-
-      PARKED UNTIL THE READERS SHIP. Specified now so the shape is agreed on both sides; emitted
-      only once the verifiers that must read it are deployed.
-    signature: 'signAsPublisher(bundlePath: string, signingKey: bytes): WrittenBundle'
-    returns: sdk_cli::written-bundle
-    params:
-      - name: bundlePath
-        type: string
-        description: An unsigned bundle.
-      - name: signingKey
-        type: bytes
-        description: The publisher's Ed25519 signing key.
 status: draft
 createdAt: '2026-09-10T00:12:20.479Z'
-updatedAt: '2026-09-10T00:12:20.502Z'
+updatedAt: '2026-09-10T00:46:22.455Z'

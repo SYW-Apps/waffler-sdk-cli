@@ -66,8 +66,8 @@ methods:
     description: Create a new package project on disk that packs, publishes and installs.
     signature: >-
       scaffoldProject(directory: string, fqid: string, version: string, description: string,
-      overwrite: boolean): void
-    returns: void
+      sdkPath: string, overwrite: boolean): RenderedFile[]
+    returns: json[]
     params:
       - name: directory
         type: string
@@ -81,9 +81,14 @@ methods:
       - name: description
         type: string
         description: Catalog prose.
+      - name: sdkPath
+        type: string
+        description: >-
+          Where the Waffler SDK crates live — passed through, because the SDK is not published and a
+          generated crate must point its dependencies somewhere real.
       - name: overwrite
         type: boolean
         description: Permission to write into a non-empty directory.
 status: draft
 createdAt: '2026-09-10T00:10:20.051Z'
-updatedAt: '2026-09-10T00:14:14.429Z'
+updatedAt: '2026-09-10T00:46:05.394Z'

@@ -324,3 +324,79 @@ fn two_signings_of_one_archive_with_one_key_are_byte_identical() {
     let b = signed_bundle(&dir.path().join("b"), &[13u8; 32]);
     assert_eq!(std::fs::read(&a).unwrap(), std::fs::read(&b).unwrap());
 }
+
+// ─── The chain vector ─────────────────────────────────────────────────────────────────────────
+
+/// WHAT THE PUBLISHER SIGNATURE COVERS, PINNED — and `shared` does not decide it.
+///
+/// The frame types and the boundary parser are imported, so the encoding and where the archive ends
+/// cannot drift. What is NOT imported is the rule about what a signature is computed OVER: this crate
+/// chooses to sign the payload, and the registry chooses to sign `payload || publisher_signature`.
+/// Those two choices are the chain, they live in two codebases, and nothing in the trailer's encoding
+/// can tell a correct pair from a wrong one.
+///
+/// The interop vector cannot help: its signature is `64 x 0x02` and signs nothing. Two
+/// implementations reproduce it byte for byte while disagreeing about coverage. The disagreement
+/// fails closed — a node refuses the bundle — but it surfaces at INSTALL, in front of a user, as an
+/// integrity failure, rather than here as "the coverage rule changed".
+///
+/// Ed25519 is deterministic, so the real chain is pinnable. Same vector as `shared@af7a494` and the
+/// registry's own suite.
+mod chain_vector {
+    use ed25519_dalek::{Signer, SigningKey};
+
+    /// Deliberately NOT a zip — the chain rule is indifferent to what it wraps.
+    const PAYLOAD: &[u8] = b"waffler chain vector v1";
+    const PUBLISHER_SEED: [u8; 32] = [0x22; 32];
+
+    const PUBLISHER_SIG: &str = "7f5d4f6faca93518e153fb3dc0d586b741afcdead4b49d48ef2c17ebae042b07\
+                                 62dc6c1860d5680ee60d3f8c0af796c7e14e754008c655e5eb474a3cf826700d";
+
+    #[test]
+    fn the_publisher_signature_covers_the_payload_and_nothing_else() {
+        let sig = SigningKey::from_bytes(&PUBLISHER_SEED).sign(PAYLOAD);
+        assert_eq!(
+            hex::encode(sig.to_bytes()),
+            PUBLISHER_SIG.replace(char::is_whitespace, ""),
+            "what a publisher signature covers drifted from the rule the registry countersigns against"
+        );
+    }
+
+    #[test]
+    fn signing_MORE_than_the_payload_does_not_produce_the_pinned_signature() {
+        // THE NEGATIVE HALF. The plausible drift here is including the trailer's own bytes, or the
+        // whole file rather than the archive — either would still verify against itself, and the
+        // registry's countersignature would then bind a message this crate never signed.
+        let mut extended = PAYLOAD.to_vec();
+        extended.extend_from_slice(b"and a little more");
+        let sig = SigningKey::from_bytes(&PUBLISHER_SEED).sign(&extended);
+        assert_ne!(hex::encode(sig.to_bytes()), PUBLISHER_SIG.replace(char::is_whitespace, ""));
+    }
+
+    #[test]
+    fn the_signer_this_crate_ships_implements_that_rule() {
+        // THE POINT OF THE TWO ABOVE. They pin the rule; this proves `sign_as_publisher` implements it
+        // rather than that Ed25519 works. It signs a real archive — the vector's payload is not one,
+        // and this function locates the payload through the boundary parser — then checks the
+        // signature it produced is exactly a signature over the ARCHIVE BYTES, whole and unmodified.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("bundle.zip");
+        let archive_bytes = super::archive(b"");
+        std::fs::write(&path, &archive_bytes).unwrap();
+
+        super::sign_as_publisher(&path, &PUBLISHER_SEED).unwrap();
+        let framed = std::fs::read(&path).unwrap();
+
+        let declared =
+            u32::from_le_bytes(framed[framed.len() - 12..framed.len() - 8].try_into().unwrap()) as usize;
+        let body = &framed[framed.len() - 12 - declared..framed.len() - 12];
+        let trailer: waffler_shared::SignatureTrailer = rmp_serde::from_slice(body).unwrap();
+
+        let expected = SigningKey::from_bytes(&PUBLISHER_SEED).sign(&archive_bytes);
+        assert_eq!(
+            trailer.signatures[0].signature,
+            expected.to_bytes().to_vec(),
+            "this crate signs something other than the archive bytes"
+        );
+    }
+}

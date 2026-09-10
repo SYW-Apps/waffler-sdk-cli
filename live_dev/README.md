@@ -191,8 +191,14 @@ docker logs waffler-beta 2>&1 | grep DependencyUnmet
 docker logs waffler-beta 2>&1 | grep version_mismatch
 ```
 
-Worth knowing before concluding a path did not fire. A zero from a grep that could never match reads
-exactly like a zero from a check that ran — which is the same shape as the rest of this file.
+Worth knowing before concluding a path did not fire. **A zero from a grep that could never match
+reads exactly like a zero from a check that ran** — the same shape as the rest of this file.
+
+And the ANSI escapes are only one cause of it. Within an hour of writing the line above I believed a
+comment had been deleted from a shared file, because I grepped a sentence I had written in capitals
+using lower case. Same failure, different reason, and the reason does not matter: **a search that
+returns nothing has two explanations and the tool reports one of them.** Before reading a zero as
+absence, check the pattern against a line you know is there.
 
 ## `AccessDenied` cannot tell "not granted" from "not running"
 

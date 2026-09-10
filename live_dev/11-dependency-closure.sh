@@ -70,20 +70,30 @@ publish_one() {
   # SEPARATE STATEMENTS, not one `local a= b= c=`. Bash expands every argument to the builtin before
   # running it, so a later assignment referring to an earlier one on the same line sees it unset —
   # which under `set -u` is a hard error rather than an empty string.
-  local project="/tmp/dia-${fqid##*.}"
+  local at="${3:-$VERSION}"
+  # Unique per fqid AND version, so publishing two minors of one package does not have the second
+  # scaffold land on top of the first.
+  local project="/tmp/pkg-${fqid//./_}-${at//./_}"
 
   rm -rf "$project"
-  "$WAFFLER" scaffold "$fqid" --path "$project" --version "$VERSION" --sdk-path /work >/dev/null || return 1
+  "$WAFFLER" scaffold "$fqid" --path "$project" --version "$at" --sdk-path /work >/dev/null || return 1
 
   DEPS="$deps" python3 - "$project/waffler.json" <<'PY'
 import json, os, sys
 path = sys.argv[1]
 manifest = json.load(open(path))
-# `fqid@range` is what the registry stores and re-splits. A RANGE, never a pin: pinning here would
-# make every upstream patch a republish of everything downstream.
-manifest['dependencies'] = [
-    {"fqid": f, "version": "^0.1.0"} for f in json.loads(os.environ['DEPS'])
-]
+
+
+def split(entry):
+    """`fqid` or `fqid@range`. A RANGE, never a pin: pinning would make every upstream patch a
+    republish of everything downstream. `@` is safe as the separator — an fqid has dots, never one."""
+    if '@' in entry:
+        fqid, requirement = entry.rsplit('@', 1)
+        return {"fqid": fqid, "version": requirement}
+    return {"fqid": entry, "version": "^0.1.0"}
+
+
+manifest['dependencies'] = [split(e) for e in json.loads(os.environ['DEPS'])]
 open(path, 'w').write(json.dumps(manifest, indent=2))
 PY
 
@@ -91,7 +101,7 @@ PY
   "$WAFFLER" validate >/dev/null || { RED "$fqid does not validate"; return 1; }
   "$WAFFLER" pack >/dev/null 2>&1 || { RED "$fqid did not pack"; return 1; }
   "$WAFFLER" publish --registry "$REGISTRY" >/dev/null 2>&1 || { RED "$fqid did not publish"; return 1; }
-  OK "published $fqid  deps=$deps"
+  OK "published $fqid@$at  deps=$deps"
 }
 
 STEP "2. publish the diamond"
@@ -185,8 +195,57 @@ print(f"\nOK: present, unresolved, and it says why -- {reason}")
 PY
 ORPHAN_RC=$?
 
+STEP "6. TWO PACKAGES ASKING FOR INCOMPATIBLE RANGES OF THE SAME DEPENDENCY"
+# The walk visits each namespace ONCE, keyed by name, so every later arrival was dropped — range and
+# all. The registry answered with a version chosen for the FIRST ask and `unresolved_reason: null`:
+# a complete-looking plan whose second package installs with its declared requirement unmet.
+#
+# Worse than a wrong ORDER, which is at least a wrong answer to a question that was asked. This was
+# a wrong answer presented as a correct one.
+#
+#     app ──^0.1──▶ util          util is published at BOTH 0.1.x and 0.2.x, and
+#      │                          no single version satisfies both asks.
+#      └──▶ lib ──^0.2──▶ util
+CONFLICT_VERSION="0.2.$(date +%s)"
+publish_one devbot.cnf.util '[]' "$VERSION" || exit 1
+publish_one devbot.cnf.util '[]' "$CONFLICT_VERSION" || exit 1
+publish_one devbot.cnf.lib  '["devbot.cnf.util@^0.2.0"]' || exit 1
+publish_one devbot.cnf.app  '["devbot.cnf.lib@^0.1.0","devbot.cnf.util@^0.1.0"]' || exit 1
+
+curl -s --max-time 15 "$REGISTRY/v1/packages/devbot.cnf.app/install_plan" -o /tmp/conflict.json \
+  -w 'http=%{http_code}\n'
+python3 - /tmp/conflict.json <<'PY'
+import json, sys
+plan = json.load(open(sys.argv[1]))
+if isinstance(plan, dict):
+    plan = plan.get('plan', plan.get('dependencies', []))
+print(json.dumps(plan, indent=2))
+
+util = [e for e in plan if e['namespace'] == 'devbot.cnf.util']
+if not util:
+    print("\nFAIL: the disputed dependency is not in the plan at all")
+    raise SystemExit(1)
+util = util[0]
+if util.get('resolved_version'):
+    print(f"\nFAIL: a version was offered ({util['resolved_version']}) though no version satisfies both asks")
+    raise SystemExit(1)
+if util.get('content_address'):
+    # A client that reads only what it needs would fetch the very build that does not fit.
+    print("\nFAIL: no version was offered but an address to fetch was")
+    raise SystemExit(1)
+reason = util.get('unresolved_reason') or ''
+# BOTH ASKS NAMED. "unresolvable" alone sends a reader hunting for which two packages disagree,
+# which is the entire content of the finding.
+missing = [r for r in ('^0.1.0', '^0.2.0') if r not in reason]
+if missing:
+    print(f"\nFAIL: the reason does not name {missing}: {reason}")
+    raise SystemExit(1)
+print(f"\nOK: refused, naming both asks -- {reason}")
+PY
+CONFLICT_RC=$?
+
 echo
-if [[ $ORDER_RC -ne 0 || $ORPHAN_RC -ne 0 ]]; then
+if [[ $ORDER_RC -ne 0 || $ORPHAN_RC -ne 0 || $CONFLICT_RC -ne 0 ]]; then
   RED "dependency-closure leg FAILED"
   exit 1
 fi

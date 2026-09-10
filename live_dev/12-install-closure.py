@@ -37,6 +37,8 @@ APP = "devbot.dia.app"
 LIB = "devbot.dia.lib"
 UTIL = "devbot.dia.util"
 ORPHAN = "devbot.dia.orphan"
+# The root of the closure where two packages ask for incompatible ranges of one dependency.
+CONFLICT_ROOT = "devbot.cnf.app"
 GHOST = "devbot.dia.ghost"
 
 # The authored graph, restated here for ONE job: checking order. It is small enough to read and the
@@ -256,6 +258,31 @@ async def main():
                 ok(f"and the refusal names {GHOST}, which is the thing to fix")
             else:
                 bad(f"the refusal does not name {GHOST}, so it does not say what to fix")
+
+        step("4b. AND SO MUST A CLOSURE NOBODY CAN SATISFY")
+        # A DIFFERENT WAY TO BE UNRESOLVABLE, and the registry reports it through the same field, so
+        # this is really asking whether the marketplace refuses on the FIELD or on the one cause it
+        # was written against. `devbot.cnf.app` wants util ^0.1 and its lib wants util ^0.2; both
+        # minors are published and no single version satisfies both.
+        result, error = await rpc(
+            ws, MARKETPLACE, "install", [CONFLICT_ROOT, None, "Interactive", None, REGISTRY_NAME]
+        )
+        if not error:
+            bad(f"a closure with no satisfiable version installed anyway: {result}")
+        else:
+            message = json.dumps(error, default=str)
+            ok("refused")
+            print(f"  {message[:400]}")
+            for asked in ("^0.1.0", "^0.2.0"):
+                if asked not in message:
+                    bad(f"the refusal does not name {asked}, so it does not say which asks disagree")
+            conflict_state = await installed_set(ws)
+            if conflict_state is None:
+                raise SystemExit(1)
+            if CONFLICT_ROOT in conflict_state:
+                bad(f"{CONFLICT_ROOT} was installed even though its closure was refused")
+            else:
+                ok(f"and nothing from it landed")
 
         step("5. AND NOTHING FROM THAT CLOSURE LANDED")
         # A refusal that installed the resolvable part first is a refusal in name only, and the node

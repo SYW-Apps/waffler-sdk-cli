@@ -33,8 +33,8 @@ network, with a package that did not exist an hour earlier:
 | `07-reinstall.py` | the loop closes on a genuinely different artifact — the republished bundle has a different content address |
 | `09-dual-sign.sh` / `10-verify-chain.py` | the CLI signs as publisher, the registry **countersigns**, and an independent decoder confirms the chain: Publisher then Registry, the registry signature covering `payload \|\| publisher_signature` and **not** the payload alone. The node then installs it and **pins the publisher**, durably across a restart |
 | `08-login.sh` | the interactive login, against a real provider: PKCE S256, a state parameter, an ephemeral loopback port; the credential is persisted **per registry** and does **not** leak to another; and a publish succeeds on the browser-obtained credential with **no environment token set** |
-| `11-dependency-closure.sh` | publishes a **diamond** and asks the registry to resolve it. The plan must be installable **in the order it gives**, every package after everything it declares; the range must pick the **highest** published, not the first that fits; and a dependency that cannot resolve must be **an entry carrying a reason**, not an omission. **This leg failed on its first run** — see below |
-| `12-install-closure.py` | installs that closure through the marketplace on the live node: all three land, **in order**, **enabled**, and **at the version the registry offered** — a stale row would otherwise read as success. A closure with an unresolvable member is **refused with nothing installed**, naming the missing package; a repeat install is **not a second copy** |
+| `11-dependency-closure.sh` | publishes a **diamond** and asks the registry to resolve it. The plan must be installable **in the order it gives**, every package after everything it declares; the range must pick the **highest** published, not the first that fits; a dependency that cannot resolve must be **an entry carrying a reason**, not an omission; and two packages asking for **incompatible ranges** of one dependency must be **refused, naming both asks**. **Two of those failed on first run** — see below |
+| `12-install-closure.py` | installs that closure through the marketplace on the live node: all three land, **in order**, **enabled**, and **at the version the registry offered** — a stale row would otherwise read as success. Both kinds of unresolvable closure — a dependency that does not exist, and one no version satisfies — are **refused with nothing installed**, naming what disagrees; a repeat install is **not a second copy** |
 | `13-closure-serves.py` | after a restart, **every member of the closure answers** — not just the root — identifies itself, and reports the version the node records. Then it takes the leaf away and asks what happens to the packages that needed it; **that found the third item below** |
 
 ## Running it
@@ -119,6 +119,17 @@ either.
 Fixed in the registry (`depth` is now the **longest** path from the root, so the existing
 deepest-first sort is a topological order by construction) with both shapes pinned as tests, each
 shown to fail against the old rule.
+
+The second failure was in the same family and worse. **The walk visits each namespace once, keyed by
+name**, so every later arrival was dropped — *range and all*. With `app` asking for `util@^0.1`, its
+`lib` asking for `util@^0.2`, and both minors published, the registry answered `util 0.1.x`,
+`unresolved_reason: null`, and a complete-looking plan. A node installing that gets a `lib` whose
+declared requirement is not met, with nothing anywhere having said so.
+
+A wrong **order** is at least a wrong answer to a question that was asked. This was a wrong answer
+presented as a correct one. It now refuses, naming both asks, and the marketplace stops the install
+with nothing landing — which also showed the marketplace refuses on the *field* rather than on the
+one cause it was written against.
 
 **Every live install before this one was a single package declaring nothing.** The closure lane on
 both sides was fully unit-tested and had never once been handed a graph.

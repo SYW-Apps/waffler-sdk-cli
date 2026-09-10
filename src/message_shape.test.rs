@@ -102,36 +102,73 @@ fn rust_sources(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
 fn no_user_facing_string_carries_a_run_of_spaces_from_a_lost_line_continuation() {
     let mut files = Vec::new();
     rust_sources(Path::new(env!("CARGO_MANIFEST_DIR")).join("src").as_path(), &mut files);
-    assert!(files.len() > 10, "the scan found only {} files; it is not reading the tree", files.len());
 
+    let mut examined_lines = 0usize;
+    let mut scanned_a_nested_file = false;
     let mut offenders = Vec::new();
+
     for file in &files {
-        // This file describes the defect and would otherwise report itself.
-        if file.file_name().is_some_and(|n| n == "message_shape.test.rs") {
-            continue;
+        // THIS FILE IS NOT EXCLUDED, AND THAT IS A CORRECTION.
+        //
+        // It was, by name — the usual arrangement, because a guard's fixtures are deliberately
+        // malformed and the first run reports its own evidence as the defect. The cost is that the
+        // guard's OWN messages then go unchecked, and mine had the defect in two of them: the
+        // "swallowing the tree" refusal and the offender report both shipped with runs of spaces, in
+        // the one file that could not catch them. Found by reading a failing run's output, which is
+        // the only place it was ever visible.
+        //
+        // The exclusion is unnecessary here because every fixture is BUILT AT RUNTIME from `gap`
+        // rather than written literally, so no run of spaces appears in this file's source at all.
+        // That was already the reason given for constructing them that way; it just also removes the
+        // need to opt out.
+        //
+        // RECURSION, PROVEN BY A FILE THAT COULD ONLY COME FROM A SUBDIRECTORY. A walker that stops at
+        // the top level is green and reads a tenth of the tree, and a file COUNT cannot tell the
+        // difference once the top level alone clears whatever floor was chosen.
+        if file.parent().is_some_and(|p| p.file_name().is_some_and(|n| n != "src")) {
+            scanned_a_nested_file = true;
         }
+
         let text = std::fs::read_to_string(file).expect("reading a source file");
         for (n, line) in text.lines().enumerate() {
-            let trimmed = line.trim_start();
             // Comments and doc comments may align things on purpose, and none of them is a message.
-            if trimmed.starts_with("//") {
+            if line.trim_start().starts_with("//") {
                 continue;
             }
             // Only lines that carry a string literal at all.
-            if !line.contains('"') {
+            if !line.contains(char::from(34)) {
                 continue;
             }
+            examined_lines += 1;
             if has_internal_run(line) {
-                offenders.push(format!("{}:{}\n      {}", file.display(), n + 1, line.trim()));
+                offenders.push(format!("{}:{}
+      {}", file.display(), n + 1, line.trim()));
             }
         }
     }
 
+    // ASK WHAT THE CHECK READ, NOT WHAT IT COVERS.
+    //
+    // Core hit this in their copy: breaking the part that pulls text out of a file left the scan
+    // GREEN, because a scan that reads every file in a crate and examines nothing from any of them is
+    // indistinguishable from a clean tree. A file count does not catch it — the files were found, they
+    // simply contributed nothing.
+    //
+    // So the floors are on what was actually EXAMINED, and on where it came from. Both are far below
+    // the real numbers, so they fail on a broken walker rather than on ordinary growth or deletion.
+    assert!(files.len() > 10, "the walker found only {} files; it is not reading the tree", files.len());
+    assert!(scanned_a_nested_file, "every scanned file was at the top level; the walker is not recursing");
+    assert!(
+        examined_lines > 500,
+        "only {examined_lines} lines carrying a string literal were examined; the filter is \
+         swallowing the tree and this check is green because it measured nothing"
+    );
+
     assert!(
         offenders.is_empty(),
         "a string literal carries a run of {RUN}+ spaces, which is what a LOST line-continuation \
-         backslash looks like. The source reads as a deliberate line break and the message ships with \
-         the indentation in it:\n\n  {}\n",
+         backslash looks like. The source reads as a deliberate line break, and the message ships \
+         with the indentation in it:\n\n  {}\n",
         offenders.join("\n  ")
     );
 }
@@ -161,6 +198,19 @@ fn the_predicate_does_not_flag_DELIBERATE_alignment() {
     // reported all of them. A guard whose failures are all false is one someone deletes - and
     // deleting it would be the correct response, which is the worst way for a check to fail.
     let gap = " ".repeat(RUN);
+
+    // THE CASE THAT COVERS `before.is_ascii_alphanumeric()`, AND IT WAS MISSING. Neutering that clause
+    // survived every test: each existing negative had a `{` or an `=` after the run, so the OTHER two
+    // exclusions caught them and this one decided nothing. A clause no test can kill is a clause
+    // nobody can tell is needed.
+    //
+    // What it actually excludes is a run immediately after an opening quote — an indented literal —
+    // where the character after is an ordinary letter and neither other clause applies.
+    assert!(
+        !has_internal_run(&format!("println!(\"{gap}indented output\");")),
+        "a run right after an opening quote is indentation, not a sentence gap"
+    );
+
     assert!(!has_internal_run("        let indented = source_code();"), "leading indentation is not a gap");
     assert!(!has_internal_run(&format!("  publishing:{gap} {{}}")), "an aligned label is deliberate");
     assert!(!has_internal_run("    {}"), "an indented list item is deliberate");

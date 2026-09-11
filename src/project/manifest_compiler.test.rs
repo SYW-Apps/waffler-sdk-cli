@@ -509,10 +509,11 @@ fn an_omitted_middleware_option_is_ABSENT_rather_than_null() {
 
 #[test]
 fn a_middleware_may_not_write_the_filter_keys_that_belong_elsewhere() {
-    // `source` is runtime-managed — the supervisor owner-tags it at registration, so a value here is
-    // overwritten and decides nothing. `target` has its own typed field, and core moved it out of
-    // this bag precisely because a misspelled service name there produced a middleware that
-    // registered, listed and silently intercepted nothing.
+    // `syw.owner` and `syw.fqid` are runtime-managed — the host stamps the declaring package's
+    // identity into them at registration, so a value here is overwritten and decides nothing.
+    // `target` has its own typed field, and core moved it out of this bag precisely because a
+    // misspelled service name there produced a middleware that registered, listed and silently
+    // intercepted nothing.
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
@@ -520,13 +521,14 @@ fn a_middleware_may_not_write_the_filter_keys_that_belong_elsewhere() {
         target: None,
         needs_payload: false,
         needs_headers: true,
-        filters: Some(serde_json::json!({"source": "someone.else", "target": "packages"})),
+        filters: Some(serde_json::json!({"syw.owner": "someone.else", "syw.fqid": "x.y.z", "target": "packages"})),
         priority: None,
     }];
 
     let violations = validate_authored(&authored);
     let fields = fields(&violations);
-    assert!(fields.contains(&"middleware[0].filters.source"), "{fields:?}");
+    assert!(fields.contains(&"middleware[0].filters.syw.owner"), "{fields:?}");
+    assert!(fields.contains(&"middleware[0].filters.syw.fqid"), "{fields:?}");
     assert!(fields.contains(&"middleware[0].filters.target"), "{fields:?}");
 }
 
@@ -620,4 +622,32 @@ fn the_manifest_middleware_decodes_as_CORES_OWN_TYPE() {
     assert!(decoded[0].needs_headers, "the header flag must survive the name mapping");
     assert!(!decoded[0].needs_payload);
     assert_eq!(decoded[0].priority, Some(100));
+}
+
+#[test]
+fn a_middleware_MAY_filter_on_source_which_this_tool_once_refused() {
+    // A RULE THAT WAS CORRECT WHEN WRITTEN AND WAS INVALIDATED BY A CHANGE ELSEWHERE.
+    //
+    // `filters.source` carried the owner tag, so a node overwrote whatever an author wrote and this
+    // function refused it for saying something that could not survive. The host has since moved the
+    // owner tag to `syw.owner` / `syw.fqid`, and `source` now means what the global bus chain always
+    // read it as: a filter on the envelope's SOURCE.
+    //
+    // Pinned as an ACCEPTANCE so the refusal cannot come back by someone reading the old reasoning.
+    // A validator rejecting a legal manifest is worse than one that does not check at all: the
+    // author cannot tell a tool bug from their own mistake, and the fix is in neither place they
+    // will look.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "audit".into(),
+        handler: "pkg.audit.observe".into(),
+        target: None,
+        needs_payload: false,
+        needs_headers: true,
+        filters: Some(serde_json::json!({"source": "syw.app.web", "topic": "identity.*"})),
+        priority: None,
+    }];
+
+    let violations = validate_authored(&authored);
+    assert!(violations.is_empty(), "`source` is an author-declared filter now: {violations:?}");
 }

@@ -60,19 +60,29 @@ fields:
   - name: filters
     type: json
     description: >-
-      The finer matching core understands beside the typed target: `caller` and `capability` (exact
-      or prefix-`*` glob) and `active` (a bool toggle, default true).
+      The finer matching core understands beside the typed target. The GLOBAL bus chain reads
+      `source` / `target` / `topic`; the per-package chain reads `caller` / `capability` / `active`.
+      Unknown keys are ignored by both.
 
 
       PASSED THROUGH AS AUTHORED. Free-form because core's matcher owns the vocabulary; re-modelling
       it here would create a second definition free to drift from the one that actually filters.
 
 
-      TWO KEYS MAY NOT BE WRITTEN HERE and validation refuses them. `source` is RUNTIME-MANAGED —
-      the supervisor owner-tags the declaration with it at registration, and an author writing one
-      is claiming an owner they do not get to assert. `target` moved OUT to its own typed field, so
-      writing it in the bag is a second copy of a value that already has a home, free to disagree
-      with it.
+      TWO KEYS MAY NOT BE WRITTEN AND VALIDATION REFUSES THEM: `syw.owner` and `syw.fqid`. Those are
+      RUNTIME-MANAGED — the host stamps the declaring package's identity into them at registration —
+      so a value written here is overwritten and decides nothing.
+
+
+      `target` IS ALSO REFUSED, for a different reason: it has its own typed field, and one value in
+      two homes is free to disagree with itself.
+
+
+      `source` IS PERMITTED, AND WAS ONCE REFUSED HERE. It used to carry the owner tag, so an
+      authored value was silently discarded — which is why this tool rejected it. The owner tag has
+      since moved to the `syw.*` keys and `source` now means what the global chain always read it
+      as: an author-declared filter on the envelope's SOURCE. The refusal was correct when written
+      and was invalidated by a change elsewhere.
     optional: true
   - name: priority
     type: int
@@ -112,4 +122,4 @@ fields:
     optional: false
 methods: []
 createdAt: '2026-09-11T16:16:24.010Z'
-updatedAt: '2026-09-11T17:31:34.853Z'
+updatedAt: '2026-09-11T20:22:34.211Z'

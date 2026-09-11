@@ -150,25 +150,32 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
                 "must name the capability in this package that the host invokes for each matched envelope; without one the declaration registers and intercepts nothing",
             ));
         }
-        // TWO KEYS MAY NOT BE WRITTEN IN THE FILTERS BAG, and both refusals are about a value that
-        // already has an owner somewhere else.
+        // THREE KEYS MAY NOT BE WRITTEN IN THE FILTERS BAG, and the refusals have two different
+        // reasons.
         //
-        // `source` is RUNTIME-MANAGED: the supervisor owner-tags each declaration with it at
-        // registration. An author writing one is claiming an owner they do not get to assert, and it
-        // would be overwritten anyway — a declaration that looks meaningful and decides nothing.
+        // `syw.owner` and `syw.fqid` are RUNTIME-MANAGED: the host stamps the declaring package's
+        // identity into them at registration, so a value written here is overwritten — a declaration
+        // that looks meaningful and decides nothing.
         //
         // `target` has its own TYPED field. Core moved it out of this bag precisely because a
         // misspelled service name there produced a middleware that registered, listed and silently
         // intercepted nothing. Accepting it in both places would put one value in two homes, free to
         // disagree, and restore the defect the move closed.
+        //
+        // `source` IS PERMITTED, AND THIS FUNCTION ONCE REFUSED IT. It carried the owner tag until
+        // the host moved that to the `syw.*` keys, so an authored value really was discarded and
+        // refusing it was right. It now means what the global bus chain always read it as: an
+        // author-declared filter on the envelope's SOURCE. A rule correct when written and
+        // invalidated by a change elsewhere — and one that kept refusing would reject a legal
+        // manifest, which is worse than not checking at all.
         if let Some(filters) = middleware.filters.as_ref().and_then(|f| f.as_object()) {
-            for reserved in ["source", "target"] {
+            for reserved in ["syw.owner", "syw.fqid", "target"] {
                 if filters.contains_key(reserved) {
                     violations.push(Violation::new(
                         format!("{at}.filters.{reserved}"),
                         match reserved {
-                            "source" => "is runtime-managed: a node owner-tags the declaration with it at registration, so a value written here is overwritten and decides nothing".to_string(),
-                            _ => "belongs in the middleware's own `target` field, not in `filters`; one value in two places is free to disagree with itself".to_string(),
+                            "target" => "belongs in the middleware's own `target` field, not in `filters`; one value in two places is free to disagree with itself".to_string(),
+                            owned => format!("is runtime-managed: a node stamps the declaring package's identity into `{owned}` at registration, so a value written here is overwritten and decides nothing"),
                         },
                     ));
                 }

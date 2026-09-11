@@ -105,24 +105,31 @@ methods:
         endStep: 16
       - stepNumber: 16
         description: >-
-          The id must be non-empty, and the filters bag must not carry `source` or `target`.
+          The id and handler must be non-empty, and the filters bag must not carry `syw.owner`,
+          `syw.fqid` or `target`.
 
 
-          `source` IS RUNTIME-MANAGED. The supervisor owner-tags each declaration with it at
-          registration; an author writing one is claiming an owner they do not get to assert, and
-          the value would be overwritten anyway — so it is a declaration that looks meaningful and
-          decides nothing.
+          THE `syw.*` PAIR IS RUNTIME-MANAGED. The host stamps the declaring package's identity into
+          them at registration, so a value written here is overwritten — a declaration that looks
+          meaningful and decides nothing.
 
 
-          `target` HAS ITS OWN TYPED FIELD. It was moved out of this bag by core precisely because a
+          `target` HAS ITS OWN TYPED FIELD. Core moved it out of this bag precisely because a
           misspelled service name there produced a middleware that registered, listed and silently
           intercepted nothing. Accepting it in both places would put one value in two homes, free to
           disagree, and restore the defect the move closed.
 
 
-          NEITHER IS A REFUSAL THIS TOOL INVENTS. Both are facts about the shape core consumes,
-          which is what this validation exists to check — unlike the permission groups a middleware
-          declaration also needs, whose schema this tool deliberately does not model.
+          `source` IS PERMITTED AND WAS ONCE REFUSED HERE — a rule correct when written and
+          invalidated by a change elsewhere. It carried the owner tag until the host moved that to
+          the `syw.*` keys; it now means what the global chain always read it as, an author-declared
+          filter on the envelope's source. A validator that kept refusing it would reject a legal
+          manifest, which is worse than not checking at all.
+
+
+          NONE OF THESE IS A REFUSAL THIS TOOL INVENTS. All are facts about the shape core consumes
+          — unlike the permission groups a middleware declaration also needs, whose schema this tool
+          deliberately does not model.
         type: local
       - stepNumber: 17
         description: Every violation found, in declaration order.
@@ -247,4 +254,4 @@ methods:
       to notice.
 status: draft
 createdAt: '2026-09-10T00:15:58.087Z'
-updatedAt: '2026-09-11T16:17:18.004Z'
+updatedAt: '2026-09-11T20:22:43.164Z'

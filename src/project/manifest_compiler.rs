@@ -138,6 +138,18 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
         if middleware.id.trim().is_empty() {
             violations.push(Violation::new(format!("{at}.id"), "must not be empty"));
         }
+        // THE ADDRESS THE INTERCEPTOR IS CALLED AT. A declaration with no handler registers, lists
+        // and intercepts nothing — the inert-declaration shape — and the host has nothing to invoke.
+        //
+        // NOT CHECKED AGAINST `capabilities`: a package's BUS-served capabilities are served by its
+        // handler and never appear in that list, so cross-referencing would refuse the ordinary
+        // case. A rule that fails the correct shape is worse than no rule.
+        if middleware.handler.trim().is_empty() {
+            violations.push(Violation::new(
+                format!("{at}.handler"),
+                "must name the capability in this package that the host invokes for each matched envelope; without one the declaration registers and intercepts nothing",
+            ));
+        }
         // TWO KEYS MAY NOT BE WRITTEN IN THE FILTERS BAG, and both refusals are about a value that
         // already has an owner somewhere else.
         //

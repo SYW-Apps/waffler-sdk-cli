@@ -462,6 +462,7 @@ fn a_declared_middleware_reaches_the_manifest() {
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
+        handler: "pkg.auth.intercept".into(),
         target: Some("syw.system.*".into()),
         needs_payload: false,
         needs_headers: true,
@@ -487,6 +488,7 @@ fn an_omitted_middleware_option_is_ABSENT_rather_than_null() {
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "everything".into(),
+        handler: "pkg.audit.sniff".into(),
         target: None,
         needs_payload: false,
         needs_headers: false,
@@ -510,6 +512,7 @@ fn a_middleware_may_not_write_the_filter_keys_that_belong_elsewhere() {
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
+        handler: "pkg.auth.intercept".into(),
         target: None,
         needs_payload: false,
         needs_headers: true,
@@ -531,6 +534,7 @@ fn an_ordinary_middleware_filter_is_ACCEPTED() {
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
+        handler: "pkg.auth.intercept".into(),
         target: Some("packages".into()),
         needs_payload: false,
         needs_headers: true,
@@ -540,4 +544,46 @@ fn an_ordinary_middleware_filter_is_ACCEPTED() {
 
     let violations = validate_authored(&authored);
     assert!(violations.is_empty(), "{violations:?}");
+}
+
+#[test]
+fn a_middleware_must_name_the_HANDLER_the_host_invokes() {
+    // WITHOUT ONE THE DECLARATION IS INERT — it registers, it lists, and it intercepts nothing,
+    // because the host has no address to call. That is the exact shape the legacy ABI carried
+    // directly as `host_register_middleware(cap_id)` and the migrated declaration had lost.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "auth".into(),
+        handler: "   ".into(),
+        target: None,
+        needs_payload: false,
+        needs_headers: true,
+        filters: None,
+        priority: None,
+    }];
+
+    let violations = validate_authored(&authored);
+    let fields = fields(&violations);
+    assert!(fields.contains(&"middleware[0].handler"), "{fields:?}");
+}
+
+#[test]
+fn the_handler_is_NOT_required_to_be_a_declared_capability() {
+    // A package's BUS-served capabilities are served by its handler and never appear in
+    // `capabilities` — that list is for capabilities a HOST registers, such as runtime primitives.
+    // So cross-referencing the handler against it would refuse the ordinary case, which is why this
+    // names a capability the manifest does not declare and must still validate.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "auth".into(),
+        handler: "identity.middleware".into(),
+        target: None,
+        needs_payload: false,
+        needs_headers: true,
+        filters: None,
+        priority: None,
+    }];
+
+    let violations = validate_authored(&authored);
+    assert!(violations.is_empty(), "a bus-served handler must not be cross-checked: {violations:?}");
 }

@@ -217,6 +217,20 @@ pub struct DeclaredDependency {
 pub struct DeclaredMiddleware {
     /// Unique within the package. Re-registering the same id REPLACES the earlier declaration.
     pub id: String,
+    /// The capability in THIS package's own module that the host invokes for each matched envelope.
+    ///
+    /// IT IS THE ADDRESS THE INTERCEPTOR IS CALLED AT. The legacy ABI passed it directly —
+    /// `host_register_middleware(cap_ptr, cap_len)` — and the migrated declaration lost it, which
+    /// left nothing able to turn a declaration into something callable.
+    ///
+    /// NOT NAMED `capability`, deliberately: `filters.capability` already means the INTERCEPTED
+    /// capability — which call is being made. One word carrying both meanings in one type is the
+    /// defect that `mode` and `filters.active` were.
+    ///
+    /// NOT CROSS-CHECKED AGAINST `capabilities`. A package's BUS-served capabilities are served by
+    /// its handler and are not declared in that list at all, so a check against it would refuse the
+    /// ordinary case — and a rule that fails the correct shape is worse than no rule.
+    pub handler: String,
     /// The SERVICE whose routed calls this intercepts — exact, or a prefix glob ending in `*`.
     /// ABSENT intercepts EVERY routed call, which is what a node-wide interceptor says by saying
     /// nothing.

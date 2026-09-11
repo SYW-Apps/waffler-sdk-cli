@@ -84,6 +84,32 @@ fields:
       IT ORDERS ACROSS PACKAGES, not only within one, so a number chosen against a node's current
       package set is a number that changes meaning when another package is installed.
     optional: true
+  - name: handler
+    type: string
+    description: >-
+      The capability in THIS package's own module that the host invokes for each matched envelope.
+
+
+      IT IS THE ADDRESS THE INTERCEPTOR IS CALLED AT. The legacy ABI passed it directly —
+      `host_register_middleware(cap_ptr, cap_len)` — and the migrated declaration lost it, which
+      left nothing able to turn a declaration into something callable.
+
+
+      NOT NAMED `capability`, deliberately. `filters.capability` already exists and means the
+      INTERCEPTED capability — which call is being made. One word carrying both meanings in one type
+      is the defect that `mode` and `filters.active` were.
+
+
+      REQUIRED, NOT OPTIONAL. A declaration with no invoker registers, lists, and intercepts nothing
+      — the inert-declaration shape. It is free to require today only because no bundle carries a
+      middleware declaration yet.
+
+
+      NOT CROSS-CHECKED AGAINST `capabilities`, and that is deliberate: a package's BUS-served
+      capabilities are served by its handler and are not declared in that list at all, so a check
+      against it would refuse the ordinary case. A rule that fails the correct shape is worse than
+      no rule.
+    optional: false
 methods: []
 createdAt: '2026-09-11T16:16:24.010Z'
-updatedAt: '2026-09-11T16:16:24.453Z'
+updatedAt: '2026-09-11T17:31:34.853Z'

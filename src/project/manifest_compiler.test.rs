@@ -36,6 +36,7 @@ fn sound() -> AuthoredPackage {
         permission_groups: vec![],
         fast_lane_requests: vec![],
         ui_plugins: vec![],
+        middleware: vec![],
         build: Some(BuildDeclaration { manifest_path: "Cargo.toml".into() }),
     }
 }
@@ -451,4 +452,92 @@ fn an_authored_dependency_with_no_flag_is_REQUIRED() {
     let authored: DeclaredDependency =
         serde_json::from_str(r#"{"fqid":"syw.system.store","version":"^1.0"}"#).expect("decodes");
     assert!(!authored.optional, "an absent flag must mean REQUIRED");
+}
+
+#[test]
+fn a_declared_middleware_reaches_the_manifest() {
+    // `"middleware": []` WAS A LITERAL. Not a default with no authored source — an empty array
+    // written unconditionally, so no bundle could declare an interceptor whatever its author wrote.
+    // Core's consumer side was complete the whole time.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "auth".into(),
+        target: Some("syw.system.*".into()),
+        needs_payload: false,
+        needs_headers: true,
+        filters: Some(serde_json::json!({"capability": "admin.*"})),
+        priority: Some(10),
+    }];
+
+    let body = compile_manifest_body(&authored, &[]);
+    let declared = body["middleware"].as_array().expect("a middleware list");
+    assert_eq!(declared.len(), 1, "{body:#?}");
+    assert_eq!(declared[0]["id"], serde_json::json!("auth"));
+    assert_eq!(declared[0]["target"], serde_json::json!("syw.system.*"));
+    assert_eq!(declared[0]["needsHeaders"], serde_json::json!(true));
+    assert_eq!(declared[0]["filters"]["capability"], serde_json::json!("admin.*"));
+    assert_eq!(declared[0]["priority"], serde_json::json!(10));
+}
+
+#[test]
+fn an_omitted_middleware_option_is_ABSENT_rather_than_null() {
+    // A present-and-null optional is not the same declaration as an absent one, and core's decoder
+    // distinguishes them. `target: null` would read as "intercept nothing named", where absent
+    // means "intercept EVERY routed call" — opposite meanings from the same omission.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "everything".into(),
+        target: None,
+        needs_payload: false,
+        needs_headers: false,
+        filters: None,
+        priority: None,
+    }];
+
+    let body = compile_manifest_body(&authored, &[]);
+    let declared = &body["middleware"][0];
+    for absent in ["target", "filters", "priority"] {
+        assert!(declared.get(absent).is_none(), "{absent} must be ABSENT, not null: {declared:#?}");
+    }
+}
+
+#[test]
+fn a_middleware_may_not_write_the_filter_keys_that_belong_elsewhere() {
+    // `source` is runtime-managed — the supervisor owner-tags it at registration, so a value here is
+    // overwritten and decides nothing. `target` has its own typed field, and core moved it out of
+    // this bag precisely because a misspelled service name there produced a middleware that
+    // registered, listed and silently intercepted nothing.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "auth".into(),
+        target: None,
+        needs_payload: false,
+        needs_headers: true,
+        filters: Some(serde_json::json!({"source": "someone.else", "target": "packages"})),
+        priority: None,
+    }];
+
+    let violations = validate_authored(&authored);
+    let fields = fields(&violations);
+    assert!(fields.contains(&"middleware[0].filters.source"), "{fields:?}");
+    assert!(fields.contains(&"middleware[0].filters.target"), "{fields:?}");
+}
+
+#[test]
+fn an_ordinary_middleware_filter_is_ACCEPTED() {
+    // The neighbouring valid shape, so the refusal above is shown to be about the two reserved keys
+    // and not about carrying filters at all. A check that refused every filters bag would be
+    // indistinguishable from this one on the failing case alone.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "auth".into(),
+        target: Some("packages".into()),
+        needs_payload: false,
+        needs_headers: true,
+        filters: Some(serde_json::json!({"caller": "syw.*", "capability": "admin.*", "active": true})),
+        priority: None,
+    }];
+
+    let violations = validate_authored(&authored);
+    assert!(violations.is_empty(), "{violations:?}");
 }

@@ -98,6 +98,33 @@ methods:
           becomes a dependency the registry's resolver cannot satisfy and cannot explain.
         type: local
       - stepNumber: 15
+        description: For each declared middleware.
+        type: loop
+        loopKind: forEach
+        over: authored.middleware
+        endStep: 16
+      - stepNumber: 16
+        description: >-
+          The id must be non-empty, and the filters bag must not carry `source` or `target`.
+
+
+          `source` IS RUNTIME-MANAGED. The supervisor owner-tags each declaration with it at
+          registration; an author writing one is claiming an owner they do not get to assert, and
+          the value would be overwritten anyway — so it is a declaration that looks meaningful and
+          decides nothing.
+
+
+          `target` HAS ITS OWN TYPED FIELD. It was moved out of this bag by core precisely because a
+          misspelled service name there produced a middleware that registered, listed and silently
+          intercepted nothing. Accepting it in both places would put one value in two homes, free to
+          disagree, and restore the defect the move closed.
+
+
+          NEITHER IS A REFUSAL THIS TOOL INVENTS. Both are facts about the shape core consumes,
+          which is what this validation exists to check — unlike the permission groups a middleware
+          declaration also needs, whose schema this tool deliberately does not model.
+        type: local
+      - stepNumber: 17
         description: Every violation found, in declaration order.
         type: return
         outcome: the complete violation list, empty when the manifest is sound
@@ -146,20 +173,26 @@ methods:
         description: >-
           Assemble the body: fqid, version, hosting mode, the authored permission groups and
           fast-lane requests passed through as written, the dependencies, the capabilities, the ui
-          plugins, an empty middleware list, and enabled true.
+          plugins, the MIDDLEWARE, and enabled true.
+
+
+          THE MIDDLEWARE LIST WAS A LITERAL `[]` UNTIL NOW. Not a default with no authored source —
+          an empty array written unconditionally, so no bundle could declare an interceptor whatever
+          its author wrote. It is the third instance of that hole, after dependencies and ui
+          plugins, and core's consumer side was complete the whole time.
 
 
           EACH DEPENDENCY CARRIES ITS OPTIONAL FLAG, WRITTEN EVEN WHEN FALSE. Core defaults an
           absent flag to required, so omitting it would carry the same meaning — but a reader could
           not then tell "this author considered it and chose required" from "this manifest predates
-          the field", which is the distinction the flag exists to make. It is the one place in this
-          body where an explicit false earns its bytes.
+          the field", which is the distinction the flag exists to make.
 
 
           RUNTIME-MANAGED FIELDS ARE OMITTED, not emitted empty. Identity, approved group ids and
           fast-lane grants are minted by a node; writing them blank would make a bundle that
           declares nothing indistinguishable from one whose author wrote an empty value, and core's
-          own warnings depend on telling those apart.
+          own warnings depend on telling those apart. A middleware declaration's `filters.source` is
+          the same kind of field and is refused at validation for the same reason.
 
 
           THE ARTIFACTS ARRAY IS LEFT ABSENT. Its hashes are facts about bytes the writer has not
@@ -214,4 +247,4 @@ methods:
       to notice.
 status: draft
 createdAt: '2026-09-10T00:15:58.087Z'
-updatedAt: '2026-09-11T06:19:49.913Z'
+updatedAt: '2026-09-11T16:17:18.004Z'

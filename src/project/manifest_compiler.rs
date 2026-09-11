@@ -133,6 +133,37 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
         }
     }
 
+    for (i, middleware) in authored.middleware.iter().enumerate() {
+        let at = format!("middleware[{i}]");
+        if middleware.id.trim().is_empty() {
+            violations.push(Violation::new(format!("{at}.id"), "must not be empty"));
+        }
+        // TWO KEYS MAY NOT BE WRITTEN IN THE FILTERS BAG, and both refusals are about a value that
+        // already has an owner somewhere else.
+        //
+        // `source` is RUNTIME-MANAGED: the supervisor owner-tags each declaration with it at
+        // registration. An author writing one is claiming an owner they do not get to assert, and it
+        // would be overwritten anyway — a declaration that looks meaningful and decides nothing.
+        //
+        // `target` has its own TYPED field. Core moved it out of this bag precisely because a
+        // misspelled service name there produced a middleware that registered, listed and silently
+        // intercepted nothing. Accepting it in both places would put one value in two homes, free to
+        // disagree, and restore the defect the move closed.
+        if let Some(filters) = middleware.filters.as_ref().and_then(|f| f.as_object()) {
+            for reserved in ["source", "target"] {
+                if filters.contains_key(reserved) {
+                    violations.push(Violation::new(
+                        format!("{at}.filters.{reserved}"),
+                        match reserved {
+                            "source" => "is runtime-managed: a node owner-tags the declaration with it at registration, so a value written here is overwritten and decides nothing".to_string(),
+                            _ => "belongs in the middleware's own `target` field, not in `filters`; one value in two places is free to disagree with itself".to_string(),
+                        },
+                    ));
+                }
+            }
+        }
+    }
+
     for (i, plugin) in authored.ui_plugins.iter().enumerate() {
         let at = format!("uiPlugins[{i}]");
         if plugin.id.trim().is_empty() {
@@ -310,6 +341,19 @@ pub fn compile_manifest_body(authored: &AuthoredPackage, located: &[LocatedArtif
         }))
         .collect();
 
+    // WRITTEN FROM THE AUTHORED LIST, which until now was a literal `[]`. Core's consumer side was
+    // complete the whole time — the supervisor walks these, owner-tags each and registers it on the
+    // per-package chain and the global bus chain — so the only thing missing was a producer.
+    //
+    // SERIALIZED FROM THE AUTHORED TYPE rather than assembled field by field here. Its serde
+    // attributes already skip an absent `target`, `filters` and `priority`, which is what keeps an
+    // omitted optional absent in the manifest rather than present-and-null.
+    let middleware: Vec<serde_json::Value> = authored
+        .middleware
+        .iter()
+        .map(|m| serde_json::to_value(m).expect("a declared middleware serializes"))
+        .collect();
+
     let fast_lane_requests: Vec<serde_json::Value> = authored
         .fast_lane_requests
         .iter()
@@ -326,7 +370,7 @@ pub fn compile_manifest_body(authored: &AuthoredPackage, located: &[LocatedArtif
         "dependencies": dependencies,
         "capabilities": capabilities,
         "ui_plugins": ui_plugins,
-        "middleware": [],
+        "middleware": middleware,
         "fast_lane_requests": fast_lane_requests,
         "enabled": true
     });

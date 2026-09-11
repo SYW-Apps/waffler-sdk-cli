@@ -74,6 +74,19 @@ pub struct AuthoredPackage {
     pub fast_lane_requests: Vec<FastLaneRequest>,
     #[serde(default)]
     pub ui_plugins: Vec<DeclaredUiPlugin>,
+    /// Bus middleware this package contributes — interceptors core runs around routed calls.
+    ///
+    /// EMPTY IS THE ORDINARY CASE AND WAS UNTIL NOW THE ONLY ONE: `compile_manifest_body` wrote
+    /// `"middleware": []` as a literal, so no bundle could declare an interceptor whatever its
+    /// author wrote.
+    ///
+    /// DECLARING ONE COMMITS THE PACKAGE TO A GRANT IT MUST ALSO REQUEST. Core registers each
+    /// declaration on the global bus chain, that registration is gated on `bus:register_middleware`,
+    /// and a failure there is FATAL rather than skipped — an interceptor that silently did not
+    /// register is an auth package checking nothing, which is the worst outcome available. So a
+    /// package declaring middleware without a permission group asking for that grant does not run.
+    #[serde(default)]
+    pub middleware: Vec<DeclaredMiddleware>,
     /// The crate manifest to build, project-relative. Absent means nothing is built and the
     /// declared artifacts are expected to exist already.
     ///
@@ -182,6 +195,58 @@ pub struct DeclaredDependency {
     /// a forgotten flag is a package that refuses to start rather than one that starts broken.
     #[serde(default)]
     pub optional: bool,
+}
+
+/// A bus middleware this package contributes: an interceptor core runs around routed calls.
+///
+/// THIS TOOL COULD NOT AUTHOR ONE. `compile_manifest_body` wrote `"middleware": []` as a literal and
+/// the authored model had no field, so no bundle in existence declares any middleware — the third
+/// instance of that hole after `dependencies` and `ui_plugins`. Core's consumer side was complete
+/// the whole time: the supervisor walks a package's declarations, owner-tags each and registers it
+/// on both the per-package chain and the global bus chain.
+///
+/// THE FILTERS ARE AN EFFICIENCY DECISION, NOT ONLY A CORRECTNESS ONE. Core assembles the chain
+/// in-process before dispatching anything, so a declaration whose filters do not match a call never
+/// enters that chain and costs no cross-boundary call into this package at all. Declaring the
+/// narrowest filters that are still correct is how an interceptor avoids being asked about traffic
+/// it would only wave through.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
+// snake_case; a developer editing JSON should not have to know which language read it.
+#[serde(rename_all = "camelCase")]
+pub struct DeclaredMiddleware {
+    /// Unique within the package. Re-registering the same id REPLACES the earlier declaration.
+    pub id: String,
+    /// The SERVICE whose routed calls this intercepts — exact, or a prefix glob ending in `*`.
+    /// ABSENT intercepts EVERY routed call, which is what a node-wide interceptor says by saying
+    /// nothing.
+    ///
+    /// TYPED IN CORE RATHER THAN A FILTER KEY. It used to be fished out of the free-form filters
+    /// bag, where a misspelled service name produced a middleware that registered, listed, and
+    /// silently intercepted nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target: Option<String>,
+    /// Whether the interceptor is handed the call's payload.
+    ///
+    /// ASK FOR NOTHING THAT IS NOT READ: a payload the interceptor does not inspect is bytes
+    /// crossing a package boundary on every matched call.
+    #[serde(default)]
+    pub needs_payload: bool,
+    /// Whether the interceptor is handed the call's headers — where a bearer token travels.
+    #[serde(default)]
+    pub needs_headers: bool,
+    /// The finer matching core understands beside the typed target: `caller` and `capability`
+    /// (exact or prefix-`*` glob) and `active` (a bool toggle, default true).
+    ///
+    /// PASSED THROUGH AS AUTHORED. Core's matcher owns this vocabulary, and re-modelling it here
+    /// would create a second definition free to drift from the one that actually filters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub filters: Option<serde_json::Value>,
+    /// Where this sits in the assembled chain relative to OTHER packages' interceptors. Absent
+    /// takes core's default. It orders across packages, so a number chosen against one node's
+    /// package set changes meaning when another package is installed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub priority: Option<u32>,
 }
 
 /// A capability this package contributes to a host.

@@ -73,6 +73,9 @@ fn render_manifest(fqid: &str, version: &str, description: &str) -> String {
 
   "//dependencies": "Other packages this one needs: {{ \"fqid\": \"...\", \"version\": \"^1.0\" }}. A RANGE, never a pin. Add \"optional\": true for one the package can run without -- the default is REQUIRED, and a required dependency that is missing stops this package starting at boot rather than letting it run broken.",
   "dependencies": [],
+
+  "//middleware": "Interceptors core runs around routed bus calls: {{ \"id\": \"auth\", \"target\": \"syw.system.*\", \"needsHeaders\": true, \"filters\": {{ \"capability\": \"admin.*\" }} }}. `target` absent intercepts EVERY routed call. Declare the NARROWEST filters that are still correct: core assembles the chain in-process, so a call your filters exclude never crosses into this package at all -- filtering is how an interceptor avoids being asked about traffic it would only wave through. Two keys are refused inside `filters`: `source` (a node owner-tags it at registration) and `target` (it has its own field). AND DECLARING ANY MIDDLEWARE COMMITS YOU TO A GRANT: core registers each one on the global bus chain, that is gated on `bus:register_middleware`, and failing it is FATAL -- so a package declaring middleware without a permission group requesting that grant will not run.",
+  "middleware": [],
   "permissionGroups": [],
   "fastLaneRequests": [],
   "uiPlugins": []

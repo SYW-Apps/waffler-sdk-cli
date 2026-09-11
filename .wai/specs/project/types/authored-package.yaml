@@ -86,6 +86,24 @@ fields:
       UI plugin bundles this package ships. A plugin rides as an artifact INSIDE the package, so a
       node without the package has no page rather than an empty one.
     optional: false
+  - name: middleware
+    type: sdk_cli::declared-middleware[]
+    description: >-
+      Bus middleware this package contributes — interceptors core runs around routed calls.
+
+
+      EMPTY IS THE ORDINARY CASE and was until now the ONLY one: `compileManifestBody` wrote
+      `"middleware": []` as a literal, so no bundle could declare an interceptor whatever its author
+      wanted.
+
+
+      DECLARING ONE COMMITS THE PACKAGE TO A GRANT IT MUST ALSO REQUEST. Core's supervisor registers
+      each declaration on the global bus chain, that registration is gated on
+      `bus:register_middleware`, and a failure there is FATAL rather than skipped — an interceptor
+      that silently did not register is an auth package checking nothing, which is the worst outcome
+      available. So a package declaring middleware without a permission group asking for that grant
+      does not run.
+    optional: false
 methods: []
 componentClass: sdk_cli::project-adapter
 invariants:
@@ -101,4 +119,4 @@ invariants:
       both directions, so an unnamed artifact and a named-but-absent one are both refused there —
       and are cheaper to catch here.
 createdAt: '2026-09-10T00:07:14.467Z'
-updatedAt: '2026-09-11T06:18:43.508Z'
+updatedAt: '2026-09-11T16:16:31.938Z'

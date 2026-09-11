@@ -1,0 +1,89 @@
+kind: value-object
+id: declared-middleware
+name: Declared Middleware
+description: >-
+  A bus middleware this package contributes: an interceptor core runs around routed calls, with the
+  filters deciding which calls it sees.
+
+
+  WHY IT EXISTS: THIS TOOL COULD NOT AUTHOR ONE. `compileManifestBody` wrote `"middleware": []` as a
+  literal and the authored model had no field, so no bundle in existence declares any middleware —
+  the third instance of that hole after `dependencies` and `ui_plugins`. Core's consumer side is
+  complete: the supervisor walks a package's declarations, owner-tags each one and registers it on
+  both the per-package chain and the global bus chain.
+
+
+  THE FILTERS ARE AN EFFICIENCY DECISION, NOT ONLY A CORRECTNESS ONE. Core assembles the chain
+  in-process before dispatching anything: a declaration whose filters do not match a call never
+  enters that chain, so it costs no cross-boundary call into this package at all. Declaring the
+  narrowest filters that are still correct is therefore how an interceptor avoids being asked about
+  traffic it would only wave through — which matters most for the case this was built for, an auth
+  middleware that must see the calls needing a validated user and nothing else.
+subsystem: project
+group: sdk_cli::authored-manifest
+fields:
+  - name: id
+    type: string
+    description: >-
+      This declaration's identifier, unique within the package. Re-registering the same id REPLACES
+      the earlier declaration rather than adding a second.
+    optional: false
+  - name: target
+    type: string
+    description: >-
+      The SERVICE whose routed calls this intercepts — exact, or a prefix glob ending in `*`. ABSENT
+      intercepts every routed call, which is what a node-wide interceptor declares by saying
+      nothing.
+
+
+      TYPED IN CORE RATHER THAN A FILTER KEY, deliberately: it used to be fished out of the
+      free-form filters bag, where a misspelled service name produced a middleware that registered,
+      listed, and silently intercepted nothing. Writing it here is the only place a target is
+      written.
+    optional: true
+  - name: needs_payload
+    type: bool
+    description: >-
+      Whether the interceptor is handed the call's payload. Defaults to false.
+
+
+      ASK FOR NOTHING THAT IS NOT READ. A payload the interceptor does not inspect is bytes crossing
+      a package boundary on every matched call, and an auth middleware reading only headers has no
+      reason to request one.
+    optional: true
+  - name: needs_headers
+    type: bool
+    description: >-
+      Whether the interceptor is handed the call's headers. Defaults to false. This is the one an
+      auth interceptor needs — it is where a bearer token travels.
+    optional: true
+  - name: filters
+    type: json
+    description: >-
+      The finer matching core understands beside the typed target: `caller` and `capability` (exact
+      or prefix-`*` glob) and `active` (a bool toggle, default true).
+
+
+      PASSED THROUGH AS AUTHORED. Free-form because core's matcher owns the vocabulary; re-modelling
+      it here would create a second definition free to drift from the one that actually filters.
+
+
+      TWO KEYS MAY NOT BE WRITTEN HERE and validation refuses them. `source` is RUNTIME-MANAGED —
+      the supervisor owner-tags the declaration with it at registration, and an author writing one
+      is claiming an owner they do not get to assert. `target` moved OUT to its own typed field, so
+      writing it in the bag is a second copy of a value that already has a home, free to disagree
+      with it.
+    optional: true
+  - name: priority
+    type: int
+    description: >-
+      Where this sits in the assembled chain relative to other packages' interceptors. Absent takes
+      core's default.
+
+
+      IT ORDERS ACROSS PACKAGES, not only within one, so a number chosen against a node's current
+      package set is a number that changes meaning when another package is installed.
+    optional: true
+methods: []
+createdAt: '2026-09-11T16:16:24.010Z'
+updatedAt: '2026-09-11T16:16:24.453Z'

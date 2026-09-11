@@ -626,6 +626,114 @@ fn the_handler_is_NOT_required_to_be_a_declared_capability() {
     assert!(violations.is_empty(), "a bus-served handler must not be cross-checked: {violations:?}");
 }
 
+#[test]
+fn a_hand_written_waffler_json_still_parses_INCLUDING_THE_SCOPE_SPELLING() {
+    // THE CANARY THIS CRATE OWES ITS AUTHORS.
+    //
+    // Embedding core's `MiddlewareScope` made its field NAMES part of the contract this tool offers
+    // a developer: if `any_of` is ever renamed, every `waffler.json` in existence stops parsing.
+    // That is a fine trade — one definition of the matcher beats two that drift — but it moves a
+    // risk from "two models disagree" to "one model is renamed under the authors".
+    //
+    // So the spelling is asserted from a LITERAL DOCUMENT, the way a developer actually writes one,
+    // rather than from a struct this crate constructs. A constructed fixture follows a rename
+    // automatically and keeps passing; only text can notice that the text people wrote no longer
+    // works. A rename now fails HERE, in one suite, instead of at every author's next pack.
+    let authored: AuthoredPackage = serde_json::from_str(
+        r#"{
+          "fqid": "syw.auth.identity",
+          "version": "1.0.0",
+          "coreCompatibility": "^0.1",
+          "middleware": [
+            {
+              "id": "identity-auth",
+              "handler": "identity.middleware",
+              "needsHeaders": true,
+              "priority": 100,
+              "scope": {
+                "commands": {
+                  "targets": { "any_of": ["db", "syw.system.*"], "none_of": ["syw.auth.identity"] },
+                  "capabilities": { "any_of": ["*.read"] }
+                },
+                "headers": [{ "key": "jwt", "test": "present" }]
+              }
+            }
+          ]
+        }"#,
+    )
+    .expect("a hand-written manifest must parse — a failure here is a RENAME, not a typo");
+
+    let declared = &authored.middleware[0];
+    assert_eq!(declared.id, "identity-auth");
+    assert_eq!(declared.handler, "identity.middleware");
+    // THE AUTHORING SEAM, ASSERTED IN BOTH DIRECTIONS: this crate's own fields are camelCase because
+    // a human writes this file, and the scope's are snake_case because they are core's. Both
+    // spellings appear in the document above, and both have to survive the same parse.
+    assert!(declared.needs_headers, "camelCase `needsHeaders` is this crate's spelling");
+    let commands = declared.scope.commands.as_ref().expect("a command block");
+    assert_eq!(commands.targets.any_of, vec!["db".to_string(), "syw.system.*".to_string()]);
+    assert_eq!(commands.targets.none_of, vec!["syw.auth.identity".to_string()]);
+    assert_eq!(commands.capabilities.any_of, vec!["*.read".to_string()]);
+    assert_eq!(declared.scope.headers[0].key, "jwt");
+    assert_eq!(declared.scope.headers[0].test, "present");
+    // AND IT IS A SCOPE CORE WOULD ACCEPT, not merely one that parsed.
+    assert!(declared.scope.validate().is_ok(), "{:?}", declared.scope);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn HAZARD_a_camelCase_typo_in_the_scope_silently_empties_a_dimension() {
+    // A HAZARD THIS CRATE CREATED BY EMBEDDING, recorded rather than left to be discovered.
+    //
+    // `waffler.json` is camelCase, so `anyOf` is the spelling an author's hand reaches for. The
+    // scope is core's type and spells it `any_of`. Serde ignores unknown keys and the field carries
+    // `#[serde(default)]`, so the typo does not fail — the dimension comes back EMPTY.
+    //
+    // That is the worst available failure: the declaration parses, it may still validate when
+    // another dimension narrows, and it then intercepts a different set of calls than its author
+    // wrote. An interceptor that intercepts the wrong traffic is exactly what the typed scope
+    // replaced a filter bag to prevent, arriving through the authoring seam instead.
+    //
+    // WHAT WOULD CLOSE IT is `deny_unknown_fields` on the scope types, which turns an unknown key
+    // into a parse error naming it. That is core's call on core's type; asked for, not assumed.
+    //
+    // WHEN IT LANDS THIS TEST FAILS, and it should — a hazard test that keeps passing after the
+    // hazard is closed is a test asserting a defect still exists. Flip it to expect an error then.
+    let authored: AuthoredPackage = serde_json::from_str(
+        r#"{
+          "fqid": "syw.probe.echo",
+          "version": "1.0.0",
+          "middleware": [
+            {
+              "id": "typo",
+              "handler": "pkg.intercept",
+              "scope": {
+                "commands": {
+                  "targets": { "anyOf": ["db"] },
+                  "capabilities": { "any_of": ["*.read"] }
+                }
+              }
+            }
+          ]
+        }"#,
+    )
+    .expect("the typo parses, which is the hazard");
+
+    let commands = authored.middleware[0].scope.commands.as_ref().expect("a command block");
+    assert!(
+        commands.targets.any_of.is_empty(),
+        "the misspelled dimension is silently EMPTY, not rejected: {:?}",
+        commands.targets
+    );
+    // AND IT STILL VALIDATES, because the other dimension narrows — so nothing anywhere tells the
+    // author their target list was discarded. This is the half that makes it dangerous rather than
+    // merely annoying.
+    assert!(
+        authored.middleware[0].scope.validate().is_ok(),
+        "a scope narrowed elsewhere hides the discarded dimension"
+    );
+}
+
 /// A command scope naming the targets it reaches, which is the ordinary shape.
 fn scope_over(targets: &[&str]) -> waffler_shared::MiddlewareScope {
     waffler_shared::MiddlewareScope {

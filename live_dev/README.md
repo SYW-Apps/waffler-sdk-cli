@@ -295,6 +295,33 @@ Only the middle one is evidence. Treating the third as "not there" claims a meas
 not make — which is the same defect as a check whose output asserts something it did not measure,
 one layer down. **A probe that cannot report "I could not look" will report "it is not there."**
 
+## WHAT A RESTART HIDES, and this harness restarts constantly
+
+Six of these legs restart the node, because "installed is not running" forces it. That is correct for
+what they prove and it creates a systematic blind spot worth stating plainly rather than discovering:
+
+**Any defect that lives in RAM and is repaired by a reboot is invisible to every leg here.**
+
+Core found one on 2026-09-12. `packages:disable` retired the package's fingerprint→FQID mapping —
+right for the uninstall the cascade was written for, wrong for the disable that later shared it — so
+a disabled-and-re-enabled package had no working authorization at all, with rules present and
+correct. Re-enabling did not repair it; only a node restart did. On beta, 18 of 19 packages resolved
+and the one that did not was the only one disabled since boot.
+
+A harness that restarts between phases would have reported 19 of 19, every time, forever.
+
+Two things follow, and the second is the gap:
+
+* a leg that restarts proves the state SURVIVES a restart, never that it survived the transition;
+* **nothing here observes a package's OUTBOUND authorization after a lifecycle change.** `03` and
+  `04` are the only legs that touch `AccessDenied` and both test an INBOUND call — the web app
+  calling a package. A package's own ability to call out, across a disable and re-enable with no
+  restart in between, is unobserved.
+
+Core holds the regression for that specific defect in `live_dev/middleware/`, and a second copy here
+would be a second thing to keep true. What belongs here is the SHAPE: when a leg reaches for a
+restart, ask whether the restart is the thing being proven or the thing hiding the answer.
+
 ## `AccessDenied` cannot tell "not granted" from "not running"
 
 `03-grant-and-call.py` reads `AccessDenied` on its baseline call as "installed, running, and not yet

@@ -682,24 +682,21 @@ fn a_hand_written_waffler_json_still_parses_INCLUDING_THE_SCOPE_SPELLING() {
 
 #[test]
 #[allow(non_snake_case)]
-fn HAZARD_a_camelCase_typo_in_the_scope_silently_empties_a_dimension() {
-    // A HAZARD THIS CRATE CREATED BY EMBEDDING, recorded rather than left to be discovered.
+fn a_camelCase_typo_in_the_scope_is_REFUSED_by_name() {
+    // THIS TEST WAS A HAZARD RECORD AND IS NOW A GUARANTEE, which is the whole point of having
+    // written it to fail when the hazard closed.
     //
-    // `waffler.json` is camelCase, so `anyOf` is the spelling an author's hand reaches for. The
-    // scope is core's type and spells it `any_of`. Serde ignores unknown keys and the field carries
-    // `#[serde(default)]`, so the typo does not fail — the dimension comes back EMPTY.
+    // Until `shared@4ffc22b` the misspelling parsed: serde ignored the unknown key, the field
+    // defaulted to empty, and the scope often still validated because another dimension narrowed —
+    // so the package shipped an interceptor covering a different set of calls than its author wrote.
+    // `waffler.json` is camelCase, so `anyOf` is the spelling a hand reaches for while the embedded
+    // type spells it `any_of`: the ordinary typo in the ordinary file.
     //
-    // That is the worst available failure: the declaration parses, it may still validate when
-    // another dimension narrows, and it then intercepts a different set of calls than its author
-    // wrote. An interceptor that intercepts the wrong traffic is exactly what the typed scope
-    // replaced a filter bag to prevent, arriving through the authoring seam instead.
-    //
-    // WHAT WOULD CLOSE IT is `deny_unknown_fields` on the scope types, which turns an unknown key
-    // into a parse error naming it. That is core's call on core's type; asked for, not assumed.
-    //
-    // WHEN IT LANDS THIS TEST FAILS, and it should — a hazard test that keeps passing after the
-    // hazard is closed is a test asserting a defect still exists. Flip it to expect an error then.
-    let authored: AuthoredPackage = serde_json::from_str(
+    // `deny_unknown_fields` on the scope types closed it, and the message is the part worth
+    // asserting rather than merely the failure — it names the key the author actually wrote AND the
+    // ones that were expected, which is the difference between "something is wrong in your manifest"
+    // and a correction they can make without reading a type definition.
+    let refusal = serde_json::from_str::<AuthoredPackage>(
         r#"{
           "fqid": "syw.probe.echo",
           "version": "1.0.0",
@@ -717,21 +714,35 @@ fn HAZARD_a_camelCase_typo_in_the_scope_silently_empties_a_dimension() {
           ]
         }"#,
     )
-    .expect("the typo parses, which is the hazard");
+    .expect_err("a misspelled scope key must be refused, not silently emptied");
 
-    let commands = authored.middleware[0].scope.commands.as_ref().expect("a command block");
-    assert!(
-        commands.targets.any_of.is_empty(),
-        "the misspelled dimension is silently EMPTY, not rejected: {:?}",
-        commands.targets
+    let message = refusal.to_string();
+    assert!(message.contains("anyOf"), "the refusal must quote what the author wrote: {message}");
+    assert!(message.contains("any_of"), "and name what was expected: {message}");
+}
+
+#[test]
+fn the_SCAFFOLDED_manifest_still_parses_now_that_scope_keys_are_strict() {
+    // CORE ASKED THIS DIRECTLY, and it is the kind of question worth answering by running rather
+    // than by reading: `deny_unknown_fields` governs the five SCOPE types, so a `//` comment key
+    // inside a scope block would now be a parse error. This template writes its guidance as
+    // SIBLING keys of the thing they describe and leaves `middleware` empty, so no comment ever
+    // lands inside a scope — but "I believe it does not" is not an answer, and the template is
+    // exactly the kind of file that acquires an example someone later makes real.
+    let rendered = crate::project::scaffold_specialist::render_project(
+        "syw.probe.echo",
+        "1.0.0",
+        "a scaffolded package",
+        "../..",
     );
-    // AND IT STILL VALIDATES, because the other dimension narrows — so nothing anywhere tells the
-    // author their target list was discarded. This is the half that makes it dangerous rather than
-    // merely annoying.
-    assert!(
-        authored.middleware[0].scope.validate().is_ok(),
-        "a scope narrowed elsewhere hides the discarded dimension"
-    );
+    let manifest = rendered
+        .iter()
+        .find(|f| f.relative_path == crate::project::types::MANIFEST_FILE)
+        .expect("a scaffold writes a manifest");
+
+    let authored: AuthoredPackage = serde_json::from_str(&manifest.contents)
+        .expect("the scaffolded manifest must parse under strict scope keys");
+    assert!(authored.middleware.is_empty(), "the template ships no declaration, only guidance");
 }
 
 /// A command scope naming the targets it reaches, which is the ordinary shape.

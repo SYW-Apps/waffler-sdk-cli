@@ -2,23 +2,34 @@ kind: value-object
 id: declared-middleware
 name: Declared Middleware
 description: >-
-  A bus middleware this package contributes: an interceptor core runs around routed calls, with the
-  filters deciding which calls it sees.
+  A bus middleware this package contributes: an interceptor core runs around routed calls, with a
+  typed SCOPE deciding which calls it sees.
 
 
   WHY IT EXISTS: THIS TOOL COULD NOT AUTHOR ONE. `compileManifestBody` wrote `"middleware": []` as a
   literal and the authored model had no field, so no bundle in existence declares any middleware —
-  the third instance of that hole after `dependencies` and `ui_plugins`. Core's consumer side is
-  complete: the supervisor walks a package's declarations, owner-tags each one and registers it on
-  both the per-package chain and the global bus chain.
+  the third instance of that hole after `dependencies` and `ui_plugins`. Core's consumer side was
+  complete the whole time.
 
 
-  THE FILTERS ARE AN EFFICIENCY DECISION, NOT ONLY A CORRECTNESS ONE. Core assembles the chain
-  in-process before dispatching anything: a declaration whose filters do not match a call never
-  enters that chain, so it costs no cross-boundary call into this package at all. Declaring the
-  narrowest filters that are still correct is therefore how an interceptor avoids being asked about
-  traffic it would only wave through — which matters most for the case this was built for, an auth
-  middleware that must see the calls needing a validated user and nothing else.
+  THE SCOPE IS CORE'S OWN TYPE, EMBEDDED, NOT RE-MODELLED HERE. A free-form filter bag produced FOUR
+  defects in core — a key that was an owner tag to one matcher and a filter to another, a dimension
+  one matcher honoured and the other ignored, one side globbing where the other compared with `==`,
+  and a disable that disabled on one chain only. **A free-form bag has no arity, so nothing can
+  disagree loudly.** Re-modelling the typed replacement in this crate would rebuild exactly that:
+  two definitions of one matcher, free to drift, with the authoring side never the one that runs.
+
+
+  SO THE SCOPE'S FIELDS ARE snake_case WHILE THE REST OF THIS FILE IS camelCase, deliberately, and
+  that visible seam is the cheaper cost. The alternative is a mapping layer between two shapes — and
+  a mapping layer is exactly what silently dropped `needs_payload` from this tool's own output one
+  change earlier.
+
+
+  VALIDATION IS CORE'S `MiddlewareScope::validate()`, CALLED, NEVER REIMPLEMENTED. One computation
+  for three consumers: the node refuses registration on it, this tool refuses a pack on it, and a
+  review surface describes the scope from the same answer. Two copies would be two chances for a
+  package to be packable and unregisterable.
 subsystem: project
 group: sdk_cli::authored-manifest
 fields:
@@ -28,19 +39,49 @@ fields:
       This declaration's identifier, unique within the package. Re-registering the same id REPLACES
       the earlier declaration rather than adding a second.
     optional: false
-  - name: target
+  - name: handler
     type: string
     description: >-
-      The SERVICE whose routed calls this intercepts — exact, or a prefix glob ending in `*`. ABSENT
-      intercepts every routed call, which is what a node-wide interceptor declares by saying
-      nothing.
+      The capability in THIS package's own module that the host invokes for each matched envelope.
 
 
-      TYPED IN CORE RATHER THAN A FILTER KEY, deliberately: it used to be fished out of the
-      free-form filters bag, where a misspelled service name produced a middleware that registered,
-      listed, and silently intercepted nothing. Writing it here is the only place a target is
-      written.
-    optional: true
+      IT IS THE ADDRESS THE INTERCEPTOR IS CALLED AT. The legacy ABI passed it directly —
+      `host_register_middleware(cap_ptr, cap_len)` — and the migrated declaration lost it, which
+      left nothing able to turn a declaration into something callable.
+
+
+      NOT NAMED `capability`: the scope's `capabilities` dimension already means the INTERCEPTED
+      capability — which call is being made. One word carrying both meanings in one type is the
+      defect that `mode` and `filters.active` were.
+
+
+      NOT CROSS-CHECKED AGAINST `capabilities`. A package's BUS-served capabilities are served by
+      its handler and never appear in that list, so a check against it would refuse the ordinary
+      case — and a rule that fails the correct shape is worse than no rule.
+    optional: false
+  - name: scope
+    type: waffler_shared::MiddlewareScope
+    description: >-
+      What this interceptor sees: a `commands` block, an `events` block, header predicates, and an
+      active toggle. CORE'S TYPE, embedded rather than mirrored.
+
+
+      COMMANDS AND EVENTS ARE SEPARATE BLOCKS, and that is a security property made structural
+      rather than documented. Knowing which events a service listens to is enough to manipulate that
+      service, so event interception must be deliberate — it can never be acquired by leaving a
+      topic list empty inside a command block. An absent block means the interceptor never sees that
+      kind of traffic at all.
+
+
+      NOTHING IS ACQUIRED BY OMISSION. A present block that narrows nothing and does not say
+      `everything: true` is REFUSED, at pack and again at the node. That answers the rendering trap
+      at the type level instead of in a renderer: the broadest scope can no longer be the
+      emptiest-looking declaration, because the emptiest-looking declaration does not register.
+
+
+      AN EXCLUSION ALONE IS NOT A NARROWING. "Everything except db" still reaches every service
+      anyone adds tomorrow; only naming what you DO reach is a list that stops growing on its own.
+    optional: false
   - name: needs_payload
     type: bool
     description: >-
@@ -57,33 +98,6 @@ fields:
       Whether the interceptor is handed the call's headers. Defaults to false. This is the one an
       auth interceptor needs — it is where a bearer token travels.
     optional: true
-  - name: filters
-    type: json
-    description: >-
-      The finer matching core understands beside the typed target. The GLOBAL bus chain reads
-      `source` / `target` / `topic`; the per-package chain reads `caller` / `capability` / `active`.
-      Unknown keys are ignored by both.
-
-
-      PASSED THROUGH AS AUTHORED. Free-form because core's matcher owns the vocabulary; re-modelling
-      it here would create a second definition free to drift from the one that actually filters.
-
-
-      TWO KEYS MAY NOT BE WRITTEN AND VALIDATION REFUSES THEM: `syw.owner` and `syw.fqid`. Those are
-      RUNTIME-MANAGED — the host stamps the declaring package's identity into them at registration —
-      so a value written here is overwritten and decides nothing.
-
-
-      `target` IS ALSO REFUSED, for a different reason: it has its own typed field, and one value in
-      two homes is free to disagree with itself.
-
-
-      `source` IS PERMITTED, AND WAS ONCE REFUSED HERE. It used to carry the owner tag, so an
-      authored value was silently discarded — which is why this tool rejected it. The owner tag has
-      since moved to the `syw.*` keys and `source` now means what the global chain always read it
-      as: an author-declared filter on the envelope's SOURCE. The refusal was correct when written
-      and was invalidated by a change elsewhere.
-    optional: true
   - name: priority
     type: int
     description: >-
@@ -94,32 +108,6 @@ fields:
       IT ORDERS ACROSS PACKAGES, not only within one, so a number chosen against a node's current
       package set is a number that changes meaning when another package is installed.
     optional: true
-  - name: handler
-    type: string
-    description: >-
-      The capability in THIS package's own module that the host invokes for each matched envelope.
-
-
-      IT IS THE ADDRESS THE INTERCEPTOR IS CALLED AT. The legacy ABI passed it directly —
-      `host_register_middleware(cap_ptr, cap_len)` — and the migrated declaration lost it, which
-      left nothing able to turn a declaration into something callable.
-
-
-      NOT NAMED `capability`, deliberately. `filters.capability` already exists and means the
-      INTERCEPTED capability — which call is being made. One word carrying both meanings in one type
-      is the defect that `mode` and `filters.active` were.
-
-
-      REQUIRED, NOT OPTIONAL. A declaration with no invoker registers, lists, and intercepts nothing
-      — the inert-declaration shape. It is free to require today only because no bundle carries a
-      middleware declaration yet.
-
-
-      NOT CROSS-CHECKED AGAINST `capabilities`, and that is deliberate: a package's BUS-served
-      capabilities are served by its handler and are not declared in that list at all, so a check
-      against it would refuse the ordinary case. A rule that fails the correct shape is worse than
-      no rule.
-    optional: false
 methods: []
 createdAt: '2026-09-11T16:16:24.010Z'
-updatedAt: '2026-09-11T20:22:34.211Z'
+updatedAt: '2026-09-11T22:42:50.980Z'

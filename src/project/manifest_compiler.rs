@@ -150,36 +150,17 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
                 "must name the capability in this package that the host invokes for each matched envelope; without one the declaration registers and intercepts nothing",
             ));
         }
-        // THREE KEYS MAY NOT BE WRITTEN IN THE FILTERS BAG, and the refusals have two different
-        // reasons.
+        // CORE'S OWN RULE, CALLED — never reimplemented. One computation for three consumers: the
+        // node refuses registration on it, this tool refuses a pack on it, and a review surface
+        // describes the scope from the same answer. Two copies would be two chances for a package to
+        // be packable and unregisterable.
         //
-        // `syw.owner` and `syw.fqid` are RUNTIME-MANAGED: the host stamps the declaring package's
-        // identity into them at registration, so a value written here is overwritten — a declaration
-        // that looks meaningful and decides nothing.
-        //
-        // `target` has its own TYPED field. Core moved it out of this bag precisely because a
-        // misspelled service name there produced a middleware that registered, listed and silently
-        // intercepted nothing. Accepting it in both places would put one value in two homes, free to
-        // disagree, and restore the defect the move closed.
-        //
-        // `source` IS PERMITTED, AND THIS FUNCTION ONCE REFUSED IT. It carried the owner tag until
-        // the host moved that to the `syw.*` keys, so an authored value really was discarded and
-        // refusing it was right. It now means what the global bus chain always read it as: an
-        // author-declared filter on the envelope's SOURCE. A rule correct when written and
-        // invalidated by a change elsewhere — and one that kept refusing would reject a legal
-        // manifest, which is worse than not checking at all.
-        if let Some(filters) = middleware.filters.as_ref().and_then(|f| f.as_object()) {
-            for reserved in ["syw.owner", "syw.fqid", "target"] {
-                if filters.contains_key(reserved) {
-                    violations.push(Violation::new(
-                        format!("{at}.filters.{reserved}"),
-                        match reserved {
-                            "target" => "belongs in the middleware's own `target` field, not in `filters`; one value in two places is free to disagree with itself".to_string(),
-                            owned => format!("is runtime-managed: a node stamps the declaring package's identity into `{owned}` at registration, so a value written here is overwritten and decides nothing"),
-                        },
-                    ));
-                }
-            }
+        // IT IS WHAT REPLACED A FREE-FORM BAG THAT PRODUCED FOUR DEFECTS AT ONCE — a key meaning two
+        // things to two matchers, a dimension one honoured and the other ignored, one globbing where
+        // the other used `==`, and a disable that disabled on one chain only. A bag has no arity, so
+        // nothing could disagree loudly. Re-deriving its replacement here would rebuild the cause.
+        if let Err(reason) = middleware.scope.validate() {
+            violations.push(Violation::new(format!("{at}.scope"), reason));
         }
     }
 
@@ -387,12 +368,12 @@ pub fn compile_manifest_body(authored: &AuthoredPackage, located: &[LocatedArtif
             entry.insert("handler".into(), json!(m.handler));
             entry.insert("needs_payload".into(), json!(m.needs_payload));
             entry.insert("needs_headers".into(), json!(m.needs_headers));
-            if let Some(target) = &m.target {
-                entry.insert("target".into(), json!(target));
-            }
-            if let Some(filters) = &m.filters {
-                entry.insert("filters".into(), filters.clone());
-            }
+            // THE SCOPE IS SERIALIZED BY CORE'S OWN TYPE, which is the point of embedding it: there
+            // is no name mapping here to lose a field the way `needs_payload` was lost.
+            entry.insert(
+                "scope".into(),
+                serde_json::to_value(&m.scope).expect("a middleware scope serializes"),
+            );
             if let Some(priority) = m.priority {
                 entry.insert("priority".into(), json!(priority));
             }

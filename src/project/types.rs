@@ -200,19 +200,25 @@ pub struct DeclaredDependency {
 /// A bus middleware this package contributes: an interceptor core runs around routed calls.
 ///
 /// THIS TOOL COULD NOT AUTHOR ONE. `compile_manifest_body` wrote `"middleware": []` as a literal and
-/// the authored model had no field, so no bundle in existence declares any middleware — the third
-/// instance of that hole after `dependencies` and `ui_plugins`. Core's consumer side was complete
-/// the whole time: the supervisor walks a package's declarations, owner-tags each and registers it
-/// on both the per-package chain and the global bus chain.
+/// the authored model had no field — the third instance of that hole after `dependencies` and
+/// `ui_plugins`, while core's consumer side was complete the whole time.
 ///
-/// THE FILTERS ARE AN EFFICIENCY DECISION, NOT ONLY A CORRECTNESS ONE. Core assembles the chain
-/// in-process before dispatching anything, so a declaration whose filters do not match a call never
-/// enters that chain and costs no cross-boundary call into this package at all. Declaring the
-/// narrowest filters that are still correct is how an interceptor avoids being asked about traffic
-/// it would only wave through.
+/// ## THE SCOPE IS CORE'S OWN TYPE, EMBEDDED, NOT RE-MODELLED HERE
+///
+/// A free-form filter bag produced FOUR defects in core at once: a key that was an owner tag to one
+/// matcher and a source filter to another; a dimension one matcher honoured and the other ignored
+/// (so a declaration naming one service intercepted every message on the node); one side globbing
+/// where the other compared with `==`; and a disable that disabled on one chain only. **A free-form
+/// bag has no arity, so nothing can disagree loudly.**
+///
+/// Re-modelling the typed replacement here would rebuild exactly that — two definitions of one
+/// matcher, free to drift, with the authoring side never the one that runs. So the scope's fields
+/// are `snake_case` while the rest of this file is `camelCase`, deliberately. That visible seam is
+/// the cheaper cost: the alternative is a mapping layer between two shapes, and a mapping layer is
+/// what silently dropped `needs_payload` from this tool's own output one change earlier.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE. The Rust field names stay
-// snake_case; a developer editing JSON should not have to know which language read it.
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE — except `scope`, whose contents are
+// core's type and keep core's spelling.
 #[serde(rename_all = "camelCase")]
 pub struct DeclaredMiddleware {
     /// Unique within the package. Re-registering the same id REPLACES the earlier declaration.
@@ -220,26 +226,26 @@ pub struct DeclaredMiddleware {
     /// The capability in THIS package's own module that the host invokes for each matched envelope.
     ///
     /// IT IS THE ADDRESS THE INTERCEPTOR IS CALLED AT. The legacy ABI passed it directly —
-    /// `host_register_middleware(cap_ptr, cap_len)` — and the migrated declaration lost it, which
-    /// left nothing able to turn a declaration into something callable.
+    /// `host_register_middleware(cap_ptr, cap_len)` — and the migrated declaration had lost it.
     ///
-    /// NOT NAMED `capability`, deliberately: `filters.capability` already means the INTERCEPTED
-    /// capability — which call is being made. One word carrying both meanings in one type is the
-    /// defect that `mode` and `filters.active` were.
+    /// NOT NAMED `capability`: the scope's `capabilities` dimension already means the INTERCEPTED
+    /// capability — which call is being made.
     ///
     /// NOT CROSS-CHECKED AGAINST `capabilities`. A package's BUS-served capabilities are served by
-    /// its handler and are not declared in that list at all, so a check against it would refuse the
-    /// ordinary case — and a rule that fails the correct shape is worse than no rule.
+    /// its handler and never appear in that list, so a check against it would refuse the ordinary
+    /// case — and a rule that fails the correct shape is worse than no rule.
     pub handler: String,
-    /// The SERVICE whose routed calls this intercepts — exact, or a prefix glob ending in `*`.
-    /// ABSENT intercepts EVERY routed call, which is what a node-wide interceptor says by saying
-    /// nothing.
+    /// What this interceptor sees. CORE'S TYPE, so there is exactly one definition of the matcher.
     ///
-    /// TYPED IN CORE RATHER THAN A FILTER KEY. It used to be fished out of the free-form filters
-    /// bag, where a misspelled service name produced a middleware that registered, listed, and
-    /// silently intercepted nothing.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub target: Option<String>,
+    /// COMMANDS AND EVENTS ARE SEPARATE BLOCKS, which is a security property made structural:
+    /// knowing which events a service listens to is enough to manipulate that service, so event
+    /// interception can never be acquired by leaving a topic list empty inside a command block.
+    ///
+    /// NOTHING IS ACQUIRED BY OMISSION — a block that narrows nothing and does not say
+    /// `everything: true` is refused, here and again at the node. The broadest scope can no longer
+    /// be the emptiest-looking declaration, because the emptiest-looking declaration does not
+    /// register.
+    pub scope: waffler_shared::MiddlewareScope,
     /// Whether the interceptor is handed the call's payload.
     ///
     /// ASK FOR NOTHING THAT IS NOT READ: a payload the interceptor does not inspect is bytes
@@ -249,16 +255,9 @@ pub struct DeclaredMiddleware {
     /// Whether the interceptor is handed the call's headers — where a bearer token travels.
     #[serde(default)]
     pub needs_headers: bool,
-    /// The finer matching core understands beside the typed target: `caller` and `capability`
-    /// (exact or prefix-`*` glob) and `active` (a bool toggle, default true).
-    ///
-    /// PASSED THROUGH AS AUTHORED. Core's matcher owns this vocabulary, and re-modelling it here
-    /// would create a second definition free to drift from the one that actually filters.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub filters: Option<serde_json::Value>,
-    /// Where this sits in the assembled chain relative to OTHER packages' interceptors. Absent
-    /// takes core's default. It orders across packages, so a number chosen against one node's
-    /// package set changes meaning when another package is installed.
+    /// Where this sits in the assembled chain relative to OTHER packages' interceptors. Absent takes
+    /// core's default. It orders across packages, so a number chosen against one node's package set
+    /// changes meaning when another package is installed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub priority: Option<u32>,
 }

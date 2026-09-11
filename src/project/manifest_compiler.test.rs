@@ -456,17 +456,15 @@ fn an_authored_dependency_with_no_flag_is_REQUIRED() {
 
 #[test]
 fn a_declared_middleware_reaches_the_manifest() {
-    // `"middleware": []` WAS A LITERAL. Not a default with no authored source — an empty array
-    // written unconditionally, so no bundle could declare an interceptor whatever its author wrote.
-    // Core's consumer side was complete the whole time.
+    // `"middleware": []` WAS A LITERAL — an empty array written unconditionally, so no bundle could
+    // declare an interceptor whatever its author wrote, while core's consumer side was complete.
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
-        handler: "pkg.auth.intercept".into(),
-        target: Some("syw.system.*".into()),
+        handler: "identity.middleware".into(),
+        scope: scope_over(&["db", "syw.system.*"]),
         needs_payload: false,
         needs_headers: true,
-        filters: Some(serde_json::json!({"capability": "admin.*"})),
         priority: Some(10),
     }];
 
@@ -474,97 +472,131 @@ fn a_declared_middleware_reaches_the_manifest() {
     let declared = body["middleware"].as_array().expect("a middleware list");
     assert_eq!(declared.len(), 1, "{body:#?}");
     assert_eq!(declared[0]["id"], serde_json::json!("auth"));
-    assert_eq!(declared[0]["target"], serde_json::json!("syw.system.*"));
-    // CORE'S SPELLING, not this crate's. `waffler.json` is camelCase because a human writes it;
-    // `/.manifest` is core's own shape. This assertion said `needsHeaders` and PASSED against a
-    // manifest core could not decode — it confirmed the bug rather than catching it, which is why
-    // the decode-with-core's-type test below exists and this one is not enough on its own.
+    assert_eq!(declared[0]["handler"], serde_json::json!("identity.middleware"));
+    // CORE'S SPELLING, not this crate's. An earlier version asserted `needsHeaders` and PASSED
+    // against a manifest core could not decode — it confirmed a bug rather than catching it.
     assert_eq!(declared[0]["needs_headers"], serde_json::json!(true));
-    assert_eq!(declared[0]["filters"]["capability"], serde_json::json!("admin.*"));
     assert_eq!(declared[0]["priority"], serde_json::json!(10));
+    assert_eq!(declared[0]["scope"]["commands"]["targets"]["any_of"][0], serde_json::json!("db"));
 }
 
 #[test]
-fn an_omitted_middleware_option_is_ABSENT_rather_than_null() {
-    // A present-and-null optional is not the same declaration as an absent one, and core's decoder
-    // distinguishes them. `target: null` would read as "intercept nothing named", where absent
-    // means "intercept EVERY routed call" — opposite meanings from the same omission.
-    let mut authored = sound();
-    authored.middleware = vec![DeclaredMiddleware {
-        id: "everything".into(),
-        handler: "pkg.audit.sniff".into(),
-        target: None,
-        needs_payload: false,
-        needs_headers: false,
-        filters: None,
-        priority: None,
-    }];
-
-    let body = compile_manifest_body(&authored, &[]);
-    let declared = &body["middleware"][0];
-    for absent in ["target", "filters", "priority"] {
-        assert!(declared.get(absent).is_none(), "{absent} must be ABSENT, not null: {declared:#?}");
-    }
-}
-
-#[test]
-fn a_middleware_may_not_write_the_filter_keys_that_belong_elsewhere() {
-    // `syw.owner` and `syw.fqid` are runtime-managed — the host stamps the declaring package's
-    // identity into them at registration, so a value here is overwritten and decides nothing.
-    // `target` has its own typed field, and core moved it out of this bag precisely because a
-    // misspelled service name there produced a middleware that registered, listed and silently
-    // intercepted nothing.
+fn the_manifest_middleware_decodes_as_CORES_OWN_TYPE() {
+    // THE ONLY CHECK HERE THAT CANNOT BE FOOLED BY THIS CRATE'S OWN SPELLING. Every other assertion
+    // reads the manifest with the same names this crate wrote, so a producer that renamed a field
+    // would satisfy all of them and still emit something core cannot decode. This one decodes with
+    // `waffler_shared::MiddlewareDeclaration` — the type the node actually reads — and it is the
+    // check that caught `needsPayload` before any bundle carried a declaration.
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
-        handler: "pkg.auth.intercept".into(),
-        target: None,
+        handler: "identity.middleware".into(),
+        scope: scope_over(&["syw.system.api"]),
         needs_payload: false,
         needs_headers: true,
-        filters: Some(serde_json::json!({"syw.owner": "someone.else", "syw.fqid": "x.y.z", "target": "packages"})),
+        priority: Some(100),
+    }];
+
+    let body = compile_manifest_body(&authored, &[]);
+    let decoded: Vec<waffler_shared::MiddlewareDeclaration> =
+        serde_json::from_value(body["middleware"].clone())
+            .expect("core's decoder must read what this crate writes");
+
+    assert_eq!(decoded[0].id, "auth");
+    assert_eq!(decoded[0].handler, "identity.middleware");
+    assert!(decoded[0].needs_headers, "the header flag must survive the name mapping");
+    assert!(!decoded[0].needs_payload);
+    assert_eq!(decoded[0].priority, Some(100));
+    // AND THE SCOPE SURVIVES AS A SCOPE, not as a shape that merely parses. Round-tripping core's
+    // own type through this crate's manifest is what proves the embedding rather than a mapping.
+    assert!(decoded[0].scope.validate().is_ok(), "{:?}", decoded[0].scope);
+    let commands = decoded[0].scope.commands.as_ref().expect("a command block");
+    assert_eq!(commands.targets.any_of, vec!["syw.system.api".to_string()]);
+}
+
+#[test]
+fn a_scope_that_narrows_NOTHING_is_refused() {
+    // NOTHING IS ACQUIRED BY OMISSION. A present block naming no dimension and not saying
+    // `everything: true` would intercept every routed call while looking like the emptiest possible
+    // declaration — the broadest scope wearing the smallest shape. Core refuses it at registration;
+    // this refuses it at pack, from CORE'S OWN `validate()` rather than a second copy of the rule.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "sneaky".into(),
+        handler: "pkg.intercept".into(),
+        scope: waffler_shared::MiddlewareScope {
+            commands: Some(waffler_shared::CommandScope::default()),
+            ..Default::default()
+        },
+        needs_payload: false,
+        needs_headers: false,
         priority: None,
     }];
 
     let violations = validate_authored(&authored);
     let fields = fields(&violations);
-    assert!(fields.contains(&"middleware[0].filters.syw.owner"), "{fields:?}");
-    assert!(fields.contains(&"middleware[0].filters.syw.fqid"), "{fields:?}");
-    assert!(fields.contains(&"middleware[0].filters.target"), "{fields:?}");
+    assert!(fields.contains(&"middleware[0].scope"), "{fields:?}");
 }
 
 #[test]
-fn an_ordinary_middleware_filter_is_ACCEPTED() {
-    // The neighbouring valid shape, so the refusal above is shown to be about the two reserved keys
-    // and not about carrying filters at all. A check that refused every filters bag would be
-    // indistinguishable from this one on the failing case alone.
+fn a_command_scope_does_NOT_carry_event_interception() {
+    // THE OWNER'S SECURITY POINT, MADE STRUCTURAL RATHER THAN DOCUMENTED. Knowing which events a
+    // service listens to is enough to manipulate that service, so event interception must be
+    // deliberate — it can never be acquired by leaving a topic list empty inside a command block.
+    // Separate blocks are what make that unrepresentable rather than merely discouraged.
+    let scope = scope_over(&["db"]);
+    // EVERY MIDDLEWARE FIXTURE HERE DEPENDS ON THIS. `active: false` makes core's `admits`
+    // refuse everything, so a scope built with `..Default::default()` would read exactly like
+    // one that intercepts what its dimensions say and intercept nothing — and `validate()` does
+    // not check `active`, so these tests would stay green while proving nothing. Core keeps the
+    // constructed default and the serde default in agreement; this asserts the property this
+    // crate's fixtures rest on rather than trusting it from a distance.
+    assert!(scope.active, "a constructed scope must be ACTIVE or every fixture here is vacuous");
+    assert!(scope.commands.is_some());
+    assert!(scope.events.is_none(), "an authored command scope must not imply event interception");
+    assert!(scope.validate().is_ok());
+}
+
+#[test]
+fn a_middleware_MAY_scope_on_SOURCES_which_this_tool_once_refused() {
+    // A RULE THAT WAS CORRECT WHEN WRITTEN AND WAS INVALIDATED BY A CHANGE ELSEWHERE, twice over.
+    //
+    // `filters.source` carried the owner tag, so a node overwrote whatever an author wrote and this
+    // function refused it. The tag then moved to namespaced keys, which made the refusal wrong; the
+    // bag is now gone entirely and the dimension is `scope.commands.sources`, typed.
+    //
+    // Pinned as an ACCEPTANCE so the refusal cannot come back by someone reading the old reasoning.
+    // A validator rejecting a legal manifest is worse than one that does not check: the author
+    // cannot tell a tool bug from their own mistake, and the fix is in neither place they will look.
     let mut authored = sound();
+    let mut scope = scope_over(&["db"]);
+    scope.commands.as_mut().expect("a command block").sources =
+        waffler_shared::ScopeMatch { any_of: vec!["syw.app.web".into()], none_of: vec![] };
     authored.middleware = vec![DeclaredMiddleware {
-        id: "auth".into(),
-        handler: "pkg.auth.intercept".into(),
-        target: Some("packages".into()),
+        id: "audit".into(),
+        handler: "pkg.audit.observe".into(),
+        scope,
         needs_payload: false,
         needs_headers: true,
-        filters: Some(serde_json::json!({"caller": "syw.*", "capability": "admin.*", "active": true})),
         priority: None,
     }];
 
     let violations = validate_authored(&authored);
-    assert!(violations.is_empty(), "{violations:?}");
+    assert!(violations.is_empty(), "`sources` is an ordinary scope dimension: {violations:?}");
 }
 
 #[test]
 fn a_middleware_must_name_the_HANDLER_the_host_invokes() {
     // WITHOUT ONE THE DECLARATION IS INERT — it registers, it lists, and it intercepts nothing,
-    // because the host has no address to call. That is the exact shape the legacy ABI carried
-    // directly as `host_register_middleware(cap_id)` and the migrated declaration had lost.
+    // because the host has no address to call. That is the shape the legacy ABI carried directly as
+    // `host_register_middleware(cap_id)` and the migrated declaration had lost.
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
         handler: "   ".into(),
-        target: None,
+        scope: scope_over(&["db"]),
         needs_payload: false,
         needs_headers: true,
-        filters: None,
         priority: None,
     }];
 
@@ -577,16 +609,16 @@ fn a_middleware_must_name_the_HANDLER_the_host_invokes() {
 fn the_handler_is_NOT_required_to_be_a_declared_capability() {
     // A package's BUS-served capabilities are served by its handler and never appear in
     // `capabilities` — that list is for capabilities a HOST registers, such as runtime primitives.
-    // So cross-referencing the handler against it would refuse the ordinary case, which is why this
-    // names a capability the manifest does not declare and must still validate.
+    // Cross-referencing the handler against it would refuse the ordinary case, which is why this
+    // names a capability the manifest does not declare and must still validate. Pinned so the absent
+    // rule is not added back by someone reasoning from the ui-plugin analogy, as I nearly did.
     let mut authored = sound();
     authored.middleware = vec![DeclaredMiddleware {
         id: "auth".into(),
         handler: "identity.middleware".into(),
-        target: None,
+        scope: scope_over(&["db"]),
         needs_payload: false,
         needs_headers: true,
-        filters: None,
         priority: None,
     }];
 
@@ -594,60 +626,16 @@ fn the_handler_is_NOT_required_to_be_a_declared_capability() {
     assert!(violations.is_empty(), "a bus-served handler must not be cross-checked: {violations:?}");
 }
 
-#[test]
-fn the_manifest_middleware_decodes_as_CORES_OWN_TYPE() {
-    // THE ONLY CHECK THAT CANNOT BE FOOLED BY THIS CRATE'S OWN SPELLING. Every other assertion here
-    // reads the manifest with the same names this crate wrote, so a producer that renamed a field
-    // would satisfy all of them and still emit something core cannot decode. This decodes the
-    // compiled body with `waffler_shared::MiddlewareDeclaration` — the type the node actually reads.
-    let mut authored = sound();
-    authored.middleware = vec![DeclaredMiddleware {
-        id: "auth".into(),
-        handler: "identity.middleware".into(),
-        target: Some("syw.system.api".into()),
-        needs_payload: false,
-        needs_headers: true,
-        filters: Some(serde_json::json!({"capability": "admin.*"})),
-        priority: Some(100),
-    }];
-
-    let body = compile_manifest_body(&authored, &[]);
-    let decoded: Vec<waffler_shared::MiddlewareDeclaration> =
-        serde_json::from_value(body["middleware"].clone())
-            .expect("core's decoder must read what this crate writes");
-
-    assert_eq!(decoded[0].id, "auth");
-    assert_eq!(decoded[0].handler, "identity.middleware");
-    assert_eq!(decoded[0].target.as_deref(), Some("syw.system.api"));
-    assert!(decoded[0].needs_headers, "the header flag must survive the name mapping");
-    assert!(!decoded[0].needs_payload);
-    assert_eq!(decoded[0].priority, Some(100));
-}
-
-#[test]
-fn a_middleware_MAY_filter_on_source_which_this_tool_once_refused() {
-    // A RULE THAT WAS CORRECT WHEN WRITTEN AND WAS INVALIDATED BY A CHANGE ELSEWHERE.
-    //
-    // `filters.source` carried the owner tag, so a node overwrote whatever an author wrote and this
-    // function refused it for saying something that could not survive. The host has since moved the
-    // owner tag to `syw.owner` / `syw.fqid`, and `source` now means what the global bus chain always
-    // read it as: a filter on the envelope's SOURCE.
-    //
-    // Pinned as an ACCEPTANCE so the refusal cannot come back by someone reading the old reasoning.
-    // A validator rejecting a legal manifest is worse than one that does not check at all: the
-    // author cannot tell a tool bug from their own mistake, and the fix is in neither place they
-    // will look.
-    let mut authored = sound();
-    authored.middleware = vec![DeclaredMiddleware {
-        id: "audit".into(),
-        handler: "pkg.audit.observe".into(),
-        target: None,
-        needs_payload: false,
-        needs_headers: true,
-        filters: Some(serde_json::json!({"source": "syw.app.web", "topic": "identity.*"})),
-        priority: None,
-    }];
-
-    let violations = validate_authored(&authored);
-    assert!(violations.is_empty(), "`source` is an author-declared filter now: {violations:?}");
+/// A command scope naming the targets it reaches, which is the ordinary shape.
+fn scope_over(targets: &[&str]) -> waffler_shared::MiddlewareScope {
+    waffler_shared::MiddlewareScope {
+        commands: Some(waffler_shared::CommandScope {
+            targets: waffler_shared::ScopeMatch {
+                any_of: targets.iter().map(|t| t.to_string()).collect(),
+                none_of: vec![],
+            },
+            ..Default::default()
+        }),
+        ..Default::default()
+    }
 }

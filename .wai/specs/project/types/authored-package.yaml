@@ -53,9 +53,13 @@ fields:
     type: sdk_cli::declared-dependency[]
     description: >-
       Package dependencies as fqid + version REQUIREMENT (`^1.0`, not a pin) — the registry resolves
-      them against what is published. These are REQUIRED: core refuses to enable a package whose
-      declared dependencies are absent, disabled, or at an excluded version, so declaring one
-      nothing needs turns into an enable that refuses for a reason nobody can act on.
+      them against what is published.
+
+
+      REQUIRED BY DEFAULT, AND EACH ONE MAY SAY OTHERWISE. Core refuses to start a package whose
+      REQUIRED dependencies are absent, disabled, or at an excluded version, so declaring one
+      nothing needs turns into a refusal for a reason nobody can act on. A dependency the package
+      can genuinely run without carries `optional: true`, and its absence then stops nothing.
     optional: false
   - name: capabilities
     type: sdk_cli::declared-capability[]
@@ -97,4 +101,4 @@ invariants:
       both directions, so an unnamed artifact and a named-but-absent one are both refused there —
       and are cheaper to catch here.
 createdAt: '2026-09-10T00:07:14.467Z'
-updatedAt: '2026-09-10T00:07:14.705Z'
+updatedAt: '2026-09-11T06:18:43.508Z'

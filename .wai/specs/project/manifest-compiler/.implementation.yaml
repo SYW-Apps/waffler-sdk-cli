@@ -149,6 +149,13 @@ methods:
           plugins, an empty middleware list, and enabled true.
 
 
+          EACH DEPENDENCY CARRIES ITS OPTIONAL FLAG, WRITTEN EVEN WHEN FALSE. Core defaults an
+          absent flag to required, so omitting it would carry the same meaning — but a reader could
+          not then tell "this author considered it and chose required" from "this manifest predates
+          the field", which is the distinction the flag exists to make. It is the one place in this
+          body where an explicit false earns its bytes.
+
+
           RUNTIME-MANAGED FIELDS ARE OMITTED, not emitted empty. Identity, approved group ids and
           fast-lane grants are minted by a node; writing them blank would make a bundle that
           declares nothing indistinguishable from one whose author wrote an empty value, and core's
@@ -207,4 +214,4 @@ methods:
       to notice.
 status: draft
 createdAt: '2026-09-10T00:15:58.087Z'
-updatedAt: '2026-09-10T00:18:25.573Z'
+updatedAt: '2026-09-11T06:19:49.913Z'

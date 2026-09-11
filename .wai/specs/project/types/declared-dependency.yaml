@@ -25,6 +25,26 @@ fields:
     type: string
     description: A SemVer requirement the registry resolves, e.g. `^1.0`.
     optional: false
+  - name: optional
+    type: bool
+    description: >-
+      Whether this package can run WITHOUT the dependency. Absent means REQUIRED.
+
+
+      CORE HAS SUPPORTED THIS AND THIS TOOL COULD NOT EXPRESS IT. Every dependency authored here was
+      stamped required, silently, with no field to write and no error to say why — so an author who
+      wanted an optional dependency had no way to ask and no way to discover they had not asked.
+
+
+      DEFAULTS TO REQUIRED, matching core's own default: a manifest written before this field keeps
+      the meaning it had, and a forgotten flag produces a package that refuses to start rather than
+      one that starts broken.
+
+
+      WRITTEN INTO THE MANIFEST EVEN WHEN FALSE. An absent flag would carry the same meaning, but
+      then a reader cannot tell "the author considered it and chose required" from "this manifest
+      predates the field" — which is the distinction the flag exists to make.
+    optional: true
 methods: []
 createdAt: '2026-09-10T00:07:31.598Z'
-updatedAt: '2026-09-10T00:07:31.809Z'
+updatedAt: '2026-09-11T06:18:38.136Z'

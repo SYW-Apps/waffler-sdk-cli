@@ -69,6 +69,7 @@ network, with a package that did not exist an hour earlier:
 | `14-gate-after-restart.py` | the observable neither 13 nor `04` can reach: **run twice across a node restart**, it proves all three serve, removes the leaf, and after the restart the dependents must **not have started**. It reads its phase from the NODE rather than a flag, so the two runs cannot be done out of order |
 | `15-optional-dependency.sh` | publishes **two packages whose manifests differ in one character** — one declaring an optional dependency on a package that does not exist, one declaring it required — and proves the flag survives **packing, publication, storage and resolution**, asserted at the bundle as well as at the plan so a failure can be attributed to the packer, the reader or the resolver |
 | `16-optional-install.py` | the flag must **change the outcome**: the optional one installs and **reports what it skipped**, the required one is **refused naming the missing package**. The refusal is the half that matters — an install that succeeds proves nothing unless the version that must fail does. **Refuses to start** against a marketplace that predates the flag, which would refuse both and look like a pass |
+| `17-withdraw-a-dependency.sh` | withdraws a package **something else depends on**. The dependency's download 404s and its dependent's closure becomes **unresolvable with a reason**; republishing **recovers** it. It also measures what the catalog says about the dependent meanwhile — **nothing**, which is the note above |
 
 ## Running it
 
@@ -112,6 +113,30 @@ Requests to the marketplace are **positional** MessagePack (its portal is explic
 capability) and replies are named maps. That asymmetry is honoured rather than worked around, and each
 positional shape is spelled out where it is built — a wire read by index is one where a field inserted
 upstream silently shifts everything after it.
+
+## A listing can look installable and not be
+
+`17-withdraw-a-dependency.sh` withdraws a package something else depends on. The mechanism is
+correct and reversible: the dependency's download 404s, its dependent's closure becomes unresolvable
+with `no published version of 'devbot.wd.lib' is available to you`, and republishing recovers it.
+
+What the leg also measured is the part worth keeping:
+
+```
+devbot.wd.lib   withdrawn       -> gone from browse, download 404s
+devbot.wd.app   still published -> still listed, 1 version, and NO field hints at its health
+```
+
+**The dependent is uninstallable and nothing says so until you ask for a plan.** That is not a bug —
+the registry cannot re-derive every dependent's health on a withdrawal without walking every package
+that ever named it, and a search page cannot resolve a closure per row. But the gap is real: the
+listing a person decides from and the resolve that refuses them are two different answers, and only
+the second is true.
+
+The affordable half, if it is ever wanted, is the DETAIL endpoint rather than search — one package,
+one walk, and it is exactly where somebody is deciding to install. Recorded rather than built: it is
+a product call, and a verdict computed on a listing is a second answer that can disagree with the
+resolve.
 
 ## Three things the cycle found that were NOT this tool's to fix
 

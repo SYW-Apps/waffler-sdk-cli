@@ -71,6 +71,7 @@ fn render_manifest(fqid: &str, version: &str, description: &str) -> String {
   "//capabilities": "This package serves '{capability}' over the bus. It is served by the handler in src/lib.rs, not declared here — this list is for capabilities a HOST registers, such as runtime primitives.",
   "capabilities": [],
 
+  "//dependencies": "Other packages this one needs: {{ \"fqid\": \"...\", \"version\": \"^1.0\" }}. A RANGE, never a pin. Add \"optional\": true for one the package can run without -- the default is REQUIRED, and a required dependency that is missing stops this package starting at boot rather than letting it run broken.",
   "dependencies": [],
   "permissionGroups": [],
   "fastLaneRequests": [],

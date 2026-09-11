@@ -27,7 +27,11 @@ fn sound() -> AuthoredPackage {
             entry_point: Some("wf_init".into()),
             name: None,
         }],
-        dependencies: vec![DeclaredDependency { fqid: "syw.system.store".into(), version: "^1.0".into() }],
+        dependencies: vec![DeclaredDependency {
+            fqid: "syw.system.store".into(),
+            version: "^1.0".into(),
+            optional: false,
+        }],
         capabilities: vec![],
         permission_groups: vec![],
         fast_lane_requests: vec![],
@@ -416,4 +420,35 @@ fn a_bundle_name_comes_from_the_resolved_file_and_an_explicit_name_wins() {
     // called `artifact/` is a directory, not a file.
     a.name = Some(String::new());
     assert_eq!(a.bundle_name(resolved), "libsyw_example_hello.so");
+}
+
+#[test]
+fn a_dependency_carries_its_OPTIONAL_flag_into_the_manifest() {
+    // CORE HAS SUPPORTED OPTIONAL DEPENDENCIES SINCE `CrateDependency` GAINED THE FLAG, AND THIS
+    // TOOL COULD NOT EXPRESS ONE. Every dependency authored here was stamped required, silently,
+    // with no field to write and no error to say why.
+    let mut authored = sound();
+    authored.dependencies = vec![
+        DeclaredDependency { fqid: "syw.system.store".into(), version: "^1.0".into(), optional: false },
+        DeclaredDependency { fqid: "syw.system.sqlite".into(), version: "^1.0".into(), optional: true },
+    ];
+
+    let body = compile_manifest_body(&authored, &[]);
+    let declared = body["dependencies"].as_array().expect("a dependency list");
+
+    assert_eq!(declared[0]["optional"], serde_json::json!(false), "{declared:#?}");
+    assert_eq!(declared[1]["optional"], serde_json::json!(true), "{declared:#?}");
+    // WRITTEN EVEN WHEN FALSE. Core defaults an absent flag to required, so omitting it would mean
+    // the same thing — but a reader could not then tell "the author chose required" from "this
+    // manifest predates the field", which is the distinction the flag exists to make.
+    assert!(declared[0].get("optional").is_some(), "required must be stated, not implied");
+}
+
+#[test]
+fn an_authored_dependency_with_no_flag_is_REQUIRED() {
+    // The fail-safe direction, and the one a manifest written before the field relies on. A
+    // forgotten flag must produce a package that refuses to start, never one that starts broken.
+    let authored: DeclaredDependency =
+        serde_json::from_str(r#"{"fqid":"syw.system.store","version":"^1.0"}"#).expect("decodes");
+    assert!(!authored.optional, "an absent flag must mean REQUIRED");
 }

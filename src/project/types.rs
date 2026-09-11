@@ -170,6 +170,18 @@ pub struct DeclaredDependency {
     /// A SemVer requirement the registry resolves, e.g. `^1.0`. A RANGE, not a pin — a pin makes
     /// every upstream patch a republish here.
     pub version: String,
+    /// Whether this package can run WITHOUT the dependency. Absent means REQUIRED.
+    ///
+    /// CORE HAS SUPPORTED THIS SINCE `CrateDependency` GAINED THE FLAG, AND THIS TOOL COULD NOT
+    /// EXPRESS IT. Every dependency authored here was stamped required, silently, with no field to
+    /// write and no error to say why — so an author who wanted an optional dependency had no way to
+    /// ask and no way to find out they had not.
+    ///
+    /// DEFAULTS TO REQUIRED, matching core's own default, and that is the fail-safe direction: a
+    /// manifest written before this field existed keeps the meaning it had, and the failure mode of
+    /// a forgotten flag is a package that refuses to start rather than one that starts broken.
+    #[serde(default)]
+    pub optional: bool,
 }
 
 /// A capability this package contributes to a host.

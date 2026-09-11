@@ -296,7 +296,18 @@ pub fn compile_manifest_body(authored: &AuthoredPackage, located: &[LocatedArtif
         .iter()
         // `kind: "package"` is what core's own dependency resolver stamps on a package-level
         // transitive entry, and what the registry reads back as "<fqid>@<version>".
-        .map(|d| json!({ "fqid": d.fqid, "version": d.version, "kind": "package" }))
+        //
+        // `optional` IS ALWAYS WRITTEN, including when false. Core's decoder defaults an absent flag
+        // to required, so omitting it would produce the same meaning — but then a reader of the
+        // manifest cannot tell "this author considered it and chose required" from "this manifest
+        // predates the field". Writing it makes the declaration say what it means, which is the
+        // whole reason the field exists.
+        .map(|d| json!({
+            "fqid": d.fqid,
+            "version": d.version,
+            "kind": "package",
+            "optional": d.optional,
+        }))
         .collect();
 
     let fast_lane_requests: Vec<serde_json::Value> = authored

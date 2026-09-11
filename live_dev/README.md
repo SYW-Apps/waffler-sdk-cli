@@ -17,7 +17,37 @@ scaffold ─▶ validate ─▶ build ─▶ pack ─▶ publish ─▶ browse �
 and, for a package that needs other packages:
 
            publish a graph ─▶ resolve the closure ─▶ install it in order ─▶ all ENABLED
+
+and, for a dependency the package can live without:
+
+           optional: true  ─▶ its absence is REPORTED and the package installs
+           optional: false ─▶ its absence REFUSES the whole closure
 ```
+
+## Deploying a changed PACKAGE to the node, which is not one step
+
+`docker compose build waffler` does **not** rebuild a package. The Dockerfile *copies*
+`docker/core-web/bundles/*.zip`, which a separate script produces — so building the image after
+editing a package ships the previous bundle, silently, and the node keeps running the old code:
+
+```powershell
+.\scripts\build-packages.ps1        # FIRST — produces docker/core-web/bundles/*.zip
+docker compose build waffler        # then the image copies them in
+```
+
+Even then a redeploy does not *apply* it: provisioning installs what is declared and absent, so an
+already-installed package stays at the version it holds. Use `live_dev/update-preinstalled-package.py`
+with the freshly built zip, then restart.
+
+**Check the artifact rather than the pipeline.** A zip of the same size as yesterday's is the tell,
+and the cheap positive control is to look for a string only the new code contains:
+
+```bash
+python -c "import zipfile;z=zipfile.ZipFile('docker/core-web/bundles/syw.system.marketplace.zip');\
+print(b'skipped_optional' in z.read([n for n in z.namelist() if n.endswith('.so')][0]))"
+```
+
+That is how this was caught: the image built, the bundle refreshed, and the marker was absent.
 
 Measured on 2026-09-10 against `waffler-beta` and `waffler-registry` on the `waffler_default`
 network, with a package that did not exist an hour earlier:
@@ -37,6 +67,8 @@ network, with a package that did not exist an hour earlier:
 | `12-install-closure.py` | installs that closure through the marketplace on the live node: all three land, **in order**, **enabled**, and **at the version the registry offered** — a stale row would otherwise read as success. Both kinds of unresolvable closure — a dependency that does not exist, and one no version satisfies — are **refused with nothing installed**, naming what disagrees; a repeat install is **not a second copy** |
 | `13-closure-serves.py` | after a restart, **every member of the closure answers** — not just the root — identifies itself, and reports the version the node records. Then it takes the leaf away and reports what a single process can see of that |
 | `14-gate-after-restart.py` | the observable neither 13 nor `04` can reach: **run twice across a node restart**, it proves all three serve, removes the leaf, and after the restart the dependents must **not have started**. It reads its phase from the NODE rather than a flag, so the two runs cannot be done out of order |
+| `15-optional-dependency.sh` | publishes **two packages whose manifests differ in one character** — one declaring an optional dependency on a package that does not exist, one declaring it required — and proves the flag survives **packing, publication, storage and resolution**, asserted at the bundle as well as at the plan so a failure can be attributed to the packer, the reader or the resolver |
+| `16-optional-install.py` | the flag must **change the outcome**: the optional one installs and **reports what it skipped**, the required one is **refused naming the missing package**. The refusal is the half that matters — an install that succeeds proves nothing unless the version that must fail does. **Refuses to start** against a marketplace that predates the flag, which would refuse both and look like a pass |
 
 ## Running it
 

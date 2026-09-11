@@ -357,13 +357,40 @@ pub fn compile_manifest_body(authored: &AuthoredPackage, located: &[LocatedArtif
     // complete the whole time — the supervisor walks these, owner-tags each and registers it on the
     // per-package chain and the global bus chain — so the only thing missing was a producer.
     //
-    // SERIALIZED FROM THE AUTHORED TYPE rather than assembled field by field here. Its serde
-    // attributes already skip an absent `target`, `filters` and `priority`, which is what keeps an
-    // omitted optional absent in the manifest rather than present-and-null.
+    // MAPPED FIELD BY FIELD, LIKE EVERY OTHER DECLARATION IN THIS BODY, and the first attempt did
+    // not do that. Serializing the authored type directly looked equivalent and was not: the
+    // authored model is `camelCase` BECAUSE A HUMAN WRITES `waffler.json`, while `/.manifest` is
+    // core's own shape and `MiddlewareDeclaration` reads `needs_payload` / `needs_headers`. The
+    // bundle decoded as `missing field 'needs_payload'` — a manifest this tool wrote and core
+    // cannot read.
+    //
+    // THE TWO SPELLINGS ARE THE POINT, not an accident to be smoothed over. A developer editing
+    // JSON should not have to know which language read it, and core should not have to accept a
+    // second spelling of its own type. This function is where the two meet, which is why every
+    // other field here is written out rather than derived.
+    //
+    // AN ABSENT OPTIONAL STAYS ABSENT rather than becoming null: `target` absent means "intercept
+    // every routed call", and `target: null` is a different claim about a field core reads.
     let middleware: Vec<serde_json::Value> = authored
         .middleware
         .iter()
-        .map(|m| serde_json::to_value(m).expect("a declared middleware serializes"))
+        .map(|m| {
+            let mut entry = serde_json::Map::new();
+            entry.insert("id".into(), json!(m.id));
+            entry.insert("handler".into(), json!(m.handler));
+            entry.insert("needs_payload".into(), json!(m.needs_payload));
+            entry.insert("needs_headers".into(), json!(m.needs_headers));
+            if let Some(target) = &m.target {
+                entry.insert("target".into(), json!(target));
+            }
+            if let Some(filters) = &m.filters {
+                entry.insert("filters".into(), filters.clone());
+            }
+            if let Some(priority) = m.priority {
+                entry.insert("priority".into(), json!(priority));
+            }
+            serde_json::Value::Object(entry)
+        })
         .collect();
 
     let fast_lane_requests: Vec<serde_json::Value> = authored

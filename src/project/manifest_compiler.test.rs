@@ -475,7 +475,11 @@ fn a_declared_middleware_reaches_the_manifest() {
     assert_eq!(declared.len(), 1, "{body:#?}");
     assert_eq!(declared[0]["id"], serde_json::json!("auth"));
     assert_eq!(declared[0]["target"], serde_json::json!("syw.system.*"));
-    assert_eq!(declared[0]["needsHeaders"], serde_json::json!(true));
+    // CORE'S SPELLING, not this crate's. `waffler.json` is camelCase because a human writes it;
+    // `/.manifest` is core's own shape. This assertion said `needsHeaders` and PASSED against a
+    // manifest core could not decode — it confirmed the bug rather than catching it, which is why
+    // the decode-with-core's-type test below exists and this one is not enough on its own.
+    assert_eq!(declared[0]["needs_headers"], serde_json::json!(true));
     assert_eq!(declared[0]["filters"]["capability"], serde_json::json!("admin.*"));
     assert_eq!(declared[0]["priority"], serde_json::json!(10));
 }
@@ -586,4 +590,34 @@ fn the_handler_is_NOT_required_to_be_a_declared_capability() {
 
     let violations = validate_authored(&authored);
     assert!(violations.is_empty(), "a bus-served handler must not be cross-checked: {violations:?}");
+}
+
+#[test]
+fn the_manifest_middleware_decodes_as_CORES_OWN_TYPE() {
+    // THE ONLY CHECK THAT CANNOT BE FOOLED BY THIS CRATE'S OWN SPELLING. Every other assertion here
+    // reads the manifest with the same names this crate wrote, so a producer that renamed a field
+    // would satisfy all of them and still emit something core cannot decode. This decodes the
+    // compiled body with `waffler_shared::MiddlewareDeclaration` — the type the node actually reads.
+    let mut authored = sound();
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "auth".into(),
+        handler: "identity.middleware".into(),
+        target: Some("syw.system.api".into()),
+        needs_payload: false,
+        needs_headers: true,
+        filters: Some(serde_json::json!({"capability": "admin.*"})),
+        priority: Some(100),
+    }];
+
+    let body = compile_manifest_body(&authored, &[]);
+    let decoded: Vec<waffler_shared::MiddlewareDeclaration> =
+        serde_json::from_value(body["middleware"].clone())
+            .expect("core's decoder must read what this crate writes");
+
+    assert_eq!(decoded[0].id, "auth");
+    assert_eq!(decoded[0].handler, "identity.middleware");
+    assert_eq!(decoded[0].target.as_deref(), Some("syw.system.api"));
+    assert!(decoded[0].needs_headers, "the header flag must survive the name mapping");
+    assert!(!decoded[0].needs_payload);
+    assert_eq!(decoded[0].priority, Some(100));
 }

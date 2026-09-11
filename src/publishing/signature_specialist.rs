@@ -104,22 +104,26 @@ pub fn sign_as_publisher(bundle_path: &std::path::Path, signing_key: &[u8; 32]) 
     let key = ed25519_dalek::SigningKey::from_bytes(signing_key);
     let signature = ed25519_dalek::Signer::sign(&key, payload);
 
-    let trailer = waffler_shared::SignatureTrailer {
-        signatures: vec![waffler_shared::BundleSignature {
-            role: waffler_shared::SignatureRole::Publisher,
-            public_key: key.verifying_key().to_bytes().to_vec(),
-            signature: signature.to_bytes().to_vec(),
-        }],
-        // NO ROTATION CHAIN. `waffler key rotate` is not built, so this tool has never produced a
-        // bundle that rotates a publisher key, and `None` is the truth rather than a placeholder.
-        //
-        // IT MUST STAY `None` UNTIL ROTATION IS BUILT, and the reason is not tidiness. The field is
-        // `skip_serializing_if = "Option::is_none"`, so `None` writes NO KEY into the trailer and the
-        // bytes are identical to those produced before the field existed. Any other value — including
-        // an empty chain — writes a key, changes the trailer, and breaks the byte-for-byte agreement
-        // the interop vectors hold between this tool and core.
-        lineage: None,
-    };
+    // BUILT THROUGH `new`, NOT AS A LITERAL. `SignatureTrailer` is `#[non_exhaustive]`, so a struct
+    // expression outside `shared` is refused at compile time — which is deliberate and in this
+    // crate's favour. The type's own doc plans more fields (algorithms, timestamps, roles), and a
+    // literal here would break this build on every one of them; `new` takes each addition's default
+    // instead. It cost one break to stop costing one per field.
+    //
+    // NO ROTATION CHAIN, because `waffler key rotate` is not built — this tool has never produced a
+    // bundle that rotates a publisher key. `new` leaves `lineage` as `None`, and that is the truth
+    // rather than a placeholder.
+    //
+    // IT MUST STAY ABSENT UNTIL ROTATION IS BUILT, and the reason is not tidiness. The field is
+    // `skip_serializing_if = "Option::is_none"`, so `None` writes NO KEY into the trailer and the
+    // bytes are identical to those produced before the field existed. Any other value — including an
+    // EMPTY chain — writes a key, changes the trailer, and breaks the byte-for-byte agreement the
+    // interop vectors hold between this tool and core. Asserted in the tests beside this file.
+    let trailer = waffler_shared::SignatureTrailer::new(vec![waffler_shared::BundleSignature {
+        role: waffler_shared::SignatureRole::Publisher,
+        public_key: key.verifying_key().to_bytes().to_vec(),
+        signature: signature.to_bytes().to_vec(),
+    }]);
 
     // NAMED MessagePack, so a later addition to the trailer is non-breaking. The encoding, the length
     // and the magic all come from `shared` rather than being restated here.

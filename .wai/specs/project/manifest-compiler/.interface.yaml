@@ -12,14 +12,21 @@ component: manifest-compiler
 methods:
   - name: validateAuthored
     description: >-
-      Check an authored manifest against the rules the registry will apply, and answer with every
-      violation rather than the first.
+      Check an authored manifest against the rules the registry and the node will apply, and answer
+      with every violation rather than the first.
 
 
-      EVERY CHECK MIRRORS A REGISTRY RULE, AND THE REGISTRY IS THE AUTHORITY. This exists so a
-      developer learns about a malformed manifest in a second instead of after a release build and a
-      large upload; where the two disagree this side is the bug. A check added here that the
-      registry lacks is a rule enforced against honest developers and against nobody else.
+      EVERY CHECK MIRRORS A RULE SOMETHING DOWNSTREAM ENFORCES, and that downstream party is the
+      authority. This exists so a developer learns about a malformed manifest in a second instead of
+      after a release build and a large upload; where the two disagree this side is the bug. A check
+      added here that nothing downstream enforces is a rule applied against honest developers and
+      against nobody else.
+
+
+      WHERE THE RULE IS CORE'S, CORE'S OWN CODE IS CALLED, never copied: the middleware scope is
+      checked by `MiddlewareScope::validate()` and a reserved permission-group id by
+      `is_reserved_group_id`. A copy would be a second chance for a bundle to be packable and
+      uninstallable.
 
 
       ALL VIOLATIONS, NOT THE FIRST. Fixing a manifest one refused field per build is how a
@@ -78,6 +85,29 @@ methods:
         description: The package's fully-qualified id.
     guarantees:
       - idempotent
+  - name: adviseAuthored
+    description: >-
+      Advice about an authored manifest that does not stop a pack: shapes the node ACCEPTS that an
+      author probably does not mean.
+
+
+      NEVER A REFUSAL, AND NEVER A PASS. A manifest with no advisories is not thereby sound —
+      soundness is `validateAuthored`'s answer. An advisory is emitted only when the evidence for it
+      is read with the node's own code; a rule whose schema does not decode is left to the node,
+      which validates it.
+
+
+      THE BUS RULE QUESTION IS ASKED OF THE MATCHER CORE'S FIREWALL IS PINNED TO
+      (`waffler_shared::bus_rule_covers`), never re-derived, so what this calls a grant of
+      `bus:register_middleware` is what the node would.
+    signature: 'adviseAuthored(authored: AuthoredPackage): Advisory[]'
+    returns: sdk_cli::advisory[]
+    params:
+      - name: authored
+        type: sdk_cli::authored-package
+        description: The manifest as written.
+    guarantees:
+      - idempotent
 status: draft
 createdAt: '2026-09-10T00:09:59.835Z'
-updatedAt: '2026-09-10T00:14:22.396Z'
+updatedAt: '2026-09-12T13:16:22.863Z'

@@ -846,6 +846,35 @@ fn the_SCAFFOLDED_manifest_still_parses_now_that_scope_keys_are_strict() {
     assert!(authored.middleware.is_empty(), "the template ships no declaration, only guidance");
 }
 
+#[test]
+#[allow(non_snake_case)]
+fn a_permission_group_in_the_HOST_namespace_is_refused_by_the_predicate_core_uses() {
+    // THE WHOLE PREFIX, not one id. The host synthesizes groups there and approves them itself, so an
+    // author's group in it is either the host's rule written by someone else or a squat on an id the
+    // host has not defined yet — `host.later_feature` is the second case, and a per-id check would
+    // have let it through.
+    for reserved in [waffler_shared::MIDDLEWARE_GRANT_GROUP_ID, "host.later_feature"] {
+        let mut authored = sound();
+        authored.permission_groups = vec![serde_json::json!({ "id": reserved })];
+        let violations = validate_authored(&authored);
+        let fields = fields(&violations);
+        assert!(fields.contains(&"permissionGroups[0].id"), "'{reserved}' must be refused: {fields:?}");
+    }
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn a_group_id_that_merely_RESEMBLES_the_namespace_is_an_authors_to_use() {
+    // A PREFIX TEST, AND THE PREFIX INCLUDES THE DOT. Refusing `hosting` or `host_x` would be a rule
+    // nothing downstream enforces, applied against honest developers and nobody else.
+    for allowed in ["hosting", "host_x", "myhost.x", "net"] {
+        let mut authored = sound();
+        authored.permission_groups = vec![serde_json::json!({ "id": allowed })];
+        let violations = validate_authored(&authored);
+        assert!(violations.is_empty(), "'{allowed}' is not reserved: {violations:?}");
+    }
+}
+
 /// A command scope naming the targets it reaches, which is the ordinary shape.
 fn scope_over(targets: &[&str]) -> waffler_shared::MiddlewareScope {
     waffler_shared::MiddlewareScope {

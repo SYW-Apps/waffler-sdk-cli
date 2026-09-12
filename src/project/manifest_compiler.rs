@@ -5,11 +5,16 @@
 //! PURE. No clock, no disk, no network — which is what makes every refusal testable from a literal
 //! and every compilation testable without a build.
 //!
-//! EVERY REFUSAL HERE MIRRORS A REGISTRY RULE, AND THE REGISTRY IS THE AUTHORITY. This side exists
-//! so a developer learns about a malformed manifest in a second rather than after a release build
-//! and a hundred-megabyte upload. Where the two disagree the registry is right and this is the bug,
-//! so a check is added here only when the registry already has it — never the reverse. A local
-//! check the registry lacks is a rule enforced against honest developers and against nobody else.
+//! EVERY REFUSAL HERE MIRRORS A RULE SOMETHING DOWNSTREAM ENFORCES — the registry at publish or the
+//! node at install — AND THAT PARTY IS THE AUTHORITY. This side exists so a developer learns about a
+//! malformed manifest in a second rather than after a release build and a hundred-megabyte upload.
+//! Where the two disagree the downstream party is right and this is the bug, so a check is added here
+//! only when something downstream already has it — never the reverse. A local check nothing
+//! downstream enforces is a rule applied against honest developers and against nobody else.
+//!
+//! WHERE THE RULE IS CORE'S, CORE'S CODE IS CALLED, never copied: `MiddlewareScope::validate()` for a
+//! middleware scope, `is_reserved_group_id` for a permission group id. A copy is a second chance for a
+//! bundle to be packable and uninstallable.
 
 use serde_json::json;
 
@@ -161,6 +166,28 @@ pub fn validate_authored(authored: &AuthoredPackage) -> Vec<Violation> {
         // nothing could disagree loudly. Re-deriving its replacement here would rebuild the cause.
         if let Err(reason) = middleware.scope.validate() {
             violations.push(Violation::new(format!("{at}.scope"), reason));
+        }
+    }
+
+    // THE HOST-OWNED GROUP NAMESPACE. Core synthesizes groups under `host.` from operator decisions and
+    // approves them itself — the first carries a middleware package's registration grant — so an author
+    // writing one is writing the host's rule, and one written before the host defines an id squats it.
+    //
+    // CORE'S PREDICATE, CALLED: the same function refuses the install, so a bundle refused here is one
+    // the node would refuse, and nothing more. Only the id is read; the group's schema is still
+    // security's, and still passed through unmodelled.
+    for (i, group) in authored.permission_groups.iter().enumerate() {
+        if let Some(id) = group.get("id").and_then(serde_json::Value::as_str) {
+            if waffler_shared::is_reserved_group_id(id) {
+                violations.push(Violation::new(
+                    format!("permissionGroups[{i}].id"),
+                    format!(
+                        "'{id}' is in the reserved '{}' namespace, which the host owns (its middleware-approval grant group is '{}'); an author may not declare a group there, and the node refuses the install",
+                        waffler_shared::HOST_GROUP_ID_PREFIX,
+                        waffler_shared::MIDDLEWARE_GRANT_GROUP_ID
+                    ),
+                ));
+            }
         }
     }
 

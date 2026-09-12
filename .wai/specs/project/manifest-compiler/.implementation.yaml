@@ -132,6 +132,30 @@ methods:
           errors naming the key rather than values this step has to look for.
         type: local
       - stepNumber: 17
+        description: For each declared permission group.
+        type: loop
+        loopKind: forEach
+        over: authored.permissionGroups
+        endStep: 18
+      - stepNumber: 18
+        label: reserved-group-check
+        description: >-
+          Its id must not be in the HOST-OWNED namespace: `waffler_shared::is_reserved_group_id`,
+          CALLED, never copied — the same predicate core refuses an install on.
+
+
+          THE WHOLE `host.` PREFIX IS RESERVED, not one id. The host synthesizes groups there from
+          operator decisions and approves them itself — the first is `host.middleware_grant`, which
+          carries a middleware package's registration grant — so an author-declared group in that
+          namespace is the author writing the host's rule, and one declared before the host defines
+          an id would squat it.
+
+
+          ONE DEFINITION FOR PACK AND INSTALL. Two copies of a reserved string are two chances for a
+          bundle to be packable and uninstallable. The group's schema is otherwise still passed
+          through unmodelled; only its id is read.
+        type: local
+      - stepNumber: 19
         description: Every violation found, in declaration order.
         type: return
         outcome: the complete violation list, empty when the manifest is sound
@@ -259,6 +283,63 @@ methods:
       point: the ingested entity, the install-call uuid and the `/namespace/<uuid>.json` segment
       must agree, and three places computing it three ways is three chances to disagree with no way
       to notice.
+  - name: adviseAuthored
+    narrative:
+      - stepNumber: 1
+        description: >-
+          Start an empty advisory list, and note whether the package declares any middleware.
+          Nothing below returns early and nothing below refuses.
+        type: local
+      - stepNumber: 2
+        description: For each rule of each declared permission group.
+        type: loop
+        loopKind: forEach
+        over: every rule of every declared permission group, in declaration order
+        endStep: 5
+      - stepNumber: 3
+        label: decode-with-cores-types
+        description: >-
+          Decode the rule's `pattern` as `waffler_shared::RulePattern` and its `effect` as
+          `waffler_shared::PermissionEffect`. A rule that does not decode is SKIPPED: the node
+          validates the schema, and an advisory is never evidence that a rule is well formed. Only
+          an Allow of kind Bus is considered further; a deny grants nothing to advise about.
+        type: local
+      - stepNumber: 4
+        label: ask-the-shared-matcher
+        description: >-
+          Ask `waffler_shared::bus_rule_covers` whether the rule admits the `register_middleware`
+          command on the `bus` service — and again for a command no rule names.
+
+
+          THE SECOND QUESTION TELLS THE TWO SHAPES APART WITHOUT RE-DERIVING THE MATCHER. A rule
+          that admits a nameless command constrains no verb, so it admits EVERY bus command; one
+          that admits `register_middleware` but not the nameless one is scoped to that command.
+          Re-reading `verb` and `verbs` here would be a second spelling of the rule core's firewall
+          is pinned to.
+        type: local
+      - stepNumber: 5
+        label: advise
+        description: >-
+          Scoped to `register_middleware`: advise that on waffler_core 78b3acf8 and later the grant
+          is the HOST's — `host.middleware_grant`, approved with the operator's review of each
+          `middleware[]` declaration — so this group admits no layer there and is useful only for
+          older nodes.
+
+
+          Admits every bus command, AND the package declares middleware: advise scoping the rule to
+          the commands the package actually uses rather than dropping it. It is probably how an
+          older-core author obtained the registration grant, and dropping it could remove every
+          other bus command the package relies on.
+
+
+          Admits every bus command and the package declares NO middleware: say nothing. That is a
+          general bus grant, and linting its breadth is not this tool's rule to add.
+        type: local
+      - stepNumber: 6
+        description: The advisories.
+        type: return
+        outcome: every advisory, in declaration order; empty when there is nothing to advise
+    detail: full
 status: draft
 createdAt: '2026-09-10T00:15:58.087Z'
-updatedAt: '2026-09-12T12:46:47.941Z'
+updatedAt: '2026-09-12T13:16:34.171Z'

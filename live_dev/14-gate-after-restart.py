@@ -55,7 +55,8 @@ UTIL = "devbot.dia.util"
 CLOSURE = [UTIL, LIB, APP]
 DEPENDENTS_OF_UTIL = [LIB, APP]
 
-PACKAGE_FIELDS = 16
+# See 12-install-closure.py for why this is a set of KNOWN arities rather than one or a minimum.
+PACKAGE_ARITIES = {16, 17}
 FQID_AT, VERSION_AT, ENABLED_AT = 0, 1, 10
 
 # The two spellings of "installed but not running".
@@ -108,7 +109,7 @@ async def held(ws):
         return None
     packages = {}
     for row in result or []:
-        if not isinstance(row, (list, tuple)) or len(row) != PACKAGE_FIELDS:
+        if not isinstance(row, (list, tuple)) or len(row) not in PACKAGE_ARITIES:
             bad(f"an installed package arrived with an unexpected arity: {row!r}")
             return None
         packages[row[FQID_AT]] = (row[VERSION_AT], row[ENABLED_AT])

@@ -54,8 +54,9 @@ CLOSURE = [UTIL, LIB, APP]
 DEPENDENTS_OF_UTIL = [LIB, APP]
 
 # See 12-install-closure.py: `packages:list` replies with POSITIONAL arrays, and the arity is
-# asserted so a field added upstream fails loudly rather than shifting `enabled` silently.
-PACKAGE_FIELDS = 16
+# checked against the KNOWN set so a field added upstream fails loudly rather than shifting
+# `enabled` silently, while a node on the image before `middleware_reviews` (16) still reads.
+PACKAGE_ARITIES = {16, 17}
 FQID_AT, VERSION_AT, ENABLED_AT = 0, 1, 10
 
 _next_id = [0]
@@ -107,7 +108,7 @@ async def held(ws):
         return None
     packages = {}
     for row in result or []:
-        if not isinstance(row, (list, tuple)) or len(row) != PACKAGE_FIELDS:
+        if not isinstance(row, (list, tuple)) or len(row) not in PACKAGE_ARITIES:
             bad(f"an installed package arrived with an unexpected arity: {row!r}")
             return None
         packages[row[FQID_AT]] = (row[VERSION_AT], row[ENABLED_AT])

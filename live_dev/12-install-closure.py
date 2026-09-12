@@ -119,10 +119,19 @@ def check_order(order, where):
 # leg first reported all three packages missing while they were sitting in the reply.
 #
 # Read by index, which is a wire a field inserted upstream silently shifts. Two things make that
-# survivable rather than a trap: only index 0 and 10 are read, index 0 cannot move (an append goes
-# to the end), and the ARITY IS ASSERTED — so a field added upstream fails this loudly here instead
-# of quietly turning some other package's `enabled` into the answer.
-PACKAGE_FIELDS = 16
+# survivable rather than a trap: only indices 0, 1 and 10 are read, none of which an append can
+# move (it goes to the end), and the ARITY IS CHECKED — so a field added upstream fails this loudly
+# here instead of quietly turning some other package's `enabled` into the answer.
+#
+# A SET OF KNOWN ARITIES — not one, and not "at least". Core appended `middleware_reviews` as the
+# seventeenth field (shared@1b1cb01) while a node on the image before it still sends sixteen, so a
+# harness that runs against both must read both. "At least sixteen" would also read an eighteenth
+# field nobody here has looked at, which is the silent case this check exists to prevent. A new
+# arity is a one-line addition, made by whoever has read what the new field is.
+PACKAGE_ARITIES = {
+    16: "a node on the image before middleware_reviews",
+    17: "middleware_reviews appended (shared@1b1cb01)",
+}
 FQID_AT = 0
 VERSION_AT = 1
 ENABLED_AT = 10
@@ -140,10 +149,10 @@ async def installed_set(ws):
         if isinstance(row, dict):
             packages[row.get("fqid")] = (row.get("version"), row.get("enabled"))
             continue
-        if not isinstance(row, list) or len(row) != PACKAGE_FIELDS:
+        if not isinstance(row, list) or len(row) not in PACKAGE_ARITIES:
             bad(
                 f"an installed package arrived with {len(row) if hasattr(row, '__len__') else '?'} "
-                f"fields, not {PACKAGE_FIELDS} — this leg reads it by index and must not guess"
+                f"fields, not one of {sorted(PACKAGE_ARITIES)} — this leg reads it by index and must not guess"
             )
             return None
         packages[row[FQID_AT]] = (row[VERSION_AT], row[ENABLED_AT])

@@ -875,6 +875,113 @@ fn a_group_id_that_merely_RESEMBLES_the_namespace_is_an_authors_to_use() {
     }
 }
 
+#[test]
+#[allow(non_snake_case)]
+fn a_group_scoped_to_register_middleware_is_ADVISED_as_redundant_and_never_refused() {
+    // Core ACCEPTS such a group: a bundle may still target nodes before 78b3acf8, where it was the only
+    // route to the grant, so refusing would be a rule nothing downstream enforces. On newer nodes it
+    // admits no layer, and an author deserves to know that.
+    let mut authored = sound();
+    authored.permission_groups =
+        vec![group_with_bus_rule(Some("register_middleware"), waffler_shared::PermissionEffect::Allow)];
+
+    assert!(validate_authored(&authored).is_empty(), "advice must never become a refusal");
+    let advice = advise_authored(&authored);
+    assert_eq!(advice.len(), 1, "{advice:?}");
+    assert_eq!(advice[0].field, "permissionGroups[0].rules[0]");
+    assert!(advice[0].advice.contains("host.middleware_grant"), "{}", advice[0].advice);
+    assert!(advice[0].advice.contains("78b3acf8"), "the advice names the core it depends on: {}", advice[0].advice);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn a_verb_LESS_bus_rule_in_a_middleware_package_is_advised_to_be_SCOPED_not_dropped() {
+    // A rule constraining no command admits every bus command, `register_middleware` among them — very
+    // likely how an older-core author obtained the grant. Telling them to drop it would also remove
+    // every other command it grants, which is why the advice is to scope it.
+    let mut authored = with_a_middleware(sound());
+    authored.permission_groups = vec![group_with_bus_rule(None, waffler_shared::PermissionEffect::Allow)];
+
+    let advice = advise_authored(&authored);
+    assert_eq!(advice.len(), 1, "{advice:?}");
+    assert!(advice[0].advice.contains("EVERY bus command"), "{}", advice[0].advice);
+    assert!(advice[0].advice.contains("scope this rule"), "{}", advice[0].advice);
+    assert!(!advice[0].advice.contains("admits no layer"), "a wide grant is not the redundant scoped one: {}", advice[0].advice);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn a_verb_less_bus_rule_WITHOUT_middleware_is_not_this_tools_business() {
+    // A general bus grant in a package that declares no interceptor. Its breadth may deserve a word,
+    // but not this word, and linting grant breadth is not a rule anything downstream applies.
+    let mut authored = sound();
+    authored.permission_groups = vec![group_with_bus_rule(None, waffler_shared::PermissionEffect::Allow)];
+    assert!(advise_authored(&authored).is_empty(), "{:?}", advise_authored(&authored));
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn a_DENY_and_a_rule_for_another_command_grant_nothing_to_advise_about() {
+    let mut authored = with_a_middleware(sound());
+    authored.permission_groups = vec![
+        group_with_bus_rule(Some("register_middleware"), waffler_shared::PermissionEffect::Deny),
+        group_with_bus_rule(Some("publish"), waffler_shared::PermissionEffect::Allow),
+    ];
+    assert!(advise_authored(&authored).is_empty(), "{:?}", advise_authored(&authored));
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn a_rule_that_does_not_DECODE_is_left_to_the_node_and_is_not_a_pass() {
+    // SKIPPED, NOT REFUSED: the node validates a group's schema, and this tool deliberately does not
+    // model it. The empty answer says nothing about the rule — which is why the contract calls an empty
+    // list "nothing to advise" and never "sound".
+    let mut authored = with_a_middleware(sound());
+    authored.permission_groups =
+        vec![serde_json::json!({ "id": "mw", "rules": [{ "pattern": { "target": "bus" }, "effect": "Allow" }] })];
+    assert!(advise_authored(&authored).is_empty());
+    assert!(validate_authored(&authored).is_empty());
+}
+
+/// One permission group holding one Bus rule, serialized FROM CORE'S OWN TYPES, so the fixture is the
+/// spelling the node decodes rather than this crate's idea of it.
+fn group_with_bus_rule(verb: Option<&str>, effect: waffler_shared::PermissionEffect) -> serde_json::Value {
+    let rule = waffler_shared::PermissionRule {
+        pattern: waffler_shared::RulePattern {
+            kind: waffler_shared::RULE_KIND_BUS.into(),
+            target_kind: Some(waffler_shared::TARGET_KIND_COMMAND.into()),
+            target: Some("bus".into()),
+            path: None,
+            verbs: None,
+            flags: None,
+            class_pattern: None,
+            assignable_to: None,
+            secret_uuid: None,
+            verb: verb.map(str::to_string),
+            system_id: None,
+            payload: None,
+        },
+        effect,
+        priority: 100,
+    };
+    serde_json::json!({ "id": "mw", "rules": [serde_json::to_value(rule).expect("a rule serializes")] })
+}
+
+/// The same package, declaring one interceptor.
+fn with_a_middleware(mut authored: AuthoredPackage) -> AuthoredPackage {
+    authored.middleware = vec![DeclaredMiddleware {
+        id: "auth".into(),
+        handler: "identity.middleware".into(),
+        scope: scope_over(&["db"]),
+        needs_payload: false,
+        needs_headers: true,
+        priority: None,
+        required: true,
+        kind: waffler_shared::MiddlewareKind::Enforcing,
+    }];
+    authored
+}
+
 /// A command scope naming the targets it reaches, which is the ordinary shape.
 fn scope_over(targets: &[&str]) -> waffler_shared::MiddlewareScope {
     waffler_shared::MiddlewareScope {

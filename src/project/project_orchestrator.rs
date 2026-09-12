@@ -105,6 +105,17 @@ pub fn validate_project(directory: &Path) -> Result<Vec<Violation>> {
     Ok(manifest_compiler::validate_authored(&authored))
 }
 
+/// Advice about the project's manifest that does not stop a pack — no build, like
+/// [`validate_project`].
+///
+/// SEPARATE FROM `validate_project` RATHER THAN FOLDED INTO ITS ANSWER: a violation list and an
+/// advisory list answer different questions, and a caller asking only whether the manifest is sound
+/// must not have to filter one out of the other.
+pub fn advise_project(directory: &Path) -> Result<Vec<super::types::Advisory>> {
+    let authored = project_adapter::read_authored_manifest(directory)?;
+    Ok(manifest_compiler::advise_authored(&authored))
+}
+
 /// Build what the project declares, in the profile a publishable bundle requires.
 pub fn build_project(directory: &Path) -> Result<BuildReport> {
     let authored = project_adapter::read_authored_manifest(directory)?;

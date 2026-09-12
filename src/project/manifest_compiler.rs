@@ -25,7 +25,62 @@ pub const KIND_DLL: &str = "Dll";
 /// The artifact kind the frontend loads.
 pub const KIND_UI_BUNDLE: &str = "UiBundle";
 
-/// Check an authored manifest against the rules the registry will apply.
+/// Advice about an authored manifest that does NOT stop a pack: shapes the node accepts that an author
+/// probably does not mean.
+///
+/// NEVER A REFUSAL, AND NEVER A PASS. An empty list means "nothing to advise", not "sound" — soundness
+/// is [`validate_authored`]'s answer — and a rule whose schema does not decode is skipped and left to the
+/// node, which validates it.
+///
+/// THE BUS QUESTION IS ASKED OF THE MATCHER CORE'S FIREWALL IS PINNED TO, `bus_rule_covers`, never
+/// re-derived. Asking it twice — for `register_middleware`, and for a command no rule names — tells a
+/// rule scoped to that command from one admitting every command, without re-reading `verb` and `verbs`
+/// here as a second spelling of the rule.
+pub fn advise_authored(authored: &AuthoredPackage) -> Vec<super::types::Advisory> {
+    use super::types::Advisory;
+    use waffler_shared::{bus_rule_covers, FsVerb, PermissionEffect, RulePattern, RULE_KIND_BUS, TARGET_KIND_COMMAND};
+
+    let declares_middleware = !authored.middleware.is_empty();
+    let register = FsVerb("register_middleware".into());
+    let nameless = FsVerb("a-command-no-rule-names".into());
+    let mut advisories = Vec::new();
+
+    for (g, group) in authored.permission_groups.iter().enumerate() {
+        let Some(rules) = group.get("rules").and_then(serde_json::Value::as_array) else {
+            continue;
+        };
+        for (r, rule) in rules.iter().enumerate() {
+            // CORE'S TYPES decide what a Bus Allow is. A rule that does not decode is the node's to refuse.
+            let pattern = rule.get("pattern").and_then(|p| serde_json::from_value::<RulePattern>(p.clone()).ok());
+            let effect = rule.get("effect").and_then(|e| serde_json::from_value::<PermissionEffect>(e.clone()).ok());
+            let (Some(pattern), Some(PermissionEffect::Allow)) = (pattern, effect) else {
+                continue;
+            };
+            if pattern.kind != RULE_KIND_BUS {
+                continue;
+            }
+            let covers = |verb: &FsVerb| bus_rule_covers(&pattern, TARGET_KIND_COMMAND, "bus", Some(verb));
+            if !covers(&register) {
+                continue;
+            }
+            let field = format!("permissionGroups[{g}].rules[{r}]");
+            if !covers(&nameless) {
+                advisories.push(Advisory::new(
+                    field,
+                    "requests `bus:register_middleware`, which waffler_core 78b3acf8 and later grant through the host's own `host.middleware_grant`, approved with the operator's review of each `middleware[]` declaration, so on those nodes this rule admits no layer; keep it only if the package must also run on an older node",
+                ));
+            } else if declares_middleware {
+                advisories.push(Advisory::new(
+                    field,
+                    "admits EVERY bus command, `register_middleware` among them; on waffler_core 78b3acf8 and later the host grants middleware registration itself, so scope this rule to the commands the package actually uses rather than dropping it, which would also remove whatever else it grants",
+                ));
+            }
+        }
+    }
+    advisories
+}
+
+/// Check an authored manifest against the rules the registry and the node will apply.
 ///
 /// ALL VIOLATIONS, NOT THE FIRST. Fixing a manifest one refused field per build is how a
 /// five-minute correction becomes an afternoon.

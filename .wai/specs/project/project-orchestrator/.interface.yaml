@@ -89,6 +89,21 @@ methods:
       - name: overwrite
         type: boolean
         description: Permission to write into a non-empty directory.
+  - name: adviseProject
+    description: >-
+      Advice about the project's manifest that does not stop a pack — no build, like
+      `validateProject`.
+
+
+      SEPARATE FROM `validateProject` RATHER THAN FOLDED INTO ITS ANSWER. A violation list and an
+      advisory list answer different questions, and a caller asking only whether the manifest is
+      sound must not have to filter one out of the other.
+    signature: 'adviseProject(directory: string): Advisory[]'
+    returns: sdk_cli::advisory[]
+    params:
+      - name: directory
+        type: string
+        description: The project root.
 status: draft
 createdAt: '2026-09-10T00:10:20.051Z'
-updatedAt: '2026-09-10T00:46:05.394Z'
+updatedAt: '2026-09-12T13:17:48.948Z'

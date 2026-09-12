@@ -160,6 +160,25 @@ methods:
         type: return
         outcome: success
     detail: full
+  - name: adviseProject
+    narrative:
+      - stepNumber: 1
+        description: Read the authored manifest.
+        type: call
+        targetComponent: project-adapter
+        targetMethod: readAuthoredManifest
+      - stepNumber: 2
+        description: 'Collect the advice: shapes the node accepts that an author probably does not mean.'
+        type: call
+        targetComponent: manifest-compiler
+        targetMethod: adviseAuthored
+      - stepNumber: 3
+        description: >-
+          The advisories, and no build. Advice is returned, never acted on: nothing here stops a
+          pack or changes an exit code.
+        type: return
+        outcome: the advisory list
+    detail: full
 status: draft
 createdAt: '2026-09-10T00:16:35.451Z'
-updatedAt: '2026-09-10T00:17:31.059Z'
+updatedAt: '2026-09-12T13:17:52.311Z'

@@ -25,6 +25,11 @@ pub fn validate(directory: &Path) -> Result<Vec<Violation>> {
     project_orchestrator::validate_project(directory)
 }
 
+/// Advice that does not stop a pack; the `validate`, `pack` and `publish` commands print it and carry on.
+pub fn advise(directory: &Path) -> Result<Vec<super::types::Advisory>> {
+    project_orchestrator::advise_project(directory)
+}
+
 /// Build the project's declared artifacts.
 pub fn build(directory: &Path) -> Result<BuildReport> {
     project_orchestrator::build_project(directory)

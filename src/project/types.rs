@@ -447,6 +447,31 @@ impl std::fmt::Display for Violation {
     }
 }
 
+/// Advice about an authored manifest that is NOT a refusal. Spec: `sdk_cli::advisory`.
+///
+/// A DIFFERENT TYPE FROM [`Violation`], ON PURPOSE. A violation stops a pack and an advisory never
+/// does. One type with a severity flag is how a warning ends up rendered as an error, or an error
+/// filtered out as a warning; two types make every consumer say which one it handles.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Advisory {
+    /// Where the advice applies, in the AUTHORED spelling (`permissionGroups[0].rules[1]`).
+    pub field: String,
+    /// What to consider changing and why, naming the core version it depends on when it does.
+    pub advice: String,
+}
+
+impl Advisory {
+    pub fn new(field: impl Into<String>, advice: impl Into<String>) -> Self {
+        Self { field: field.into(), advice: advice.into() }
+    }
+}
+
+impl std::fmt::Display for Advisory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.field, self.advice)
+    }
+}
+
 /// A file a scaffold renders, before anything is written.
 #[derive(Debug, Clone)]
 pub struct RenderedFile {

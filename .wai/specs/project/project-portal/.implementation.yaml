@@ -35,7 +35,14 @@ methods:
         type: call
         targetComponent: project-orchestrator
         targetMethod: scaffoldProject
+  - name: advise
+    narrative:
+      - stepNumber: 1
+        description: Delegate to the workflow.
+        type: call
+        targetComponent: project-orchestrator
+        targetMethod: adviseProject
 detail: calls-only
 status: draft
 createdAt: '2026-09-10T00:16:42.294Z'
-updatedAt: '2026-09-10T00:16:42.294Z'
+updatedAt: '2026-09-12T13:17:56.543Z'

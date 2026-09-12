@@ -1,0 +1,36 @@
+kind: value-object
+id: advisory
+name: Advisory
+description: >-
+  Advice about an authored manifest that is NOT a refusal: something the author should know and may
+  keep.
+
+
+  IT EXISTS WHERE THE DOWNSTREAM PARTY ACCEPTS THE SHAPE. Core accepts an author-declared group
+  requesting `bus:register_middleware` — a bundle may still target nodes older than waffler_core
+  78b3acf8, where that group was the only route to the grant — so refusing it here would be a rule
+  nothing downstream enforces. Saying nothing, though, leaves an author maintaining a grant that
+  admits nothing on the cores they probably target.
+
+
+  A DIFFERENT TYPE FROM A VIOLATION, ON PURPOSE. A violation stops a pack and an advisory never
+  does. One type with a severity flag is how a warning ends up rendered as an error, or an error
+  filtered out as a warning; two types make each consumer say which one it handles.
+subsystem: project
+group: sdk_cli::authored-manifest
+fields:
+  - name: field
+    type: string
+    description: >-
+      Where the advice applies, in the AUTHORED spelling, e.g. `permissionGroups[0].rules[1]` — the
+      path a developer finds in waffler.json, not the manifest the tool writes.
+    optional: false
+  - name: advice
+    type: string
+    description: >-
+      What to consider changing and why, as a sentence an author can act on without reading a type
+      definition. It names the core version the advice depends on whenever it depends on one.
+    optional: false
+methods: []
+createdAt: '2026-09-12T13:16:16.896Z'
+updatedAt: '2026-09-12T13:16:17.506Z'

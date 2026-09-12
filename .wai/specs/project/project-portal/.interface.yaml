@@ -73,6 +73,23 @@ methods:
     endpoint:
       transport: CLI
       command: scaffold
+  - name: advise
+    description: >-
+      Advice about the project's manifest that does not stop a pack. The `validate`, `pack` and
+      `publish` commands print it as warnings and carry on.
+
+
+      A LIBRARY METHOD LIKE THE REST, so an in-process caller such as the docker image build can ask
+      for the same advice a developer at a terminal sees.
+    signature: 'advise(directory: string): Advisory[]'
+    returns: sdk_cli::advisory[]
+    params:
+      - name: directory
+        type: string
+        description: The project root.
+    endpoint:
+      transport: CLI
+      command: validate | pack | publish (printed as advice, never fatal)
 status: draft
 createdAt: '2026-09-10T00:10:29.511Z'
-updatedAt: '2026-09-10T00:14:12.058Z'
+updatedAt: '2026-09-12T13:21:09.513Z'

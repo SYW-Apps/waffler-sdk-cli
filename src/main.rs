@@ -216,6 +216,7 @@ async fn run(cli: Cli) -> Result<()> {
 
         Commands::Validate(a) => {
             let violations = project_portal::validate(&a.path)?;
+            print_advisories(&project_portal::advise(&a.path)?);
             if violations.is_empty() {
                 println!("{} the manifest is sound", style("✓").green().bold());
                 return Ok(());
@@ -230,6 +231,11 @@ async fn run(cli: Cli) -> Result<()> {
         }
 
         Commands::Pack(a) => {
+            // NON-FATAL: advice that cannot be computed means the manifest itself is unreadable, and the
+            // pack below says so in its own words.
+            if let Ok(advice) = project_portal::advise(&a.path) {
+                print_advisories(&advice);
+            }
             let (bundle, report) = publish_portal::pack(&a.path, a.output.as_deref(), a.no_build, a.publisher_key.as_deref())?;
             // WHETHER IT BUILT OR REUSED IS ALWAYS SAID. "It packed the wrong binary" and "it packed a
             // binary it did not build" are the same incident a day apart, and only one is discoverable
@@ -254,6 +260,11 @@ async fn run(cli: Cli) -> Result<()> {
         Commands::Publish(a) => {
             let client = waffler_cli::http_client();
             let session = session_portal::hydrate()?;
+            // NON-FATAL, and for a second reason here: `--bundle` publishes a prebuilt archive that may
+            // have no project manifest beside it at all.
+            if let Ok(advice) = project_portal::advise(&a.path) {
+                print_advisories(&advice);
+            }
             let outcome = publish_portal::publish(
                 &client,
                 &session,
@@ -385,6 +396,14 @@ async fn run(cli: Cli) -> Result<()> {
             }
             Ok(())
         }
+    }
+}
+
+/// ADVICE IS PRINTED, NEVER OBEYED: nothing here changes an exit code or stops a command. It goes to
+/// stderr beside the other diagnostics, so a script reading stdout sees exactly what it always did.
+fn print_advisories<A: std::fmt::Display>(advisories: &[A]) {
+    for advisory in advisories {
+        eprintln!("  {} {advisory}", style("advice:").yellow().bold());
     }
 }
 

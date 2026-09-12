@@ -39,6 +39,25 @@ Even then a redeploy does not *apply* it: provisioning installs what is declared
 already-installed package stays at the version it holds. Use `live_dev/update-preinstalled-package.py`
 with the freshly built zip, then restart.
 
+**A package-only deploy never needs the image, and while `shared` carries an unshipped wire append it
+must not have one.** The update script sends the zip from the HOST over `packages:update`, so nothing
+has to be inside the image — and `docker compose build waffler` compiles CORE from the working tree
+too, so in that window it builds the very producer whose consumers are being deployed first. The
+16→17 `InstalledPackage` move was deployed exactly so on 2026-09-12: bundles built, the marketplace
+updated from the host zip (a same-version `1.1.2 → 1.1.2` update is accepted), and the node restarted
+on its existing image with `docker restart waffler-beta`.
+
+**A same-version update is proven by the artifact HASH in the node's record, not by the version.**
+`packages:list` carries each artifact's sha256, and after the update it must equal the sha256 of the
+staged zip's `artifact/*.so`. Measured: `41a87d81…` before, `aa67a9ed…` after — the staged module's
+hash exactly.
+
+`live_dev/assert-beta-is-head.py` reports that state as FAIL, every bundle "newer than the image",
+because its bundle axis compares a zip's mtime with the image's and the image was deliberately not
+rebuilt. The inverse is the one that bites: after a `compose build` and restart WITHOUT the update, the
+same axis reads ok while the node still runs the old installed build, because provisioning is
+presence-only. Only the record hash tells those two apart.
+
 **Check the artifact rather than the pipeline.** A zip of the same size as yesterday's is the tell,
 and the cheap positive control is to look for a string only the new code contains:
 

@@ -217,9 +217,15 @@ pub struct DeclaredDependency {
 /// the cheaper cost: the alternative is a mapping layer between two shapes, and a mapping layer is
 /// what silently dropped `needs_payload` from this tool's own output one change earlier.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE — except `scope`, whose contents are
-// core's type and keep core's spelling.
-#[serde(rename_all = "camelCase")]
+// THE WIRE NAMES ARE camelCase BECAUSE A HUMAN WRITES THIS FILE — except inside `scope` and `kind`,
+// whose contents are core's types and keep core's spelling.
+//
+// AN UNKNOWN KEY IS REFUSED BY NAME. On a declaration that decides what an interceptor sees, a key that
+// silently does nothing changes behaviour without a word: `needsHeader` for `needsHeaders` hands an
+// auth layer no bearer token, and an author-written `owner`, `ownerFqid` or `consentDigest` looks like
+// identity or consent the package gave itself — the node overwrites all three. The retired `filters`
+// bag and `target` fall under the same refusal. The scope types already refuse unknown keys this way.
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DeclaredMiddleware {
     /// Unique within the package. Re-registering the same id REPLACES the earlier declaration.
     pub id: String,
@@ -260,6 +266,25 @@ pub struct DeclaredMiddleware {
     /// changes meaning when another package is installed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub priority: Option<u32>,
+    /// Can the PACKAGE run without this interceptor? Absent means REQUIRED — core's default, and the
+    /// fail-safe reading of a declaration nobody considered.
+    ///
+    /// IT DECIDES THE COST OF A DENIAL, NOT THE SCOPE OF CONSENT: denied or unreviewed and required
+    /// refuses the package's enable, optional skips the layer and reports it. Core keeps it out of the
+    /// consent digest for exactly that reason.
+    #[serde(default = "required_unless_said_otherwise")]
+    pub required: bool,
+    /// May this interceptor's VERDICT stop or alter a message? CORE'S ENUM — `Enforcing` (the default)
+    /// or `Observing` — embedded as the scope is, so a misspelling is a parse error rather than an
+    /// audit layer an operator believes only watches. Folded into the consent digest with the scope,
+    /// so moving a declaration from Observing to Enforcing re-presents it for review.
+    #[serde(default)]
+    pub kind: waffler_shared::MiddlewareKind,
+}
+
+/// A middleware declaration that says nothing about `required` is REQUIRED, matching core's default.
+fn required_unless_said_otherwise() -> bool {
+    true
 }
 
 /// A capability this package contributes to a host.

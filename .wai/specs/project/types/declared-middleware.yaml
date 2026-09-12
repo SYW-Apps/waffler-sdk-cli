@@ -30,6 +30,16 @@ description: >-
   for three consumers: the node refuses registration on it, this tool refuses a pack on it, and a
   review surface describes the scope from the same answer. Two copies would be two chances for a
   package to be packable and unregisterable.
+
+
+  AN UNKNOWN KEY IS REFUSED BY NAME, NOT IGNORED. On a declaration that decides what an interceptor
+  sees, a key that silently does nothing changes behaviour without a word: `needsHeader` for
+  `needsHeaders` delivers no bearer token to an auth layer, and a host-stamped `owner`, `ownerFqid`
+  or `consentDigest` written by an author looks like identity or consent the package gave itself.
+  The node overwrites those three unconditionally, so the honest outcome of writing one is a parse
+  error naming it — and the same refusal covers the retired `filters` bag and `target`, which the
+  typed scope replaced. The scope types already refuse unknown keys this way; this makes the
+  declaration around them agree.
 subsystem: project
 group: sdk_cli::authored-manifest
 fields:
@@ -108,6 +118,43 @@ fields:
       IT ORDERS ACROSS PACKAGES, not only within one, so a number chosen against a node's current
       package set is a number that changes meaning when another package is installed.
     optional: true
+  - name: required
+    type: bool
+    description: >-
+      Can the PACKAGE run without this interceptor registering? Absent means REQUIRED — core's own
+      default, and the fail-safe reading of a declaration nobody considered.
+
+
+      IT DECIDES THE COST OF A DENIAL, NOT THE SCOPE OF CONSENT. Denied or unreviewed and required
+      refuses the package's enable; optional skips this layer and reports it. That is why core
+      leaves it out of the consent digest: moving from optional to required takes away an operator's
+      option to refuse without losing the package, and widens nothing that is intercepted.
+
+
+      ALWAYS WRITTEN INTO THE MANIFEST, resolved to its default when the author said nothing — the
+      same rule as a dependency's `optional` flag, so a manifest from this tool can be told apart
+      from one that predates the field.
+    optional: true
+  - name: kind
+    type: '::shared::middleware-kind'
+    description: >-
+      May this interceptor's VERDICT stop or alter a message? CORE'S ENUM, embedded exactly as the
+      scope is: `Enforcing` (the default) or `Observing`.
+
+
+      SPELLED EXACTLY, AND A MISSPELLING IS A PARSE ERROR. `"observing"` quietly read as the default
+      would be an audit layer an operator believes only watches that can in fact reject. An enum
+      makes that unrepresentable instead of checkable.
+
+
+      OBSERVING IS A WITNESS: it sees what its scope admits and can neither reject nor patch,
+      whatever it answers. FOLDED INTO THE CONSENT DIGEST with the scope, so a package moving a
+      declaration from Observing to Enforcing re-presents it for review rather than inheriting
+      consent given to a witness.
+
+
+      ALWAYS WRITTEN, resolved, like `required`.
+    optional: true
 methods: []
 createdAt: '2026-09-11T16:16:24.010Z'
-updatedAt: '2026-09-12T12:42:41.623Z'
+updatedAt: '2026-09-12T12:46:36.701Z'

@@ -105,31 +105,31 @@ methods:
         endStep: 16
       - stepNumber: 16
         description: >-
-          The id and handler must be non-empty, and the filters bag must not carry `syw.owner`,
-          `syw.fqid` or `target`.
+          The id and handler must be non-empty, and the scope must pass CORE'S
+          `MiddlewareScope::validate()` — called, never reimplemented.
 
 
-          THE `syw.*` PAIR IS RUNTIME-MANAGED. The host stamps the declaring package's identity into
-          them at registration, so a value written here is overwritten — a declaration that looks
-          meaningful and decides nothing.
+          THE HANDLER IS THE ADDRESS THE INTERCEPTOR IS CALLED AT. A declaration without one
+          registers, lists and intercepts nothing — the inert-declaration shape — and the host has
+          nothing to invoke. It is NOT checked against the declared capabilities: a package's
+          BUS-served capabilities are served by its handler and never appear in that list, so the
+          check would refuse the ordinary case.
 
 
-          `target` HAS ITS OWN TYPED FIELD. Core moved it out of this bag precisely because a
-          misspelled service name there produced a middleware that registered, listed and silently
-          intercepted nothing. Accepting it in both places would put one value in two homes, free to
-          disagree, and restore the defect the move closed.
+          THE SCOPE CHECK IS CORE'S ONE FUNCTION, so a package this tool packs is a package the node
+          will register. It refuses a block that narrows nothing without saying `everything: true`,
+          which is the broadest scope wearing the emptiest shape.
 
 
-          `source` IS PERMITTED AND WAS ONCE REFUSED HERE — a rule correct when written and
-          invalidated by a change elsewhere. It carried the owner tag until the host moved that to
-          the `syw.*` keys; it now means what the global chain always read it as, an author-declared
-          filter on the envelope's source. A validator that kept refusing it would reject a legal
-          manifest, which is worse than not checking at all.
+          `kind` AND `required` NEED NO CHECK HERE. `kind` is core's enum, so a misspelling already
+          failed the parse, naming the field; `required` is a bool.
 
 
-          NONE OF THESE IS A REFUSAL THIS TOOL INVENTS. All are facts about the shape core consumes
-          — unlike the permission groups a middleware declaration also needs, whose schema this tool
-          deliberately does not model.
+          WHAT THIS STEP NO LONGER REFUSES, AND WHY. It used to refuse `syw.owner`, `syw.fqid` and
+          `target` inside a free-form `filters` bag, and before that `source`. The typed scope
+          removed the bag, and the declaration now refuses UNKNOWN KEYS at parse — so a host-stamped
+          `owner`, `ownerFqid` or `consentDigest`, and the retired `filters` and `target`, are parse
+          errors naming the key rather than values this step has to look for.
         type: local
       - stepNumber: 17
         description: Every violation found, in declaration order.
@@ -189,6 +189,12 @@ methods:
           plugins, and core's consumer side was complete the whole time.
 
 
+          EACH MIDDLEWARE IS WRITTEN IN CORE'S SPELLING, field by field: `id`, `handler`,
+          `needs_payload`, `needs_headers`, `required`, `kind`, the scope serialized by core's own
+          type, and `priority` only when declared. `required` AND `kind` ARE WRITTEN EVEN AT THEIR
+          DEFAULTS, for the reason the dependency flag is.
+
+
           EACH DEPENDENCY CARRIES ITS OPTIONAL FLAG, WRITTEN EVEN WHEN FALSE. Core defaults an
           absent flag to required, so omitting it would carry the same meaning — but a reader could
           not then tell "this author considered it and chose required" from "this manifest predates
@@ -198,8 +204,9 @@ methods:
           RUNTIME-MANAGED FIELDS ARE OMITTED, not emitted empty. Identity, approved group ids and
           fast-lane grants are minted by a node; writing them blank would make a bundle that
           declares nothing indistinguishable from one whose author wrote an empty value, and core's
-          own warnings depend on telling those apart. A middleware declaration's `filters.source` is
-          the same kind of field and is refused at validation for the same reason.
+          own warnings depend on telling those apart. A middleware declaration's host-stamped
+          `owner`, `owner_fqid` and `consent_digest` are the same kind of field: never written here,
+          and refused at parse when an author writes them.
 
 
           THE ARTIFACTS ARRAY IS LEFT ABSENT. Its hashes are facts about bytes the writer has not
@@ -254,4 +261,4 @@ methods:
       to notice.
 status: draft
 createdAt: '2026-09-10T00:15:58.087Z'
-updatedAt: '2026-09-11T20:22:43.164Z'
+updatedAt: '2026-09-12T12:46:47.941Z'

@@ -466,6 +466,8 @@ fn a_declared_middleware_reaches_the_manifest() {
         needs_payload: false,
         needs_headers: true,
         priority: Some(10),
+        required: true,
+        kind: waffler_shared::MiddlewareKind::Enforcing,
     }];
 
     let body = compile_manifest_body(&authored, &[]);
@@ -478,6 +480,9 @@ fn a_declared_middleware_reaches_the_manifest() {
     assert_eq!(declared[0]["needs_headers"], serde_json::json!(true));
     assert_eq!(declared[0]["priority"], serde_json::json!(10));
     assert_eq!(declared[0]["scope"]["commands"]["targets"]["any_of"][0], serde_json::json!("db"));
+    // WRITTEN EVEN AT THEIR DEFAULTS, like a dependency's `optional` flag.
+    assert_eq!(declared[0]["required"], serde_json::json!(true));
+    assert_eq!(declared[0]["kind"], serde_json::json!("Enforcing"));
 }
 
 #[test]
@@ -495,6 +500,11 @@ fn the_manifest_middleware_decodes_as_CORES_OWN_TYPE() {
         needs_payload: false,
         needs_headers: true,
         priority: Some(100),
+        // NON-DEFAULT VALUES ON PURPOSE. Core defaults `required` to true and `kind` to Enforcing, so
+        // a producer that DROPPED both fields would decode to exactly the defaults — a fixture written
+        // at the defaults would pass against the very bug it exists to catch.
+        required: false,
+        kind: waffler_shared::MiddlewareKind::Observing,
     }];
 
     let body = compile_manifest_body(&authored, &[]);
@@ -507,11 +517,94 @@ fn the_manifest_middleware_decodes_as_CORES_OWN_TYPE() {
     assert!(decoded[0].needs_headers, "the header flag must survive the name mapping");
     assert!(!decoded[0].needs_payload);
     assert_eq!(decoded[0].priority, Some(100));
+    assert!(!decoded[0].required, "an optional declaration must reach core as optional");
+    assert_eq!(decoded[0].kind, waffler_shared::MiddlewareKind::Observing, "a witness must reach core as a witness");
     // AND THE SCOPE SURVIVES AS A SCOPE, not as a shape that merely parses. Round-tripping core's
     // own type through this crate's manifest is what proves the embedding rather than a mapping.
     assert!(decoded[0].scope.validate().is_ok(), "{:?}", decoded[0].scope);
     let commands = decoded[0].scope.commands.as_ref().expect("a command block");
     assert_eq!(commands.targets.any_of, vec!["syw.system.api".to_string()]);
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn required_and_kind_are_WRITTEN_whether_the_author_spelled_them_or_said_nothing() {
+    // FROM A LITERAL DOCUMENT, because the defaults live in the PARSE: a constructed fixture names both
+    // fields and cannot show what an author who wrote neither gets. The second declaration is the
+    // spelling an author copies from the template, so a rename of either key fails here too.
+    let authored: AuthoredPackage = serde_json::from_str(
+        r#"{
+          "fqid": "syw.auth.identity",
+          "version": "1.0.0",
+          "middleware": [
+            { "id": "auth", "handler": "identity.middleware",
+              "scope": { "commands": { "targets": { "any_of": ["db"] } } } },
+            { "id": "audit", "handler": "audit.observe", "required": false, "kind": "Observing",
+              "scope": { "commands": { "targets": { "any_of": ["db"] } } } }
+          ]
+        }"#,
+    )
+    .expect("both declarations parse");
+    assert!(authored.middleware[0].required, "absent means REQUIRED, matching core");
+    assert_eq!(authored.middleware[0].kind, waffler_shared::MiddlewareKind::Enforcing);
+    assert!(!authored.middleware[1].required);
+    assert_eq!(authored.middleware[1].kind, waffler_shared::MiddlewareKind::Observing);
+
+    let body = compile_manifest_body(&authored, &[]);
+    let silent = body["middleware"][0].as_object().expect("a declaration object");
+    assert_eq!(silent.get("required"), Some(&serde_json::json!(true)), "{silent:?}");
+    assert_eq!(silent.get("kind"), Some(&serde_json::json!("Enforcing")), "{silent:?}");
+    let spelled = body["middleware"][1].as_object().expect("a declaration object");
+    assert_eq!(spelled.get("required"), Some(&serde_json::json!(false)), "{spelled:?}");
+    assert_eq!(spelled.get("kind"), Some(&serde_json::json!("Observing")), "{spelled:?}");
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn a_misspelled_kind_is_REFUSED_never_read_as_the_default() {
+    // `"observing"` quietly read as the default would be an interceptor an operator believes only
+    // watches that can in fact reject. Core's enum makes it a parse error; this pins that the refusal
+    // reaches an author through this tool's own parse, quoting what they wrote.
+    let refusal = serde_json::from_str::<AuthoredPackage>(
+        r#"{
+          "fqid": "syw.auth.audit",
+          "version": "1.0.0",
+          "middleware": [
+            { "id": "audit", "handler": "audit.observe", "kind": "observing",
+              "scope": { "commands": { "targets": { "any_of": ["db"] } } } }
+          ]
+        }"#,
+    )
+    .expect_err("a misspelled kind must be refused");
+    let message = refusal.to_string();
+    assert!(message.contains("observing"), "the refusal must quote what the author wrote: {message}");
+}
+
+#[test]
+#[allow(non_snake_case)]
+fn a_HOST_STAMPED_or_RETIRED_key_written_by_an_author_is_REFUSED_by_name() {
+    // THE NODE OVERWRITES `owner`, `owner_fqid` AND `consent_digest` UNCONDITIONALLY, so an author who
+    // writes one is told nothing and gets nothing, while the manifest reads like identity or consent
+    // the package gave itself. `filters` and `target` are the retired shapes the typed scope replaced.
+    //
+    // THE CONTROL COMES FIRST: the same declaration without the extra key parses, so each refusal
+    // below is caused by the key and not by anything else in the document.
+    let declaration = |extra: &str| {
+        format!(
+            r#"{{ "fqid": "syw.auth.identity", "version": "1.0.0", "middleware": [
+                 {{ "id": "auth", "handler": "identity.middleware"{extra},
+                    "scope": {{ "commands": {{ "targets": {{ "any_of": ["db"] }} }} }} }} ] }}"#
+        )
+    };
+    serde_json::from_str::<AuthoredPackage>(&declaration(""))
+        .expect("the declaration without an extra key parses");
+
+    for key in ["owner", "ownerFqid", "consentDigest", "filters", "target"] {
+        let refusal = serde_json::from_str::<AuthoredPackage>(&declaration(&format!(r#", "{key}": "x""#)))
+            .expect_err("a key the declaration does not have must be refused");
+        let message = refusal.to_string();
+        assert!(message.contains(&format!("`{key}`")), "the refusal must name `{key}`: {message}");
+    }
 }
 
 #[test]
@@ -531,6 +624,8 @@ fn a_scope_that_narrows_NOTHING_is_refused() {
         needs_payload: false,
         needs_headers: false,
         priority: None,
+        required: true,
+        kind: waffler_shared::MiddlewareKind::Enforcing,
     }];
 
     let violations = validate_authored(&authored);
@@ -579,6 +674,8 @@ fn a_middleware_MAY_scope_on_SOURCES_which_this_tool_once_refused() {
         needs_payload: false,
         needs_headers: true,
         priority: None,
+        required: true,
+        kind: waffler_shared::MiddlewareKind::Enforcing,
     }];
 
     let violations = validate_authored(&authored);
@@ -598,6 +695,8 @@ fn a_middleware_must_name_the_HANDLER_the_host_invokes() {
         needs_payload: false,
         needs_headers: true,
         priority: None,
+        required: true,
+        kind: waffler_shared::MiddlewareKind::Enforcing,
     }];
 
     let violations = validate_authored(&authored);
@@ -620,6 +719,8 @@ fn the_handler_is_NOT_required_to_be_a_declared_capability() {
         needs_payload: false,
         needs_headers: true,
         priority: None,
+        required: true,
+        kind: waffler_shared::MiddlewareKind::Enforcing,
     }];
 
     let violations = validate_authored(&authored);

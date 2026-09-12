@@ -374,6 +374,11 @@ pub fn compile_manifest_body(authored: &AuthoredPackage, located: &[LocatedArtif
                 "scope".into(),
                 serde_json::to_value(&m.scope).expect("a middleware scope serializes"),
             );
+            // WRITTEN EVEN AT THEIR DEFAULTS, for the reason a dependency's `optional` flag is: a
+            // manifest from this tool must be tellable apart from one that predates the fields. `kind`
+            // goes through core's own type, so its spelling cannot drift from the node's.
+            entry.insert("required".into(), json!(m.required));
+            entry.insert("kind".into(), serde_json::to_value(m.kind).expect("a middleware kind serializes"));
             if let Some(priority) = m.priority {
                 entry.insert("priority".into(), json!(priority));
             }

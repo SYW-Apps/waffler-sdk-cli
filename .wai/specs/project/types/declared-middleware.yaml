@@ -60,7 +60,7 @@ fields:
       case — and a rule that fails the correct shape is worse than no rule.
     optional: false
   - name: scope
-    type: waffler_shared::MiddlewareScope
+    type: '::shared::middleware-scope'
     description: >-
       What this interceptor sees: a `commands` block, an `events` block, header predicates, and an
       active toggle. CORE'S TYPE, embedded rather than mirrored.
@@ -110,4 +110,4 @@ fields:
     optional: true
 methods: []
 createdAt: '2026-09-11T16:16:24.010Z'
-updatedAt: '2026-09-11T22:42:50.980Z'
+updatedAt: '2026-09-12T12:42:41.623Z'

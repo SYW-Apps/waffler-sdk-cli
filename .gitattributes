@@ -1,0 +1,6 @@
+# THE LIVE LEGS RUN INSIDE LINUX CONTAINERS, FROM THE WORKING TREE. With core.autocrlf=true a
+# Windows checkout hands bash a CRLF script, which fails at line 1 with `set: pipefail: invalid
+# option name` and then a syntax error hundreds of lines later — a failure that looks like the leg
+# and is the checkout. Pin the endings so a fresh clone runs what this one runs.
+*.sh text eol=lf
+*.py text eol=lf

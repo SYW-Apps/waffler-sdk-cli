@@ -184,6 +184,18 @@ async def main():
         plan = result if isinstance(result, list) else (result or {}).get("plan", [])
         check_order(namespaces_of(plan), "the plan the node received")
 
+        step("1b. clear any copy of the closure this node already holds")
+        # INSTALLING OVER A MOUNTED PACKAGE MOVES THE RECORD AND NOT THE ACTOR. Measured here: after
+        # a second run the node recorded this run's version while the code answering reported the
+        # PREVIOUS run's — these fixtures are rebuilt with a fresh version every run, so the version
+        # baked into the artifact is the discriminator. The enable that follows then returns Ok at
+        # core's already-mounted early return without persisting the flag (D14). Dependents first,
+        # because uninstalling a dependency out from under its dependent is refused.
+        for fqid in (APP, LIB, UTIL):
+            _result, error = await rpc(ws, "packages", "uninstall", {"fqid": fqid})
+            if error and "NotFound" not in json.dumps(error, default=str):
+                bad(f"could not clear a previous run's {fqid}: {json.dumps(error, default=str)[:300]}")
+        ok("the node holds none of the closure: this run installs onto nothing")
         step("2. INSTALL THE ROOT — all three must land, or none")
         before = await installed_set(ws)
         # InstallReq is positional: [namespace, range, trigger, decisions, registry].
@@ -212,6 +224,21 @@ async def main():
                 else:
                     bad(f"the report does not account for {expected}: {report}")
 
+        step("2b. ENABLE IN PLAN ORDER — installing is not enabling, and the gate is here")
+        # THIS LEG IS ABOUT DELIVERY ORDER, and on this core an install never enables anything, so
+        # asserting `enabled` straight after the install stopped discriminating: every package read
+        # False whether the closure arrived in a runnable order or not. The order claim is made
+        # against the ENABLE instead, which is where it was always decided — a package whose
+        # required dependency is absent or not running is refused here (`DependencyUnmet`). So a
+        # closure delivered in the wrong order fails on the first enable that needs a dependency
+        # nobody installed, which is the failure this leg exists to catch.
+        for fqid in (UTIL, LIB, APP):
+            _result, error = await rpc(ws, "packages", "enable", {"fqid": fqid})
+            if error:
+                bad(f"enabling {fqid} was refused: {json.dumps(error, default=str)[:300]}")
+            else:
+                ok(f"{fqid}: enable accepted, its dependencies being installed and running")
+
         step("3. what the NODE holds — the report is a claim, this is the fact")
         after = await installed_set(ws)
         if after is None:
@@ -226,9 +253,11 @@ async def main():
             version, enabled = after[expected]
             if enabled is not True:
                 # INSTALLED AND DISABLED IS THE FAILURE THIS WHOLE LEG IS ABOUT. A package whose
-                # required dependency is absent installs and is held disabled by the enable gate, so
-                # a closure delivered in the wrong order lands as three rows and a root that never
-                # runs — which a presence check alone would call a pass.
+                # required dependency is absent is REFUSED at the enable above, so a closure
+                # delivered in the wrong order lands as three rows and a root that never runs —
+                # which a presence check alone would call a pass. Reaching here means the enable
+                # reported success and the flag did not move, which is its own defect (D14: enable
+                # returns Ok early for a package whose actor is still MOUNTED, without persisting).
                 bad(f"{expected} is installed but NOT enabled: {enabled!r}")
             elif version != offered.get(expected):
                 # THE ROW WAS ALREADY THERE FROM AN EARLIER RUN. `11-dependency-closure.sh` publishes

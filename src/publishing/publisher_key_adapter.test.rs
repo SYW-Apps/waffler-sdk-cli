@@ -50,11 +50,27 @@ fn a_missing_key_names_the_PATH_rather_than_complaining_about_its_contents() {
     assert!(e.contains("no publisher signing key"), "got {e}");
 }
 
+/// Write a key file the loader will actually read.
+///
+/// 0600 ON UNIX, BECAUSE THE PERMISSION GATE COMES FIRST. `tempfile` creates 0644 under a root
+/// umask, so a test that only wrote the bytes was refused for being world-readable before the thing
+/// it names was ever reached -- and it then reported that refusal as its own assertion failing
+/// ("the length found: ... is readable by other users"). The gate is real and has its own test
+/// below; these fixtures exist to exercise what comes after it.
+fn write_key(path: &std::path::Path, contents: &str) {
+    std::fs::write(path, contents).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+}
+
 #[test]
 fn a_seed_of_the_wrong_length_is_refused_naming_BOTH_lengths() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("short.key");
-    std::fs::write(&path, hex::encode([1u8; 16])).unwrap();
+    write_key(&path, &hex::encode([1u8; 16]));
     let e = load_signing_key(&path).unwrap_err().to_string();
     // A library that padded or truncated a seed would produce a key that signs consistently and
     // matches nothing — surfacing as a signature that verifies nowhere, naming no file.
@@ -79,8 +95,8 @@ fn surrounding_whitespace_does_not_change_the_key() {
     let clean = dir.path().join("clean.key");
     let padded = dir.path().join("padded.key");
     let seed = [7u8; SEED_LEN];
-    std::fs::write(&clean, hex::encode(seed)).unwrap();
-    std::fs::write(&padded, format!("  {}\n", hex::encode(seed))).unwrap();
+    write_key(&clean, &hex::encode(seed));
+    write_key(&padded, &format!("  {}\n", hex::encode(seed)));
     assert_eq!(load_signing_key(&clean).unwrap(), load_signing_key(&padded).unwrap());
 }
 

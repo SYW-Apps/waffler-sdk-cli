@@ -353,8 +353,14 @@ fn a_fast_lane_request_is_a_PENDING_REQUEST_never_a_grant() {
     assert_eq!(request["secure"], true);
     // The reviewable ASK. A grant is what an approval produces on a node, and a bundle that could
     // declare one would be a bundle that grants itself a fast lane.
-    assert_eq!(request["review"], "Pending");
     assert_eq!(request["required"], true);
+    // AND NO VERDICT ABOUT ITSELF. This wrote `"review": "Pending"`, which reads as harmless
+    // because it is the value a reviewer would start from -- but it is a package asserting its own
+    // review state inside a signed bundle, it is stored on the record and served by the catalog,
+    // and nothing on the approval path ever rewrites it. A surface rendering it shows the
+    // manifest's opinion as the node's, which is how `permission_groups[].status` came to
+    // over-report 5x on the beta. Absent, every reader serde-defaults it to Pending.
+    assert!(request.get("review").is_none(), "a bundle states no verdict about its own review");
     assert!(body.get("fast_lane_grants").is_none(), "a bundle must not be able to declare a grant");
 }
 

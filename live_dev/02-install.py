@@ -138,6 +138,18 @@ async def main():
         else:
             show("preview", result)
 
+        step("7b. clear any copy this node already holds")
+        # OTHERWISE THE INSTALL LANDS ON A PACKAGE THAT IS ALREADY MOUNTED, and the enable below then
+        # returns Ok at core's already-mounted early return without ever persisting `enabled`
+        # (D14 in plans/package-update-design.md). The leg would report an enable that succeeded and
+        # a record that still reads disabled, which is the node's defect and not this leg's subject.
+        # Starting from nothing also keeps step 10 honest: it proves THIS install answered.
+        _result, error = await rpc(ws, "packages", "uninstall", {"fqid": FQID})
+        if error and "NotFound" not in json.dumps(error, default=str):
+            bad(f"could not clear a previous run's {FQID}: {json.dumps(error, default=str)[:300]}")
+        else:
+            ok(f"the node holds no {FQID}: this run installs onto nothing")
+
         step("8. INSTALL from the local registry")
         # InstallReq is positional: [namespace, range, trigger, decisions, registry].
         result, error = await rpc(
@@ -160,6 +172,17 @@ async def main():
             else:
                 bad(f"{FQID} is NOT in the node's package list")
                 show("packages", result, 3000)
+
+        step("9b. ENABLE — because installing is not enabling")
+        # INSTALL WRITES `enabled: false` ON THIS CORE, and a disabled package has no handler on the
+        # bus: step 10 used to fail here with "no handler registered", which reads as a broken
+        # artifact and is a package nobody started. Enabling is its own verb and its own gate — an
+        # unapproved REQUIRED request refuses here, which is exactly where it should.
+        result, error = await rpc(ws, "packages", "enable", {"fqid": FQID})
+        if error:
+            bad(f"enable refused: {json.dumps(error, default=str)[:300]}")
+        else:
+            ok(f"{FQID} is enabled")
 
         step("10. DOES IT ANSWER? — the observation that separates installed from working")
         # A row in the package list is what a records-only install would also produce. Calling the

@@ -113,7 +113,7 @@ async def main():
                 else:
                     bad(
                         f"the node records {recorded_version} but the artifact answering "
-                        f"reports {answered} — a stale module is loaded"
+                        f"reports {answered} — the OLD module is still loaded (D15: a package library is never unloaded and is replaced at the same path, so the node serves the old image until it restarts)"
                     )
 
         step("4. a capability it does NOT serve is named rather than answered")

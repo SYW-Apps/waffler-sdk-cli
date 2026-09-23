@@ -201,7 +201,10 @@ async def main():
             if result.get("echo") != payload:
                 bad(f"{fqid} echoed {result.get('echo')!r}, not what it was handed")
             # AGAINST WHAT THE NODE RECORDED, never a constant: the row says one version and the
-            # artifact answering reports another is a stale module loaded under a record that moved.
+            # artifact answering reports another is the OLD module still loaded under a record that moved
+            # on -- D15 in plans/package-update-design.md: a package library is never unloaded and its
+            # replacement is written at the same path, so the node serves the old image until it restarts.
+            # This check is correct and is RED against that defect; a node restart clears it.
             recorded = before[fqid][0]
             if result.get("version") != recorded:
                 bad(f"{fqid} answers as {result.get('version')} but the node records {recorded}")
@@ -288,6 +291,14 @@ async def main():
         if error:
             bad(f"reinstalling the closure refused: {error}")
         else:
+            # INSTALLING IS NOT ENABLING, so the reinstalled closure is a set of rows until each
+            # package passes its own gate. In dependency order, because an enable is refused while a
+            # required dependency is not running (`DependencyUnmet`) - which is also what makes this
+            # loop an assertion about ORDER rather than a formality.
+            for fqid in CLOSURE:
+                _result, error = await rpc(ws, "packages", "enable", {"fqid": fqid})
+                if error:
+                    bad(f"enabling {fqid} after the reinstall was refused: {json.dumps(error, default=str)[:300]}")
             restored = await held(ws)
             if restored is None:
                 sys.exit(1)

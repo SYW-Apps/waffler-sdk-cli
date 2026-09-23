@@ -103,6 +103,19 @@ async def installed_fqids(ws):
 
 async def main():
     async with websockets.connect(NODE, max_size=64 * 1024 * 1024) as ws:
+        step("0. clear THIS leg's own leftovers, so the refusal below is a real one")
+        # THE GRANT IT CREATES SURVIVES THE RUN, and the run after it then found the call already
+        # allowed and reported "the enforcer is not fail-closed" — a false alarm of the worst kind,
+        # because the scary reading is the one people act on. The leg grants itself; it must ungrant
+        # itself first, and then a call that still succeeds means what it says.
+        _result, error = await rpc(ws, "security", "bindings.remove", {"id": BINDING_ID})
+        if error and "NotFound" not in json.dumps(error, default=str):
+            bad(f"could not remove a previous run's binding: {json.dumps(error, default=str)[:200]}")
+        _result, error = await rpc(ws, "security", "groups.delete", {"group_id": GROUP_ID, "source": "Custom"})
+        if error and "NotFound" not in json.dumps(error, default=str):
+            bad(f"could not delete a previous run's group: {json.dumps(error, default=str)[:200]}")
+        ok("no binding and no group from an earlier run: the baseline is ungranted")
+
         step("1. the refusal, restated — so the grant below is shown to be what changed it")
         result, error = await echo_call(ws, "before the grant")
         text = json.dumps(error) if error else ""
@@ -135,7 +148,10 @@ async def main():
             print(f"        Set CYCLE_FQID to a fresh one, or restart the node if {FQID} is installed but idle.")
             sys.exit(2)
         else:
-            bad("the call SUCCEEDED with no rule — the enforcer is not fail-closed")
+            # Step 0 removed this leg's own grant, so reaching here means something ELSE allows the
+            # call — either the enforcer is not fail-closed, or a rule this leg did not write is
+            # open. Both are worth stopping for; neither is this leg having been run twice.
+            bad("the call SUCCEEDED with no rule of this leg's — the enforcer is not fail-closed, or another rule allows it")
             sys.exit(1)
 
         step("2. author a permission group carrying the one rule")
@@ -209,7 +225,8 @@ async def main():
                 else:
                     bad(
                         f"the node records {recorded} but the artifact answering reports "
-                        f"{result.get('version')} — a stale module is loaded"
+                        f"{result.get('version')} — the OLD module is still loaded (D15: a package library is never "
+                        "unloaded and is replaced at the same path, so the node serves the old image until it restarts)"
                     )
             else:
                 bad(f"unexpected reply: {result!r}")
@@ -244,6 +261,15 @@ async def main():
             bad(f"reinstall refused: {error}")
         else:
             show("install", result, 700)
+
+        # AND ENABLE IT: installing is not enabling on this core, so a reinstalled package has no
+        # handler on the bus until its own gate is passed. Step 8 asked it to answer and read the
+        # resulting "no handler registered" as the reinstall having failed.
+        _result, error = await rpc(ws, "packages", "enable", {"fqid": FQID})
+        if error:
+            bad(f"enabling the reinstalled package was refused: {json.dumps(error, default=str)[:300]}")
+        else:
+            ok("the reinstalled package is enabled")
             ok("reinstall reported success")
 
         fqids, err = await installed_fqids(ws)

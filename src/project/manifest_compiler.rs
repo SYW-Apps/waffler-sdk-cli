@@ -471,9 +471,15 @@ pub fn compile_manifest_body(authored: &AuthoredPackage, located: &[LocatedArtif
     let fast_lane_requests: Vec<serde_json::Value> = authored
         .fast_lane_requests
         .iter()
-        // The reviewable ASK: required and Pending. The trigger-aware approval pass, not the
-        // manifest, materializes any grant.
-        .map(|r| json!({ "target": r.target, "secure": r.secure, "required": true, "review": "Pending" }))
+        // The reviewable ASK, and NOTHING ABOUT ITS REVIEW. `review` used to be written as
+        // "Pending" here, which is a package stating a verdict about itself inside a signed bundle.
+        // Core ignores it for authorization -- a lane is granted from the operator's decisions and
+        // never from the manifest, so a bundle claiming "Approved" gets nothing -- but the field is
+        // stored on the record and served by the catalog, where a surface that renders it shows the
+        // manifest's opinion as if it were the node's. That is the same shape as
+        // `permission_groups[].status`, which over-reported 5x on the beta. Omitted, it
+        // serde-defaults to Pending at every reader, which is the one true answer for a bundle.
+        .map(|r| json!({ "target": r.target, "secure": r.secure, "required": true }))
         .collect();
 
     let mut body = json!({

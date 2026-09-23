@@ -112,19 +112,27 @@ if not any(g.get("id") == "ping" and g.get("required") is True for g in groups):
 lanes = d.get("fast_lane_requests") or []
 if not any(l.get("target") == "syw.system.diagnostics" for l in lanes):
     problems.append(f"no fast-lane request: {lanes}")
-# THE CATALOG CARRIES NO MIDDLEWARE, and that is a gap rather than an expectation: the registry reads
-# the declarations only to set a `declares_middleware` flag for taxonomy, while it stores and serves
-# permission groups and lane requests in full. So a package page can show two of the three asks. The
-# consent path does not depend on it (the marketplace previews the STAGED BUNDLE through core, which
-# does report middleware with its digest), which is why 22 can prove the door today. Asserted here as
-# soon as the registry carries it.
-if d.get("middleware"):
-    print("NOTE: the catalog now carries middleware; assert it here and drop this note")
+# THE THIRD ASK, WHICH THE CATALOG USED TO DROP. The registry read the declarations only to set a
+# `declares_middleware` flag for taxonomy while storing the groups and lanes in full, so a package
+# page could show two thirds of what a package wants — and the missing third is the one that puts an
+# interceptor on the node's bus chain. An ABSENT key is failed separately from an empty list: a
+# registry too old to carry them cannot say, which is not the same as a package declaring none.
+mw = d.get("middleware")
+if mw is None:
+    problems.append("the catalog carries no `middleware` key: this registry cannot say, which a package page must not render as 'declares none'")
+elif not any(m.get("id") == "gate" and m.get("required") is True and m.get("kind") == "Observing" for m in mw):
+    problems.append(f"no required Observing middleware 'gate': {mw}")
+else:
+    scope = (((mw[0].get("scope") or {}).get("commands") or {}).get("targets") or {}).get("any_of")
+    if scope != ["devbot.mwa.gate"]:
+        # THE SCOPE IS WHAT THE DIGEST IS OVER. A catalog that carried the id but not the scope would
+        # show an operator a name and ask them to consent to it.
+        problems.append(f"the declared scope did not survive publication: {scope!r}")
 for p in problems:
     print(f"\033[31m{p}\033[0m")
 sys.exit(1 if problems else 0)
 PY
 fail=$?
-[[ $fail -eq 0 ]] && OK "the catalog carries the group and the lane request; run 22-approval-door.py" \
+[[ $fail -eq 0 ]] && OK "the catalog carries the group, the lane request and the declaration (scope included); run 22-approval-door.py" \
                   || RED "the fixture is not what 22 needs"
 exit $fail

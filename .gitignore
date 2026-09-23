@@ -1,2 +1,5 @@
 target/
 .env
+
+# Python bytecode from the live_dev harness, which runs its scripts in a container.
+__pycache__/

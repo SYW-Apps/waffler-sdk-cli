@@ -35,9 +35,10 @@ description: >-
   and merging them would make an unsigned bundle unrepresentable. That shape is needed: the registry
   requires an unsigned upload on the path where it signs alone.
 subsystem: sdk_cli::publishing
-componentType: Specialist
+componentType: Orchestrator
 owns: []
 dependsOn: []
+dependencyClass: pure
 status: draft
 createdAt: '2026-09-09T23:12:48.877Z'
-updatedAt: '2026-09-09T23:12:48.883Z'
+updatedAt: '2026-09-20T10:58:45.805Z'

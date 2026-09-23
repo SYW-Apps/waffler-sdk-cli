@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "wairon": {
+      "command": "wairon",
+      "args": [
+        "mcp",
+        "serve"
+      ],
+      "env": {
+        "WAIRON_PROJECT_DIR": "C:/Users/ShutYourWaffle/source/Waffler/sdk/cli"
+      }
+    }
+  }
+}

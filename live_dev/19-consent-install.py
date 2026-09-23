@@ -129,6 +129,24 @@ async def main():
             raise SystemExit(2)
         ok(f"{REGISTRY_NAME} is registered")
 
+        # THIS LEG OWNS ITS STARTING STATE, and it has to. Step 5's enable is a NO-OP on a package
+        # whose actor is still MOUNTED from a previous run: core's enable returns Ok early when the
+        # router already resolves the fqid ("the router is the fact"), and that early return comes
+        # BEFORE the set_enabled(true) that persists the flag. So a second run installs a new version
+        # over a mounted one, the new record reads enabled=false, the enable reports success, and the
+        # flag never flips. That is a real defect in the UPDATE path and it is written down as one —
+        # but left here it would read as this leg failing, which is how it wasted an hour once.
+        # The dependent first: uninstalling a dependency out from under its dependent is refused.
+        for fqid in (APP, LIB):
+            _result, error = await rpc(ws, "packages", "uninstall", {"fqid": fqid})
+            if error and "NotFound" not in json.dumps(error, default=str):
+                bad(f"could not clear a previous run's {fqid}: {json.dumps(error, default=str)[:300]}")
+        state = await held(ws)
+        if state is not None and (APP in state or LIB in state):
+            bad(f"a previous run's copies are still installed: {[f for f in (APP, LIB) if f in state]}")
+        else:
+            ok("the node holds neither package: this run starts from nothing")
+
         step("1. THE PREVIEW shows both packages' `net`, as two requests of two packages")
         preview, error = await rpc(ws, MARKETPLACE, "preview_closure", [APP, None, REGISTRY_NAME])
         if error:

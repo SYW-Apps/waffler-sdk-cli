@@ -38,9 +38,10 @@ description: >-
   artifacts strictly both ways; a mismatch found here names the field, and the same mismatch found
   there names a zip entry.
 subsystem: project
-componentType: Specialist
+componentType: Orchestrator
 owns: []
 dependsOn: []
+dependencyClass: pure
 status: draft
 createdAt: '2026-09-10T00:01:34.383Z'
-updatedAt: '2026-09-10T00:01:34.390Z'
+updatedAt: '2026-10-02T21:41:01.684Z'

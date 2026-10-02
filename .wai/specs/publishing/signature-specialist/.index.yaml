@@ -41,9 +41,10 @@ description: >-
   until every deployed reader can parse one — a producer shipped first makes every existing reader
   fail on the trailer it cannot read, on the path that provisions a node at boot.
 subsystem: publishing
-componentType: Specialist
+componentType: Orchestrator
 owns: []
 dependsOn: []
+dependencyClass: pure
 lint:
   allow:
     - code: TECH_LEAKAGE
@@ -58,4 +59,4 @@ lint:
         substitution.
 status: draft
 createdAt: '2026-09-09T23:13:04.468Z'
-updatedAt: '2026-09-10T00:46:43.770Z'
+updatedAt: '2026-10-02T21:41:09.894Z'

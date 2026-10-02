@@ -29,9 +29,10 @@ description: >-
   IT NEVER OVERWRITES. A scaffold that clobbers is a scaffold that eventually eats work, and the
   cost of refusing into a non-empty directory is one flag.
 subsystem: project
-componentType: Specialist
+componentType: Orchestrator
 owns: []
 dependsOn: []
+dependencyClass: pure
 status: draft
 createdAt: '2026-09-10T00:01:45.651Z'
-updatedAt: '2026-09-10T00:01:45.656Z'
+updatedAt: '2026-10-02T21:41:05.831Z'

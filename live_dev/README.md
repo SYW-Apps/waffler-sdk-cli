@@ -371,3 +371,37 @@ An earlier version of the uninstall leg asserted "it must stop answering" and pa
 package had never answered in that process, because it was installed and not yet running. The
 assertion was true and proved nothing: the observable was right and the reason was not. `05-uninstall.py`
 now refuses to continue unless the baseline call succeeds first.
+
+## `24-publish-probe-echo.sh` — the registry side of an owner decision
+
+`docker/core-web/packages.manifest` declared `syw.probe.echo` at 1.0.3 while the registry topped out
+at 1.0.2, which waffler_ui pinned in two places. Either end could have moved; the **owner chose the
+registry**. This leg is that choice, re-runnable — a registry reset drops 1.0.3 and waffler_ui's pins
+break again for a reason nobody would connect to the reset.
+
+**TWO DISTRIBUTION PATHS, TWO ARTIFACTS, and the baked zip is not the one to upload.** A baked install
+is SIGNED with the pinned dev key because core verifies it against its trust anchors; a registry
+publish is uploaded UNSIGNED because the registry is the signing authority there and countersigns
+what it accepts — so it refuses an artifact already carrying a signature, since it cannot decide which
+trailing bytes are signature and which are content. The first version of this leg uploaded the baked
+zip and failed exactly that way, so it now packs its own unsigned artifact with `pack_bundle
+--unsigned`.
+
+**It refuses what it cannot express.** `pack-packages.sh` handles eleven manifest columns; this leg
+handles the two `syw.probe.echo` uses (`core-compat`, `middleware`) and **stops** if any of the other
+five is ever populated. Packing without a column it never read would publish a bundle that looks right
+and declares LESS than the baked one — a registry serving a quietly weaker package than the image.
+
+### A false success this leg shipped and then fixed
+
+The first idempotence check matched the word **`already`**, and matched it against *"the bundle is
+already **signed**"* — so the leg reported "already published, nothing to do" and **exited 0 having
+published nothing.** That is the same substring-on-an-error-message defect as classifying a refusal by
+its error code when several call sites answer that code, committed hours after fixing that one. It now
+matches the full phrase `is already published` (from `package_store`'s own message), names the signed
+case separately with its remedy, and **declines** an unrecognised refusal rather than funnelling it
+into the nearest bucket.
+
+Measured: first run published 1.0.3; second run `409 Conflict ... is already published` and exit 0.
+A node asking for the newest now resolves **1.0.3**, verified through the marketplace rather than from
+the publish receipt.

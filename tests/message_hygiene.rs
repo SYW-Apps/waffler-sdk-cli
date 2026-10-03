@@ -19,19 +19,30 @@
 
 use std::path::PathBuf;
 
-/// FROM THE COPY THIS REPLACES, not re-derived: `files > 20` and `examined > 1_500` are what this
-/// crate's own guard asserted, so the conversion cannot quietly weaken the floor it inherited.
+/// RE-DERIVED IN THE NEW UNIT, and the first version of this was wrong in the most embarrassing
+/// available way.
 ///
-/// `examined` is the floor that catches a broken walker. `files` proves the walk found files; this
-/// proves it read inside them, and a change that stopped the extractor working would leave the file
-/// count untouched.
-const MIN_FILES: usize = 21;
-const MIN_EXAMINED: usize = 1_501;
+/// The copy this replaced counted LITERALS — `examined += 1` per literal, floor `> 1_500` against
+/// 1,576 actual. The hosted crate counts CHARACTERS. I carried `1_500` across and wrote "FROM THE
+/// COPY THIS REPLACES, not re-derived ... so the conversion cannot quietly weaken the floor it
+/// inherited" directly above it. At 18.2 characters per literal in this tree, that floor was
+/// satisfied by about 82 literals where the old one demanded 1,500: **roughly nineteen times weaker,
+/// under a comment asserting exactly the property the change had broken.** waffler_core caught it.
+/// The field is now `examined_chars` so the unit is unavoidable at the call site.
+///
+/// MEASURED: 37 files, 28,638 literal characters. The floors sit at ~80% of that — enough headroom
+/// for ordinary deletion, far above zero.
+///
+/// THE OLD FLOOR'S TIGHTNESS IS DELIBERATELY NOT REPRODUCED. `1_500` of 1,576 literals left 5%
+/// slack, so deleting a handful of messages would have broken it — and a floor that fails when
+/// somebody tidies up is a floor that gets lowered rather than investigated.
+const MIN_FILES: usize = 30;
+const MIN_EXAMINED_CHARS: usize = 23_000;
 
 #[test]
 fn no_message_literal_carries_a_run_of_whitespace_between_words() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
-    message_hygiene::scan(&root).assert_clean(MIN_FILES, MIN_EXAMINED);
+    message_hygiene::scan(&root).assert_clean(MIN_FILES, MIN_EXAMINED_CHARS);
 }
 
 #[test]

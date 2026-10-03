@@ -89,4 +89,6 @@ chrono = { version = "0.4", features = ["serde"] }
 dirs = "5"
 
 [dev-dependencies]
+# The message-whitespace guard, hosted once in tools/ instead of a 293-line copy per crate.
+message-hygiene = { path = "../../tools/message-hygiene" }
 tempfile = "3"

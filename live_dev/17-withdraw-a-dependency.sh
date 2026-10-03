@@ -81,6 +81,55 @@ PY
 STEP "3. withdraw the DEPENDENCY"
 "$WAFFLER" unpublish devbot.wd.lib "$VERSION" --registry "$REGISTRY" || { RED "unpublish failed"; exit 1; }
 
+# EVERY VERSION OF IT, NOT ONLY THE ONE THIS RUN PUBLISHED -- and the leg was red for weeks because
+# it stopped here. This leg publishes a fresh epoch-stamped version on each run and never cleaned
+# up, so by the second run the dependency had several published versions. Withdrawing one left the
+# others, a resolver CORRECTLY fell back to an older satisfying version, and step 5 reported:
+#
+#     FAIL: it still resolves to 0.1.1789141385 after being withdrawn
+#
+# about a version it had never withdrawn -- note the different number from the one in step 1. The
+# registry was doing exactly the right thing. Falling back to another published version that
+# satisfies the range is what a resolver is FOR, and a leg that reads that as a defect is asserting
+# a claim about a state it did not create. Step 4's own output said so in passing the whole time:
+# "still listed with 2 version(s)".
+#
+# Third time today the same shape: a premise about what is ABSENT, asserted without being
+# established. Absence is the hard kind, because the thing that falsifies it is invisible in the
+# fixture -- nothing in the leg mentions older runs, so nothing in the leg looks wrong.
+LEFTOVERS=$(curl -s --max-time 15 "$REGISTRY/v1/packages/devbot.wd.lib" | python3 -c '
+import json, sys
+try:
+    doc = json.load(sys.stdin)
+except Exception:
+    raise SystemExit(0)
+for v in doc.get("versions") or []:
+    print(v.get("version", ""))
+' 2>/dev/null)
+if [[ -n "$LEFTOVERS" ]]; then
+  echo "  earlier runs left these versions published: $(echo $LEFTOVERS | tr '\n' ' ')"
+  for v in $LEFTOVERS; do
+    "$WAFFLER" unpublish devbot.wd.lib "$v" --registry "$REGISTRY" >/dev/null 2>&1 \
+      && echo "    withdrew $v" \
+      || { RED "could not withdraw $v, so no version of the dependency can be said to be gone"; FAILED=1; }
+  done
+fi
+
+# THE PREMISE, CHECKED. Step 5 claims the closure is unresolvable; that is only a claim about the
+# registry if NO version of the dependency remains. A count this never reached would otherwise be
+# read as the resolver's fault all over again.
+LIB_LEFT=$(curl -s --max-time 15 "$REGISTRY/v1/packages/devbot.wd.lib" | python3 -c '
+import json, sys
+try:
+    doc = json.load(sys.stdin)
+except Exception:
+    print(0); raise SystemExit(0)
+print(len(doc.get("versions") or []))
+' 2>/dev/null)
+echo "  versions of devbot.wd.lib still published: ${LIB_LEFT:-unknown}"
+[[ "$LIB_LEFT" == "0" ]] \
+  || { RED "the dependency still has $LIB_LEFT version(s), so 'unresolvable' below is not a claim about the registry"; FAILED=1; }
+
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$REGISTRY/v1/packages/devbot.wd.lib/versions/$VERSION/download")
 [[ "$code" == "200" ]] && { RED "the withdrawn dependency still downloads"; FAILED=1; } || OK "its download answers $code"
 

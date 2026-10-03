@@ -86,7 +86,22 @@ STEP "3. a DIFFERENT registry must still have no session"
 grep -q 'not signed in' /tmp/whoami-other.txt && OK "the session did not leak to another registry" || RED "a credential for one registry answered for another"
 
 STEP "4. publish using the STORED credential and no environment token"
-cd /tmp/hello 2>/dev/null || { RED "no project; run 01-pack-publish.sh first"; exit 1; }
+# SCAFFOLD ITS OWN PROJECT, because the remedy this used to print did not work. It was
+# `cd /tmp/hello || { RED "no project; run 01-pack-publish.sh first"; exit 1; }` -- and the
+# README's documented invocation gives every leg its own `--rm` container, so running
+# 01-pack-publish.sh as instructed leaves /tmp/hello in a container that no longer exists. An
+# operator following the named remedy gets the identical failure a second time, which is worse
+# than no remedy: it moves the suspicion from the harness to the thing under test.
+#
+# Every other leg here scaffolds what it needs. This one is the only one that borrowed, and it was
+# borrowing through a container boundary. Scaffolding costs two lines and makes the leg runnable
+# the way the README says to run it.
+if [[ ! -d /tmp/hello ]]; then
+  echo "  no project at /tmp/hello (a separate container, or a first run) -- scaffolding one"
+  "$WAFFLER" scaffold devbot.example.hello --path /tmp/hello --version 0.1.0 --sdk-path /work >/dev/null \
+    || { RED "could not scaffold a project to publish"; exit 1; }
+fi
+cd /tmp/hello || { RED "no project at /tmp/hello and none could be made"; exit 1; }
 python3 - <<'PY'
 import json, pathlib, re
 p = '/tmp/hello/waffler.json'

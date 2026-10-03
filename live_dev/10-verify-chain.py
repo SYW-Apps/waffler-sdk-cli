@@ -14,6 +14,7 @@ statement about this script rather than about the artifact.
 """
 
 import hashlib
+import pathlib
 import struct
 import sys
 
@@ -143,4 +144,27 @@ def main(path):
     print("\033[32mthe countersignature chain is correct\033[0m")
 
 
-main(sys.argv[1] if len(sys.argv) > 1 else "/out/signed-1.zip")
+# THE DEFAULT WAS A PATH NOTHING PRODUCED. It read `/out/signed-1.zip`: `/out` is a mount no script
+# and no README line creates, and `signed-1` assumes `RUN_ID=1` -- which makes `09` collide with an
+# earlier run's publish, because `$RUN` goes into the FQID as well as the filename, so the registry
+# answers 409 and `09` exits before writing any artifact at all.
+#
+# So this leg could only ever run with an explicit argument, and the pairing `09` ends by
+# recommending -- "the producer leg passed, verify the chain next" -- did not work as written. The
+# countersignature chain on an artifact the registry actually served was going unverified, in the
+# leg whose whole subject it is.
+#
+# `09` now records the path it wrote, next to the fqid and public key it already handed over.
+# Reading it beats reconstructing it: the name carries an epoch the producer chose.
+_HANDOFF = pathlib.Path("/tmp/dual-artifact.txt")
+if len(sys.argv) > 1:
+    main(sys.argv[1])
+elif _HANDOFF.is_file() and _HANDOFF.read_text().strip():
+    _path = _HANDOFF.read_text().strip()
+    print(f"using the artifact 09-dual-sign.sh recorded: {_path}")
+    main(_path)
+else:
+    sys.exit(
+        "no artifact to verify. Run 09-dual-sign.sh first IN THIS CONTAINER -- it writes the path\n"
+        "to /tmp/dual-artifact.txt -- or pass the artifact as the first argument."
+    )

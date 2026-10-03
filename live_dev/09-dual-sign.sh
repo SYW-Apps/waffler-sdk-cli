@@ -56,6 +56,13 @@ curl -s --max-time 60 -o "/tmp/signed-$RUN.zip" "$REGISTRY/v1/packages/$FQID/ver
 echo "  downloaded $(stat -c%s "/tmp/signed-$RUN.zip") bytes"
 echo "$FQID" > /tmp/dual-fqid.txt
 echo "$PUBKEY" > /tmp/dual-pubkey.txt
+# THE PATH IS PART OF THE HANDOFF. The fqid and the public key were passed to the verifier through
+# files and the ARTIFACT was not, so the verifier had to guess it -- and its guess was
+# `/out/signed-1.zip`, a path nothing here has ever written. `$RUN` is an epoch by default, and
+# deliberately: it also goes into the FQID, so pinning it to 1 makes this leg collide with an
+# earlier run's publish and the registry answers 409. The name cannot be predicted by the reader,
+# so it has to be told.
+echo "/tmp/signed-$RUN.zip" > /tmp/dual-artifact.txt
 
 echo
 [[ $FAILED -eq 0 ]] && printf '\033[32mthe producer leg passed — verify the chain next\033[0m\n' || { printf '\033[31mthe producer leg FAILED\033[0m\n'; exit 1; }

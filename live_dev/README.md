@@ -130,6 +130,37 @@ escaping of its `/scripts/02-install.py`.
 
 The `docker logs | grep` lines further down carry no path in argv and are unaffected.
 
+### Two legs that must share one container
+
+`09-dual-sign.sh` hands `10-verify-chain.py` an artifact through `/tmp`, so they have to run in the
+same container. `09` records the path in `/tmp/dual-artifact.txt` and `10` reads it; `10` also takes
+the artifact as its first argument.
+
+```bash
+MSYS_NO_PATHCONV=1 docker run --rm --network waffler_default \
+  -v "$PWD":/work -v "$PWD/sdk/cli/live_dev":/scripts \
+  -v syw-cli-cargo-target:/cargo-target -v syw-cli-cargo-home:/usr/local/cargo/registry \
+  -e CARGO_TARGET_DIR=/cargo-target \
+  rust:1 bash -c 'bash /scripts/09-dual-sign.sh || exit 1
+apt-get -qq update >/dev/null && apt-get -qq install -y python3-pip >/dev/null
+pip -q install --break-system-packages msgpack cryptography
+python3 /scripts/10-verify-chain.py'
+```
+
+**Why this is called out rather than left to the reader.** Both failure modes here were real and
+both were silent for a long time. `10`'s fallback path was `/out/signed-1.zip` — a mount nothing
+creates, under a `RUN_ID=1` that cannot work, since `$RUN` goes into the FQID as well as the
+filename and pinning it to 1 makes `09` collide with an earlier publish and exit on a 409 before
+writing anything. So `10` only ever ran if you passed it a path, and the pairing `09` recommends on
+its last line did not work as written: **the countersignature chain on an artifact the registry
+actually served was going unverified, in the leg whose entire subject it is.**
+
+`08-login.sh` had the same shape and is now fixed differently. It did `cd /tmp/hello || "run
+01-pack-publish.sh first"`, and because the invocation above gives every leg its own `--rm`
+container, following that remedy produced the identical failure a second time. **A remedy that does
+not work is worse than none** — it moves the suspicion from the harness onto the thing under test.
+It scaffolds its own project now, like every other leg here, so it needs no pairing at all.
+
 The node legs go through `/api/ws` — the seam the browser uses, carrying JSON-RPC 2.0 as MessagePack.
 **Driving anything else would prove the bus works and say nothing about whether an operator can do
 this.** Every call is one a person clicking in the marketplace makes.

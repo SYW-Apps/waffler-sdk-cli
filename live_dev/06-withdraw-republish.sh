@@ -50,13 +50,59 @@ code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$REGISTRY/v1/packag
 [[ "$code" == "200" ]] && RED "the download STILL answers 200 after withdrawal" || OK "download now answers $code"
 
 STEP "5. and the namespace must stop being browsable, having no versions left"
-curl -s --max-time 15 "$REGISTRY/v1/packages" | python3 -c '
+# "HAVING NO VERSIONS LEFT" WAS AN ASSUMPTION, AND IT STOPPED BEING TRUE. This step withdrew 0.1.0
+# and then asserted the namespace was gone from the browse listing -- which only follows if 0.1.0
+# was the only version. `08-login.sh` publishes 0.1.1 and leaves it there, so from the first time
+# that leg ran, this one has been RED on every run, reporting "a namespace with no installable
+# version is still browsable" about a namespace that had an installable version the whole time.
+#
+# The registry was right and the test was wrong, which is the worse way round: a red that is
+# explained away once gets explained away every time, and the step stops being read at all.
+#
+# So the premise is now ESTABLISHED. Withdraw whatever else remains, confirm the count really
+# reached zero, and only then make the claim. 0.1.1 is safe to take: `08-login.sh` withdraws any
+# existing 0.1.1 before publishing its own, so it does not depend on finding one here.
+REMAINING=$(curl -s --max-time 15 "$REGISTRY/v1/packages/$FQID" | python3 -c '
+import json, sys
+try:
+    doc = json.load(sys.stdin)
+except Exception:
+    raise SystemExit(0)
+for v in doc.get("versions") or []:
+    print(v.get("version", ""))
+' 2>/dev/null)
+if [[ -n "$REMAINING" ]]; then
+  echo "  other versions still published: $(echo $REMAINING | tr '\n' ' ')"
+  for v in $REMAINING; do
+    "$WAFFLER" unpublish "$FQID" "$v" --registry "$REGISTRY" >/dev/null 2>&1 \
+      && echo "    withdrew $v" \
+      || RED "could not withdraw $v, so the zero-version state cannot be reached"
+  done
+fi
+
+# THE PREMISE, CHECKED. Without this the browse assertion below is back to being a claim about a
+# state nothing confirmed -- and a zero it never reaches would read as the registry's fault again.
+LEFT=$(curl -s --max-time 15 "$REGISTRY/v1/packages/$FQID" | python3 -c '
+import json, sys
+try:
+    doc = json.load(sys.stdin)
+except Exception:
+    print(0); raise SystemExit(0)
+print(len(doc.get("versions") or []))
+' 2>/dev/null)
+echo "  versions left: ${LEFT:-unknown}"
+if [[ "$LEFT" != "0" ]]; then
+  RED "the namespace still has $LEFT version(s), so 'no versions left' was not reached and the browse check below cannot be read"
+else
+  curl -s --max-time 15 "$REGISTRY/v1/packages" | python3 -c '
 import json,sys
 names = [p.get("namespace") for p in json.load(sys.stdin).get("packages", [])]
 listed = "devbot.example.hello" in names
 print("  listed:", listed)
 raise SystemExit(1 if listed else 0)
-' && OK "not browsable" || RED "a namespace with no installable version is still browsable"
+' && OK "not browsable once the last version is withdrawn" \
+    || RED "a namespace with no installable version is still browsable"
+fi
 
 STEP "6. republish, so the cycle closes"
 "$WAFFLER" publish --registry "$REGISTRY" --no-build 2>&1 | tail -2

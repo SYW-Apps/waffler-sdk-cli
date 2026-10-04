@@ -141,7 +141,30 @@ use waffler_sdk::sdk_context::{{CapabilityContext, CommandHandler}};
 use waffler_shared::{{Response, WafflerError}};
 
 pub const FQID: &str = "{fqid}";
-pub const VERSION: &str = "{version}";
+
+/// What this package reports about ITSELF, in `init` logs and in every capability reply.
+///
+/// DERIVED FROM THE CRATE, never typed in. This was `"{version}"` -- a literal interpolated once at
+/// scaffold time -- which made three independent copies of one number: `Cargo.toml`, `waffler.json`
+/// and this line. They agree on the day the project is created and drift the moment anyone bumps a
+/// version without editing the other two.
+///
+/// It is not hypothetical and it has cost a false diagnosis twice. `syw.probe.echo` ended up with
+/// the source saying 1.0.3, the crate 1.0.2 and the manifest 1.0.4, and since the hand-typed one is
+/// what rides the wire, a correctly-updated node printed `version=1.0.3` and read exactly like an
+/// update that had not taken. Separately, a manifest-only bump here published a bundle that
+/// answered with the old version forever, and `04-verify-serves.py` -- which compares those two
+/// numbers to catch a stale module -- reported a stale module on an honest node. That false alarm
+/// was believed long enough to be written into a plan.
+///
+/// A DIAGNOSTIC THAT LIES IS WORSE THAN ONE THAT IS ABSENT, because it gets acted on.
+///
+/// `CARGO_PKG_VERSION` is the crate's, which this file cannot contradict. It deliberately does NOT
+/// promise to equal the BUNDLE version: the packer stamps that from `waffler.json` at pack time, and
+/// crate-and-bundle versions are decoupled by design across the sim packages. One of the two drift
+/// axes is removed by construction; the remaining one is between two files a human edits, which is
+/// visible in a diff.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The capability that makes an install observable.
 pub const CAP_ECHO: &str = "echo";

@@ -111,17 +111,32 @@ d = json.load(open(p))
 d['version'] = '0.1.1'
 json.dump(d, open(p, 'w'), indent=2)
 
-# AND THE VERSION THE CODE REPORTS ABOUT ITSELF, which the scaffold baked in as a constant. Bumping
-# the manifest alone publishes a bundle whose artifact answers with the OLD version forever, and
-# `04-verify-serves.py` compares exactly those two numbers to catch a stale module being served. A
-# manifest-only bump therefore makes an honest node look like it is running a stale one - it did,
-# and the false alarm was believed long enough to be written into a plan before the bundle was
-# unzipped and found to contain no 0.1.1 string at all.
-lib = pathlib.Path('/tmp/hello/src/lib.rs')
-src = lib.read_text(encoding='utf-8')
-bumped, n = re.subn(r'pub const VERSION: &str = "[^"]*";', 'pub const VERSION: &str = "0.1.1";', src)
-assert n == 1, f'expected one VERSION constant in src/lib.rs, found {n}'
-lib.write_text(bumped, encoding='utf-8')
+# AND THE VERSION THE CODE REPORTS ABOUT ITSELF. Bumping the manifest alone publishes a bundle whose
+# artifact answers with the OLD version forever, and `04-verify-serves.py` compares exactly those two
+# numbers to catch a stale module being served. A manifest-only bump therefore makes an honest node
+# look like it is running a stale one - it did, and the false alarm was believed long enough to be
+# written into a plan before the bundle was unzipped and found to contain no 0.1.1 string at all.
+#
+# THIS NOW EDITS Cargo.toml RATHER THAN THE SOURCE. The scaffold used to bake the version into
+# `src/lib.rs` as a literal, so this leg had to rewrite that literal; the template now derives it
+# with `env!("CARGO_PKG_VERSION")`, which is exactly the fix for the drift described above, so the
+# crate version IS the reported version and there is no third copy to keep in step.
+cargo = pathlib.Path('/tmp/hello/Cargo.toml')
+text = cargo.read_text(encoding='utf-8')
+# ANCHORED TO THE FIRST `version =` AT LINE START, which is the `[package]` one. An unanchored
+# pattern would also rewrite a dependency's version and the build would fail somewhere unrelated.
+bumped, n = re.subn(r'(?m)^version = "[^"]*"', 'version = "0.1.1"', text, count=1)
+assert n == 1, f'expected one [package] version in Cargo.toml, found {n}'
+cargo.write_text(bumped, encoding='utf-8')
+
+# AND PROVE THE SOURCE CANNOT CONTRADICT IT. If a future scaffold goes back to a literal, this leg
+# would bump the crate, publish an artifact still answering 0.1.0, and `04` would again report a
+# stale module on an honest node. Cheaper to assert the shape than to re-diagnose that.
+lib_src = pathlib.Path('/tmp/hello/src/lib.rs').read_text(encoding='utf-8')
+assert 'env!("CARGO_PKG_VERSION")' in lib_src, (
+    "src/lib.rs does not derive VERSION from the crate, so bumping Cargo.toml will not change what "
+    "the artifact reports about itself - the exact drift this leg exists downstream of"
+)
 PY
 # WITHDRAW ANY 0.1.1 ALREADY IN THE CATALOG FIRST. A republish is refused, so a bundle published by
 # an earlier run stays forever - and the earlier runs of this leg bumped the MANIFEST only, leaving

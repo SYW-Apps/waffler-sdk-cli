@@ -443,6 +443,34 @@ package had never answered in that process, because it was installed and not yet
 assertion was true and proved nothing: the observable was right and the reason was not. `05-uninstall.py`
 now refuses to continue unless the baseline call succeeds first.
 
+## `26-abi-mountability.sh` — can this host mount what the registry serves?
+
+Nothing in a bundle's manifest carries the guest ABI major (`core_compatibility` records core's
+CONTRACT GENERATION, a different number), so `install_plan` cannot filter on it: a resolver hands a
+node the highest version its range admits, and if that artifact predates an ABI bump the only
+evidence is an enable-time refusal. Confirmed with core 2026-10-04, logged as ledger B8 — a derived
+`guest_abi_major` plus a resolver filter, owner's call, recommended after the beta, and **rolled out
+consumer-first: append the field, republish everything, THEN filter**, because filtering before
+anything carries the field resolves nothing.
+
+**This leg is not that work.** It changes no resolution and adds no field; it reads what is already
+published and asks whether the current host could mount it. That half needs no decision.
+
+It asks each artifact's dynamic symbol table — the question the loader asks — because the first
+version compared `published_at` against the ABI bump's commit date and reported **twelve traps, all
+false**. Behaviour refuted it the same day: legs 19 and 22 passed with two of those "traps"
+installed and enabled. The commit date is when the change was AUTHORED, and those artifacts were
+built against a working tree that already carried it. The date is wrong in both directions, and a
+proxy for a missing field is not a measurement of it.
+
+A trap is an artifact that is unmountable **and** newest, since that is what a `*` range resolves
+to; an older one buried under a current version is reachable only by pinning. Step 2 then proves the
+detector can report a trap at all, by finding a buried pre-bump version that genuinely fails — the
+alternative is a `0` indistinguishable from a check that cannot see.
+
+Current reading: 20 newest versions examined, 20 mountable, detector proven on
+`devbot.cnf.app@0.1.1789037165`.
+
 ## `24-publish-probe-echo.sh` — the registry side of an owner decision
 
 `docker/core-web/packages.manifest` declared `syw.probe.echo` at 1.0.3 while the registry topped out

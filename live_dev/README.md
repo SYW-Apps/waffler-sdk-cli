@@ -3,6 +3,38 @@
 Nothing here is a mock. Every step runs against the beta node's own bridge (`/api/ws`) and a real
 registry, and every assertion is about what those two actually did.
 
+## WHICH HALF OF THIS IS WATCHED WHERE IT RUNS (read before quoting a green)
+
+**As of 2026-10-04, the enable/call half of the cycle is NOT proven against current code**, and the
+reason is environmental rather than a defect.
+
+`sdk/rust` is at `WF_ABI_VERSION = 3` (core's A26 change: `wf_panic_strategy` became a REQUIRED
+export, so the host will not host in-process what it cannot ask about panic containment). The beta
+node's image was built 2026-10-02T19:23 and is ABI 2. A bundle packed today installs fine — over
+`/api/ws`, through the marketplace, the real seam — and then:
+
+```
+enable -> NotSupported: package 'devbot.example.hello' ABI major 3 incompatible with host 2
+          (waffler_core/services/packages/src/process_host.rs:1247)
+```
+
+The refusal is correct. The image simply predates the bump, and the fix is a node rebuild whose
+order is load-bearing and counter-intuitive: **`docker/packages/Dockerfile` FIRST, then core.**
+`compose build waffler` is core-only and reuses a stale prebuilt web zip, so it will not do the
+packages half; rebuilding core alone leaves the image at ABI 2 and every package is refused at the
+handshake, which makes the node look broken when the only fault is build order.
+
+| | Legs | State |
+|---|---|---|
+| **Watched where it runs** | `01` `06` `08` `09` `10` `11` `15` `17` `18` `20` `21` `23` `24` `25` | pack, publish, countersign, download, dependency closures, consent, approval door, reserved groups, fingerprint namespaces, the publisher-key rotation gate — and INSTALL, which works today |
+| **Not watched where it runs** | `02` (enable half) `03` `04` `05` `07` `12` `13` `14` `16` `19` `22` | enable, call, uninstall, reinstall, closure-serves, the restart gate |
+
+**Why this table is here rather than in somebody's head.** The middle state of evidence — passing
+against one half of the system and never observed against the other — is where a wrong "closed"
+lives, and it is indistinguishable from done unless something in the repo says so. **The beta node
+is core's to rebuild**; this stays true until they do, and when they do, every leg in the second row
+needs a run before anything in it is quoted as proven.
+
 ## What it proves, end to end
 
 ```

@@ -3,52 +3,45 @@
 Nothing here is a mock. Every step runs against the beta node's own bridge (`/api/ws`) and a real
 registry, and every assertion is about what those two actually did.
 
-## WHICH HALF OF THIS IS WATCHED WHERE IT RUNS (read before quoting a green)
+## EVERY LEG IS NOW WATCHED WHERE IT RUNS (2026-10-04)
 
-**As of 2026-10-04, the enable/call half of the cycle is NOT proven against current code**, and the
-reason is environmental rather than a defect.
+The whole harness passes against a live node at **ABI 3** and a live registry: `01` `02` `03` `04`
+`05` `06` `07` `08` `09` `10` `11` `12` `13` `14` `15` `16` `17` `18` `19` `20` `21` `22` `23` `24`
+`25`. Pack, publish, countersign, download, install, enable, grant, CALL, uninstall, reinstall,
+dependency closures in delivery order, the restart gate, optional dependencies, consent, the
+approval door, reserved groups, fingerprint namespaces, and the publisher-key rotation gate.
 
-`sdk/rust` is at `WF_ABI_VERSION = 3` (core's A26 change: `wf_panic_strategy` became a REQUIRED
-export, so the host will not host in-process what it cannot ask about panic containment). The beta
-node's image was built 2026-10-02T19:23 and is ABI 2. A bundle packed today installs fine — over
-`/api/ws`, through the marketplace, the real seam — and then:
+The proof that the cycle closes is `03`'s reply, which is the only observation that separates
+installed from working:
 
+```json
+{ "echo": "second time around", "package": "devbot.example.hello",
+  "version": "0.1.0", "bytes": 19, "capability": "echo" }
 ```
-enable -> NotSupported: package 'devbot.example.hello' ABI major 3 incompatible with host 2
-          (waffler_core/services/packages/src/process_host.rs:1247)
-```
 
-The refusal is correct. The image simply predates the bump.
+**This section used to say the opposite**, and it is kept rather than deleted because the reason it
+was true is a permanent property of this setup. For most of 2026-10-04 the enable/call half could
+not run at all: `sdk/rust` moved to `WF_ABI_VERSION = 3` (core's A26 change, `wf_panic_strategy` as
+a required export) while the node's image was still ABI 2, so a bundle packed that morning installed
+over `/api/ws` and was then refused at `enable`. `check_abi` is an exact equality, not a floor.
 
-**The fix is a node rebuild, and the order is load-bearing: `docker/packages/Dockerfile` FIRST, then
-core.** Stated as the consequence rather than the instruction, because an instruction without its
-consequence gets reordered by whoever is in a hurry:
+**What the recovery cost, and what it teaches about re-running this harness after an ABI bump:**
 
-> Rebuilding core ALONE moves the HOST to 3 and leaves the image's baked packages at 2 — so the
-> mismatch does not go away, it REVERSES, and now the node's own packages are the ones refused.
-> `compose build waffler` is core-only and reuses a stale prebuilt web zip, so it will not do this
-> for you.
-
-`check_abi` is `abi == WF_ABI_VERSION` — an exact equality, not a floor — and `WF_ABI_VERSION` is
-the SDK constant compiled INTO core, which is why "host 2" means the core binary is the stale half
-rather than the package. There is no tolerant direction across this bump: whichever half is left
-behind is the half that gets refused, and both reads look like "the node is broken".
-
-(An earlier version of this paragraph had that backwards — it said rebuilding core alone "leaves the
-image at ABI 2", which would make core the half that stayed put. Core caught it. A wrong
-explanation in a README is worse than none, because the next person follows it and ends up with a
-node that fails differently and a reason that does not fit.)
-
-| | Legs | State |
-|---|---|---|
-| **Watched where it runs** | `01` `06` `08` `09` `10` `11` `15` `17` `18` `20` `21` `23` `24` `25` | pack, publish, countersign, download, dependency closures, consent, approval door, reserved groups, fingerprint namespaces, the publisher-key rotation gate — and INSTALL, which works today |
-| **Not watched where it runs** | `02` (enable half) `03` `04` `05` `07` `12` `13` `14` `16` `19` `22` | enable, call, uninstall, reinstall, closure-serves, the restart gate |
-
-**Why this table is here rather than in somebody's head.** The middle state of evidence — passing
-against one half of the system and never observed against the other — is where a wrong "closed"
-lives, and it is indistinguishable from done unless something in the repo says so. **The beta node
-is core's to rebuild**; this stays true until they do, and when they do, every leg in the second row
-needs a run before anything in it is quoted as proven.
+- **A rebuild alone does not fix `enable`.** Installs are durable, so a same-version rebuild
+  satisfies the declaration's range, provisioning answers `already_present`, and the volume keeps
+  its old artifacts. Core carried the boundary by **patch-bumping all nine baked packages**; read
+  `provisioning kind=updated` out of the boot log as the evidence, never the build's exit code.
+- **The registry still serves pre-bump artifacts as newest, and no ABI-3 node can load them.**
+  `12` failed with `devbot.dia.app ABI major 2 incompatible with host 3` because an out-of-band
+  `0.2.x` line outranked every fresh `0.1.<epoch>` publish, so the resolver correctly handed the
+  node an artifact it could not mount. `11`'s assertion was right to pass — it asks the registry for
+  the highest admitted version, not for what this run published. **Nothing in the resolution path
+  knows about the guest ABI**, and `core_compatibility` tracks core's version rather than the ABI
+  major. Clearing the stray `0.2` line unblocked it; the general gap is open and worth a design
+  answer before a real publisher hits it.
+- **An artifact published before the bump stays broken forever**, so after a bump the fixtures have
+  to be republished from a current build, and `24-publish-probe-echo.sh` has to run before the
+  marketplace provisioner so the registry can serve the bumped baked version at all.
 
 ## What it proves, end to end
 

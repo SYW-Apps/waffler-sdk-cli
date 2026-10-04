@@ -138,7 +138,13 @@ fi
 
 STEP "5. verify through a consumer, not through the receipt"
 echo "  a publish receipt is not a listing. Run, from the repository root:"
+# THE SECOND MOUNT IS NOT OPTIONAL and this line used to omit it. The provisioner now reads the
+# baked versions from `docker/core-web/packages.manifest` instead of hard-coding them -- the change
+# that keeps it from going red when core bumps a baked package -- and it REFUSES without the mount
+# rather than falling back to a constant. A printed remedy missing a required mount is the same
+# defect as `08-login.sh`'s old "run 01-pack-publish.sh first": the reader follows it, it fails, and
+# the suspicion lands on the thing under test instead of on the instruction.
 echo "    MSYS_NO_PATHCONV=1 docker run --rm --network waffler_default \\"
-echo "      -v \"\$PWD/packages/marketplace/live_dev\":/s python:3.12-slim \\"
+echo "      -v \"\$PWD/packages/marketplace/live_dev\":/s -v \"\$PWD\":/work python:3.12-slim \\"
 echo "      sh -c 'pip -q install msgpack websockets >/dev/null 2>&1 && python /s/00-node-preconditions.py'"
 OK "publish leg finished"

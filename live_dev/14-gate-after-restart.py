@@ -192,13 +192,50 @@ async def phase_two(ws, state):
     print("  Expect one line per dependent, naming it and the missing dependency and range.")
 
     step("RESTORE — put the closure back")
+    # INSTALL IS NOT ENABLE, and this step used to stop after the install and then print "it needs
+    # one more restart before it serves again". That remedy could not work. On this core an install
+    # never enables anything (`12-install-closure.py` says so in as many words), so the reinstalled
+    # `devbot.dia.util` came back DISABLED while its dependents stayed enabled from before — and the
+    # next boot said exactly that:
+    #
+    #   DependencyUnmet: 'devbot.dia.app' ... 'devbot.dia.util' (^0.1.0) is installed but DISABLED
+    #
+    # No number of restarts clears that. The leg left the closure permanently unable to serve while
+    # reporting a restart would fix it, so the next person to run `13` would find it broken and this
+    # script's own advice would not help them. Fourth remedy-that-cannot-work found in this harness
+    # today; they are worse than no advice, because the reader follows them and then suspects the
+    # system.
     _, error = await rpc(
         ws, MARKETPLACE, "install", [APP, None, "Interactive", None, REGISTRY_NAME]
     )
     if error:
         bad(f"restoring the closure refused: {error}")
     else:
-        ok("closure reinstalled — it needs one more restart before it serves again")
+        ok("closure reinstalled")
+        # IN DEPENDENCY ORDER (`CLOSURE` is util -> lib -> app), because an enable is refused while a
+        # required dependency is not running. The same order `12` delivers in.
+        enabled, refused = [], []
+        for fqid in CLOSURE:
+            # THE `packages` SERVICE, NOT THE MARKETPLACE, and a NAMED MAP rather than a positional
+            # list. My first version of this sent `[fqid]` to the marketplace and every call came
+            # back `CapabilityNotFound: syw.system.marketplace has no capability 'enable'` -- the
+            # install verb is the marketplace's, the enable verb is the packages service's. Caught
+            # because this step reports a refusal instead of assuming its own call shape; the same
+            # mistake inside a quiet `except` would have left the closure dead and printed success.
+            _, err = await rpc(ws, "packages", "enable", {"fqid": fqid})
+            # Already-enabled is not a failure here: the dependents keep their flag across the
+            # removal, so only `util` is actually off. Reporting it as one would make this noisy on
+            # every run and train the reader to skip the step that matters.
+            if err and "already" not in str(err).lower():
+                refused.append(f"{fqid}: {err}")
+            else:
+                enabled.append(fqid)
+        if refused:
+            bad("the closure was reinstalled but could not be re-enabled, so it cannot recover on a "
+                f"restart: {'; '.join(refused)}")
+        else:
+            ok(f"re-enabled in dependency order: {', '.join(enabled)}")
+            ok("now one restart makes it serve again — the dependents start once util is running")
 
 
 async def main():

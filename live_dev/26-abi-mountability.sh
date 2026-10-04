@@ -36,6 +36,19 @@
 # is what a `*` range resolves to. An old version buried under a current one is reachable only by
 # someone pinning it -- still broken, not yet in anybody's path. This leg fails on the first kind and
 # reports the second as a count.
+#
+# ## IF THIS READS 0, THAT IS NOT A PROPERTY OF THE SYSTEM
+#
+# It read 0 of 20 on 2026-10-04 **because every fixture had just been republished from a current
+# build** -- including `syw.probe.echo@1.0.4` and the clearing of a stray `0.2` line that was
+# outranking every fresh publish. It is not that this cannot happen here: buried pre-bump versions
+# that genuinely fail were confirmed the same day (`devbot.cnf.app@0.1.1789037165`,
+# `devbot.dia.app@0.1.1790126630`), and they are reachable the moment anyone PINS one -- which is
+# what a publisher does when bisecting a regression.
+#
+# So a 0 here means "nothing is in the resolution path today", never "the registry cannot serve an
+# unmountable artifact". After the next ABI bump this goes red until the fixtures are republished,
+# and that is the leg working.
 set -uo pipefail
 
 RED() { printf '\033[31m%s\033[0m\n' "$*"; }

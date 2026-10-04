@@ -18,11 +18,26 @@ enable -> NotSupported: package 'devbot.example.hello' ABI major 3 incompatible 
           (waffler_core/services/packages/src/process_host.rs:1247)
 ```
 
-The refusal is correct. The image simply predates the bump, and the fix is a node rebuild whose
-order is load-bearing and counter-intuitive: **`docker/packages/Dockerfile` FIRST, then core.**
-`compose build waffler` is core-only and reuses a stale prebuilt web zip, so it will not do the
-packages half; rebuilding core alone leaves the image at ABI 2 and every package is refused at the
-handshake, which makes the node look broken when the only fault is build order.
+The refusal is correct. The image simply predates the bump.
+
+**The fix is a node rebuild, and the order is load-bearing: `docker/packages/Dockerfile` FIRST, then
+core.** Stated as the consequence rather than the instruction, because an instruction without its
+consequence gets reordered by whoever is in a hurry:
+
+> Rebuilding core ALONE moves the HOST to 3 and leaves the image's baked packages at 2 — so the
+> mismatch does not go away, it REVERSES, and now the node's own packages are the ones refused.
+> `compose build waffler` is core-only and reuses a stale prebuilt web zip, so it will not do this
+> for you.
+
+`check_abi` is `abi == WF_ABI_VERSION` — an exact equality, not a floor — and `WF_ABI_VERSION` is
+the SDK constant compiled INTO core, which is why "host 2" means the core binary is the stale half
+rather than the package. There is no tolerant direction across this bump: whichever half is left
+behind is the half that gets refused, and both reads look like "the node is broken".
+
+(An earlier version of this paragraph had that backwards — it said rebuilding core alone "leaves the
+image at ABI 2", which would make core the half that stayed put. Core caught it. A wrong
+explanation in a README is worse than none, because the next person follows it and ends up with a
+node that fails differently and a reason that does not fit.)
 
 | | Legs | State |
 |---|---|---|

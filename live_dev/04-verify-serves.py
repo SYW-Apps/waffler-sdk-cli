@@ -99,12 +99,35 @@ async def main():
                     ok("and returned the payload it was handed")
                 else:
                     bad(f"the echo came back as {result.get('echo')!r}")
-                # AGAINST WHAT THE NODE RECORDED, not against a constant. The two can disagree, and
-                # that disagreement is the finding: the row says one version and the artifact
-                # answering reports another, which is a stale module still loaded under a record
-                # that has moved on. Asserted with an `else`, because the version check here was
-                # previously an `if` with no else — it said nothing at all when it disagreed, which
-                # is the one case worth hearing about.
+                # AGAINST WHAT THE NODE RECORDED, not against a constant. Asserted with an `else`,
+                # because this was previously an `if` with no else and said nothing at all when the
+                # two disagreed, which is the one case worth hearing about.
+                #
+                # ## THIS COMPARISON IS ONLY VALID FOR A SCAFFOLDED PACKAGE, and that is a premise
+                # ## of the leg rather than a property of the two numbers.
+                #
+                # They are DIFFERENT NUMBERS that are ALLOWED TO DIFFER. The reply's `version` is
+                # the artifact's self-report, which derives from `CARGO_PKG_VERSION` — the CRATE.
+                # The node's recorded version is the BUNDLE version, which the packer stamps from
+                # `waffler.json`. Nothing requires those to agree, and across the hand-maintained
+                # sim packages they deliberately do not: `syw.network.http`'s crate is 1.0.0 against
+                # a 1.1.2 bundle.
+                #
+                # It holds HERE because `FQID` is a package `waffler scaffold` created, and scaffold
+                # writes `Cargo.toml` and `waffler.json` from one `--version` input — so equality is
+                # the intent for this subject, and a divergence really is the stale-module finding.
+                # Point this leg at a sim package and the same check reports a stale module on a
+                # perfectly healthy node. That is not hypothetical: a version const frozen at
+                # scaffold time produced exactly that false alarm here once, and it was believed
+                # long enough to be written into a plan. Deriving the const fixed the lying
+                # self-report; it did NOT make these two numbers equivalent, so the premise has to
+                # be stated rather than inherited.
+                #
+                # The sound signal, if this ever needs to work for a package whose versions are
+                # decoupled, is the installed REVISION rather than a version string — the node
+                # rewrites `rev/CURRENT` to a content-named revision on replacement. Not built here:
+                # it needs a field this reply does not carry, and the scoped check is correct for
+                # the only subject this leg has.
                 answered = result.get("version")
                 if recorded_version is None:
                     bad("no recorded version to compare against — step 1 did not find the package")
@@ -113,7 +136,12 @@ async def main():
                 else:
                     bad(
                         f"the node records {recorded_version} but the artifact answering "
-                        f"reports {answered} — the OLD module is still loaded (D15: a package library is never unloaded and is replaced at the same path, so the node serves the old image until it restarts)"
+                        f"reports {answered} — for a SCAFFOLDED package these are set from one "
+                        f"input, so the OLD module is still loaded (D15: a package library is never "
+                        f"unloaded and is replaced at the same path, so the node serves the old "
+                        f"image until it restarts). If {FQID} is no longer a scaffolded package, "
+                        f"check that before blaming the node: a crate version and a bundle version "
+                        f"are allowed to differ, and this comparison is not valid for one that does"
                     )
 
         step("4. a capability it does NOT serve is named rather than answered")

@@ -93,6 +93,71 @@ pub fn locate_artifact(
     })
 }
 
+/// Refuse a `namespace/` tree the installer will refuse, at PACK time.
+///
+/// ## Why this is a call and not a check
+///
+/// The rule is core's: Waffler content must sit under a crate root (the crate manifest is what
+/// carries `exports`, so crate-less content is reachable by every consumer with nothing able to
+/// mark it internal), and two segments sharing a technical_name under one parent both mount and
+/// then race for the same derived FQID.
+///
+/// `read_namespace_tree` above refuses to parse these files, and for a reason that still holds:
+/// the segment format belongs to VFS's staged reader. So this does not parse the format either —
+/// it decodes with SHARED'S OWN TYPE and hands the result to SHARED'S OWN PREDICATE.
+/// `vfs::staged_package_reader` calls the same function, so there is one rule with two callers
+/// rather than a packer's opinion about an installer's invariant.
+///
+/// ## ONE ENTRY POINT, AND DO NOT REACH PAST IT
+///
+/// `validate_staged_namespace_tree` runs crate-root AND sibling-uniqueness together, and the halves
+/// are private on purpose. A packer that pre-checked HALF of what the installer enforces would be
+/// worse than one that pre-checked nothing: it teaches an author that packing clean means
+/// installing clean, which is exactly the belief this function exists to make true.
+///
+/// ## A file that cannot be decoded is a REFUSAL
+///
+/// Every field but `uuid` and `entity_type` is defaulted so an older bundle still decodes, which
+/// means a file failing to decode is missing one of those two — not merely old. Skipping it would
+/// hand the predicate a SHORTER tree than the bundle ships and call the result a pass, so the
+/// refusal names the file.
+pub fn validate_namespace_tree(files: &[NamespaceFile]) -> Result<()> {
+    if files.is_empty() {
+        // A package need not ship entities; a pure native-DLL pack has nothing to check.
+        return Ok(());
+    }
+
+    let mut segments = Vec::with_capacity(files.len());
+    for file in files {
+        let bytes = std::fs::read(&file.absolute)
+            .with_context(|| format!("reading the namespace segment {}", file.relative))?;
+        let segment: waffler_shared::StagedSegment = serde_json::from_slice(&bytes).map_err(|e| {
+            anyhow::anyhow!(
+                "namespace/{} is not a readable entity segment: {e}. Every field but `uuid` and \
+                 `entity_type` is optional, so this is missing one of those two rather than being \
+                 an older format",
+                file.relative
+            )
+        })?;
+        segments.push(segment);
+    }
+
+    // THE WHOLE TREE AT ONCE, never per file: sibling uniqueness is a property of the SET, and a
+    // per-file loop could not see it.
+    waffler_shared::validate_staged_namespace_tree(&segments).map_err(|e| {
+        // Core's message names the offending segment, its entity_type and what it costs. Wrapped
+        // rather than replaced, with the one thing it cannot know: that this is a PACK refusing
+        // early on behalf of an install, so the author does not go looking for a local
+        // misconfiguration.
+        anyhow::anyhow!(
+            "this package's namespace/ tree would be refused when it is INSTALLED, so it is \
+             refused here instead: {}",
+            e.message
+        )
+    })?;
+    Ok(())
+}
+
 /// Collect the project's `namespace/` entity files.
 ///
 /// READ, NOT PARSED. The segment format belongs to VFS's staged reader; a packer that parsed and

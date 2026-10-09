@@ -79,6 +79,10 @@ pub fn plan_bundle(directory: &Path, skip_build: bool) -> Result<(BundlePlan, Bu
     }
 
     let namespace_files = project_adapter::read_namespace_tree(directory)?;
+    // BEFORE ANYTHING IS BUILT OR WRITTEN. This also puts the refusal on `validate`, which stops
+    // short of the build -- so the cheap command catches it, which is the command an author runs
+    // while still editing.
+    project_adapter::validate_namespace_tree(&namespace_files)?;
     let manifest_body = manifest_compiler::compile_manifest_body(&authored, &located);
     let package_uuid = manifest_compiler::package_uuid_for(&authored.fqid);
 
@@ -96,13 +100,33 @@ pub fn plan_bundle(directory: &Path, skip_build: bool) -> Result<(BundlePlan, Bu
     ))
 }
 
-/// Everything `plan_bundle` does up to the build, and then stop.
+/// The manifest checks and the namespace-tree check, with no build.
 ///
 /// IT EXISTS SO THE CHEAP CHECK IS AVAILABLE ALONE. A tool whose only way to check a manifest is to
 /// build the package teaches people not to check.
+///
+/// ITS DOC USED TO SAY "everything `plan_bundle` does up to the build", which was never true — it
+/// does not locate artifacts and did not read the namespace tree — and the inaccuracy had a cost:
+/// it is why the namespace-tree gate was first added only to `plan_bundle`, leaving the command an
+/// author actually runs while editing silently exempt. A summary that overstates its subject sends
+/// the next reader to the wrong call site.
 pub fn validate_project(directory: &Path) -> Result<Vec<Violation>> {
     let authored = project_adapter::read_authored_manifest(directory)?;
-    Ok(manifest_compiler::validate_authored(&authored))
+    let mut violations = manifest_compiler::validate_authored(&authored);
+
+    // AS A VIOLATION, NOT A BAIL. This command's contract is every problem at once, so a bad tree
+    // must not hide the manifest problems found beside it. `plan_bundle` refuses outright instead,
+    // which is right there: a pack either produces a bundle or does not.
+    //
+    // Same predicate either way — `waffler_shared::validate_staged_namespace_tree`, which the
+    // INSTALLER also calls. Two call sites, two presentations, one rule.
+    if let Err(e) = project_adapter::read_namespace_tree(directory)
+        .and_then(|files| project_adapter::validate_namespace_tree(&files))
+    {
+        violations.push(Violation::new("namespace/", format!("{e:#}")));
+    }
+
+    Ok(violations)
 }
 
 /// Advice about the project's manifest that does not stop a pack — no build, like

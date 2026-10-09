@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 
 use super::types::{
+    Advisory,
     AuthoredPackage, DeclaredArtifact, LocatedArtifact, NamespaceFile, RenderedFile,
     LEGACY_MANIFEST_FILE, MANIFEST_FILE,
 };
@@ -91,6 +92,45 @@ pub fn locate_artifact(
         // Measured here so an oversized bundle can be refused before an upload rather than during one.
         size_bytes: meta.len(),
     })
+}
+
+/// An EMPTY `namespace/` directory, which is legal and almost certainly not intended.
+///
+/// ## The distinction core cannot make, and this can
+///
+/// Core's installer reads a staged bundle through `list_dir`, which maps NotFound to an EMPTY LIST
+/// — so an absent `namespace/` and one whose extraction produced nothing are the same observation
+/// there, and a bundle that shipped no content validates as "no content" and passes. That is correct
+/// for core: no-content IS a legal package (a pure native DLL), and the manifest declares artifacts
+/// rather than segment counts, so there is nothing to cross-check a listing against. Core recorded
+/// it as a named limit rather than hiding it inside a predicate.
+///
+/// THIS SIDE HAS THE PROJECT TREE ON DISK, so the two states are distinguishable here: a directory
+/// that does not exist means the author ships no Waffler content, while a directory that EXISTS and
+/// yields nothing means they made it intending content and something did not arrive — a generator
+/// that did not run, a path typo, an ignore rule that swallowed the files.
+///
+/// ## ADVICE, NOT A REFUSAL
+///
+/// An empty `namespace/` is a legal package: it packs, installs, and ships no entities. Refusing it
+/// would reject something the author is entitled to do, perhaps having only just created the
+/// directory. But shipping a library whose content silently did not arrive is worth one line,
+/// because the failure is otherwise invisible until a consumer cannot find anything to call.
+pub fn advise_namespace_tree(directory: &Path) -> Result<Option<Advisory>> {
+    let root = directory.join("namespace");
+    if !root.exists() {
+        // Genuinely no Waffler content. Nothing to say.
+        return Ok(None);
+    }
+    if !read_namespace_tree(directory)?.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(Advisory::new(
+        "namespace/",
+        "the namespace/ directory exists but contains no entity segments, so this package will \
+         ship no Waffler content. That is legal — a native package ships none — but if this is a \
+         library, check that whatever writes those segments ran and wrote them here",
+    )))
 }
 
 /// Refuse a `namespace/` tree the installer will refuse, at PACK time.

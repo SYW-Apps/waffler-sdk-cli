@@ -137,7 +137,14 @@ pub fn validate_project(directory: &Path) -> Result<Vec<Violation>> {
 /// must not have to filter one out of the other.
 pub fn advise_project(directory: &Path) -> Result<Vec<super::types::Advisory>> {
     let authored = project_adapter::read_authored_manifest(directory)?;
-    Ok(manifest_compiler::advise_authored(&authored))
+    let mut advisories = manifest_compiler::advise_authored(&authored);
+    // FROM THE FILESYSTEM, not from the manifest: an empty `namespace/` is a fact about the project
+    // tree, and the manifest declares artifacts rather than segment counts so it cannot reveal it.
+    // This reaches `validate`, `pack` and `publish` alike, since all three print advisories.
+    if let Some(advisory) = project_adapter::advise_namespace_tree(directory)? {
+        advisories.push(advisory);
+    }
+    Ok(advisories)
 }
 
 /// Build what the project declares, in the profile a publishable bundle requires.

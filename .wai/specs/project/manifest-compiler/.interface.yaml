@@ -31,11 +31,11 @@ methods:
 
       ALL VIOLATIONS, NOT THE FIRST. Fixing a manifest one refused field per build is how a
       five-minute correction becomes an afternoon.
-    signature: 'validateAuthored(authored: AuthoredPackage): Violation[]'
-    returns: json[]
+    signature: 'validateAuthored(authored: authored-package): list<any>'
+    returns: list<any>
     params:
       - name: authored
-        type: sdk_cli::authored-package
+        type: authored-package
         description: The manifest as written.
     guarantees:
       - idempotent
@@ -58,14 +58,14 @@ methods:
 
       THE ARTIFACTS ARRAY IS LEFT FOR THE WRITER, because its hashes are facts about bytes that do
       not exist yet.
-    signature: 'compileManifestBody(authored: AuthoredPackage, located: LocatedArtifact[]): ManifestBody'
-    returns: json
+    signature: 'compileManifestBody(authored: authored-package, located: list<located-artifact>): any'
+    returns: any
     params:
       - name: authored
-        type: sdk_cli::authored-package
+        type: authored-package
         description: The manifest as written.
       - name: located
-        type: sdk_cli::located-artifact[]
+        type: list<located-artifact>
         description: The artifacts found on disk after the build.
     guarantees:
       - idempotent
@@ -100,11 +100,11 @@ methods:
       THE BUS RULE QUESTION IS ASKED OF THE MATCHER CORE'S FIREWALL IS PINNED TO
       (`waffler_shared::bus_rule_covers`), never re-derived, so what this calls a grant of
       `bus:register_middleware` is what the node would.
-    signature: 'adviseAuthored(authored: AuthoredPackage): Advisory[]'
-    returns: sdk_cli::advisory[]
+    signature: 'adviseAuthored(authored: authored-package): list<advisory>'
+    returns: list<advisory>
     params:
       - name: authored
-        type: sdk_cli::authored-package
+        type: authored-package
         description: The manifest as written.
     guarantees:
       - idempotent

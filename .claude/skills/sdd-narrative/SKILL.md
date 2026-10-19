@@ -24,6 +24,7 @@ You must read, respect, and update `.wai/phased_design.md` (specifically Stage 5
    - `full` — a step-by-step narrative, with flow structure where the logic branches. Default for Orchestrators, Supervisors, Actors, and patterns.
    - `calls-only` — only the cross-component `call` choreography. Default for Portals, Observers, and Adapters (boundary pass-throughs: real logic belongs in the Orchestrator they forward to — if a Portal method needs branching, that is a smell).
    - `intent` — no steps; instead write an `intent` paragraph stating what the method does and how it fails. Default for Stores, Indexes, Queries, and Registries. The validator enforces an intent floor: placeholder-thin prose is rejected.
+   - **A method with no steps declares the calls it makes** (`calls`, one `<component>.<method>` per entry). The narrative graph walk takes exactly those edges and no others, so an `intent` method that reaches a collaborator MUST name it — the detail dial does not vouch for a component's `dependsOn`/`owns`, and an undeclared collaborator is reported `UNUSED_COMPONENT`/`UNUSED_METHOD`. Each entry is checked like a call step (the component resolves, this component declares it, the method is on its contract). Refused beside a non-empty narrative — write the call step there instead.
    - Omit `detail` when the stereotype default already matches; declare it (per method or spec-level) only to override. Levels are floors — extra detail is never penalized.
 3. **Draft Narrative Steps** (for `full` / `calls-only`):
    - Narratives are a FLAT ordered list; the order mimics the code lines. Flow structure jumps by step number — blocks are just skipped regions.
@@ -62,5 +63,5 @@ You must read, respect, and update `.wai/phased_design.md` (specifically Stage 5
 5. **Register & Promote**:
    - Present the drafted narrative content (the exact step-by-step YAML structure) and a concise summary of the key flow/design choices directly in the chat message to the user. Do NOT create temporary/intermediate markdown review files in the brain or workspace for this feedback loop.
    - Upon user approval, call `sdd_write_narrative` to save it in the spec tree.
-   - Once the interface, narrative, and spec for this component compile without errors, recommend changing the component's status field to `status: complete`.
+   - Once the interface, narrative, and spec for this component validate without errors, recommend setting the component's `status` to `complete` (authoring readiness — it tightens the validator's completeness checks). Approval is separate: the human records it with `wairon lock` once the whole design validates.
    - Update Stage 5 checkboxes in `.wai/phased_design.md`.

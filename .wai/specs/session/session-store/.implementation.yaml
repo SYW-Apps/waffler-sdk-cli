@@ -10,7 +10,7 @@ description: >-
   nobody. The file is written with owner-only permissions and never inside a project tree, which
   closes the failure that actually happens — a credential committed to a repository.
 contract: isession-store
-sourcePath: sdk/cli/src/session/session_store.rs
+sourcePath: src/session/session_store.rs
 technologies:
   - json-file
 methods:
@@ -53,8 +53,8 @@ methods:
           indistinguishable.
         type: local
         assertsInvariants:
-          - sdk_cli::registry-credential.one-credential-per-registry
-          - sdk_cli::registry-credential.removed-not-blanked
+          - registry-credential.one-credential-per-registry
+          - registry-credential.removed-not-blanked
       - stepNumber: 2
         description: >-
           Write the whole document back atomically — a temporary file in the same directory, then a
@@ -91,8 +91,8 @@ methods:
           expired'.
         type: local
         assertsInvariants:
-          - sdk_cli::registry-credential.removed-not-blanked
-          - sdk_cli::registry-credential.one-credential-per-registry
+          - registry-credential.removed-not-blanked
+          - registry-credential.one-credential-per-registry
       - stepNumber: 2
         description: >-
           Write the document back atomically, with owner-only permissions. Removing an entry that is

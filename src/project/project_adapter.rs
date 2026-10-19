@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 
 use super::types::{
+    Advisory,
     AuthoredPackage, DeclaredArtifact, LocatedArtifact, NamespaceFile, RenderedFile,
     LEGACY_MANIFEST_FILE, MANIFEST_FILE,
 };
@@ -91,6 +92,110 @@ pub fn locate_artifact(
         // Measured here so an oversized bundle can be refused before an upload rather than during one.
         size_bytes: meta.len(),
     })
+}
+
+/// An EMPTY `namespace/` directory, which is legal and almost certainly not intended.
+///
+/// ## The distinction core cannot make, and this can
+///
+/// Core's installer reads a staged bundle through `list_dir`, which maps NotFound to an EMPTY LIST
+/// — so an absent `namespace/` and one whose extraction produced nothing are the same observation
+/// there, and a bundle that shipped no content validates as "no content" and passes. That is correct
+/// for core: no-content IS a legal package (a pure native DLL), and the manifest declares artifacts
+/// rather than segment counts, so there is nothing to cross-check a listing against. Core recorded
+/// it as a named limit rather than hiding it inside a predicate.
+///
+/// THIS SIDE HAS THE PROJECT TREE ON DISK, so the two states are distinguishable here: a directory
+/// that does not exist means the author ships no Waffler content, while a directory that EXISTS and
+/// yields nothing means they made it intending content and something did not arrive — a generator
+/// that did not run, a path typo, an ignore rule that swallowed the files.
+///
+/// ## ADVICE, NOT A REFUSAL
+///
+/// An empty `namespace/` is a legal package: it packs, installs, and ships no entities. Refusing it
+/// would reject something the author is entitled to do, perhaps having only just created the
+/// directory. But shipping a library whose content silently did not arrive is worth one line,
+/// because the failure is otherwise invisible until a consumer cannot find anything to call.
+pub fn advise_namespace_tree(directory: &Path) -> Result<Option<Advisory>> {
+    let root = directory.join("namespace");
+    if !root.exists() {
+        // Genuinely no Waffler content. Nothing to say.
+        return Ok(None);
+    }
+    if !read_namespace_tree(directory)?.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(Advisory::new(
+        "namespace/",
+        "the namespace/ directory exists but contains no entity segments, so this package will \
+         ship no Waffler content. That is legal — a native package ships none — but if this is a \
+         library, check that whatever writes those segments ran and wrote them here",
+    )))
+}
+
+/// Refuse a `namespace/` tree the installer will refuse, at PACK time.
+///
+/// ## Why this is a call and not a check
+///
+/// The rule is core's: Waffler content must sit under a crate root (the crate manifest is what
+/// carries `exports`, so crate-less content is reachable by every consumer with nothing able to
+/// mark it internal), and two segments sharing a technical_name under one parent both mount and
+/// then race for the same derived FQID.
+///
+/// `read_namespace_tree` above refuses to parse these files, and for a reason that still holds:
+/// the segment format belongs to VFS's staged reader. So this does not parse the format either —
+/// it decodes with SHARED'S OWN TYPE and hands the result to SHARED'S OWN PREDICATE.
+/// `vfs::staged_package_reader` calls the same function, so there is one rule with two callers
+/// rather than a packer's opinion about an installer's invariant.
+///
+/// ## ONE ENTRY POINT, AND DO NOT REACH PAST IT
+///
+/// `validate_staged_namespace_tree` runs crate-root AND sibling-uniqueness together, and the halves
+/// are private on purpose. A packer that pre-checked HALF of what the installer enforces would be
+/// worse than one that pre-checked nothing: it teaches an author that packing clean means
+/// installing clean, which is exactly the belief this function exists to make true.
+///
+/// ## A file that cannot be decoded is a REFUSAL
+///
+/// Every field but `uuid` and `entity_type` is defaulted so an older bundle still decodes, which
+/// means a file failing to decode is missing one of those two — not merely old. Skipping it would
+/// hand the predicate a SHORTER tree than the bundle ships and call the result a pass, so the
+/// refusal names the file.
+pub fn validate_namespace_tree(files: &[NamespaceFile]) -> Result<()> {
+    if files.is_empty() {
+        // A package need not ship entities; a pure native-DLL pack has nothing to check.
+        return Ok(());
+    }
+
+    let mut segments = Vec::with_capacity(files.len());
+    for file in files {
+        let bytes = std::fs::read(&file.absolute)
+            .with_context(|| format!("reading the namespace segment {}", file.relative))?;
+        let segment: waffler_shared::StagedSegment = serde_json::from_slice(&bytes).map_err(|e| {
+            anyhow::anyhow!(
+                "namespace/{} is not a readable entity segment: {e}. Every field but `uuid` and \
+                 `entity_type` is optional, so this is missing one of those two rather than being \
+                 an older format",
+                file.relative
+            )
+        })?;
+        segments.push(segment);
+    }
+
+    // THE WHOLE TREE AT ONCE, never per file: sibling uniqueness is a property of the SET, and a
+    // per-file loop could not see it.
+    waffler_shared::validate_staged_namespace_tree(&segments).map_err(|e| {
+        // Core's message names the offending segment, its entity_type and what it costs. Wrapped
+        // rather than replaced, with the one thing it cannot know: that this is a PACK refusing
+        // early on behalf of an install, so the author does not go looking for a local
+        // misconfiguration.
+        anyhow::anyhow!(
+            "this package's namespace/ tree would be refused when it is INSTALLED, so it is \
+             refused here instead: {}",
+            e.message
+        )
+    })?;
+    Ok(())
 }
 
 /// Collect the project's `namespace/` entity files.

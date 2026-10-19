@@ -31,8 +31,8 @@ methods:
       relying on that leniency is relying on it continuing to exist.
     signature: >-
       uploadBundle(baseUrl: string, namespace: string, bundlePath: string, bearer: string):
-      PublishOutcome
-    returns: sdk_cli::publish-outcome
+      publish-outcome
+    returns: publish-outcome
     params:
       - name: baseUrl
         type: string
@@ -58,8 +58,8 @@ methods:
 
 
       AN UNKNOWN PACKAGE IS AN ABSENCE, NOT AN ERROR. A first publish is the ordinary case.
-    signature: 'fetchPublishedPackage(baseUrl: string, namespace: string): PublishedPackage?'
-    returns: json
+    signature: 'fetchPublishedPackage(baseUrl: string, namespace: string): any'
+    returns: any
     params:
       - name: baseUrl
         type: string

@@ -18,7 +18,7 @@ description: >-
 subsystem: session
 fields:
   - name: authenticationAvailable
-    type: boolean
+    type: bool
     description: >-
       Whether the instance accepts credentials at all. False means every write route refuses
       regardless of what is presented.
@@ -42,19 +42,19 @@ fields:
       configuration, like the issuer.
     optional: true
   - name: maxPackageSizeBytes
-    type: integer
+    type: int
     description: >-
       The largest upload this instance accepts. Read before a publish so an oversized bundle is
       refused locally rather than after the body has been transferred and paid for.
     optional: false
   - name: publishingAvailable
-    type: boolean
+    type: bool
     description: >-
       Whether this instance can sign and accept publishes at all. A mirror that only serves
       downloads answers false, and telling a developer that before a build is worth the request.
     optional: false
   - name: signingIdentities
-    type: json[]
+    type: list<any>
     description: >-
       The keys this registry signs bundles with, as it reports them. Carried so a publish can state
       which identity will vouch for the artifact; this tool verifies nothing — the node that
@@ -62,4 +62,4 @@ fields:
     optional: false
 methods: []
 createdAt: '2026-09-10T00:08:56.016Z'
-updatedAt: '2026-09-10T00:08:56.413Z'
+updatedAt: '2026-10-18T18:18:10.683Z'

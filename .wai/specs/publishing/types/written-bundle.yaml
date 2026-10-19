@@ -38,11 +38,11 @@ fields:
       registry publish accepts.
     optional: false
   - name: sizeBytes
-    type: integer
+    type: int
     description: >-
       The whole artifact's size, checked against what the registry said it accepts before the upload
       starts.
     optional: false
 methods: []
 createdAt: '2026-09-10T00:09:05.334Z'
-updatedAt: '2026-09-10T00:09:05.637Z'
+updatedAt: '2026-10-18T18:18:10.649Z'

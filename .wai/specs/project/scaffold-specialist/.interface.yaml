@@ -24,10 +24,8 @@ methods:
       IT PINS A CORE CONTRACT RANGE. A bundle declaring none installs UNCHECKED behind a warning
       nobody reads; a scaffold is the one place where the right declaration costs the developer
       nothing.
-    signature: >-
-      renderProject(fqid: string, version: string, description: string, sdkPath: string):
-      RenderedFile[]
-    returns: json[]
+    signature: 'renderProject(fqid: string, version: string, description: string, sdkPath: string): list<any>'
+    returns: list<any>
     params:
       - name: fqid
         type: string
@@ -53,4 +51,4 @@ methods:
       - idempotent
 status: draft
 createdAt: '2026-09-10T00:10:07.625Z'
-updatedAt: '2026-09-10T00:45:59.417Z'
+updatedAt: '2026-10-18T18:18:10.425Z'

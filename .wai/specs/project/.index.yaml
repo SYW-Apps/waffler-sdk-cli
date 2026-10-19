@@ -40,8 +40,7 @@ description: >-
   project and built artifacts; everything after that belongs to Publishing.
 parentSystem: Waffler Developer CLI
 publicInterfaces:
-  - type: Custom
-    details: >-
+  - details: >-
       In-process library call on the Portal's own methods — the same methods the CLI commands bind
       to, which is the point: argument parsing sits ABOVE the front door, so the docker image build
       drives this tool as a library and reaches exactly what a developer at a terminal reaches.
@@ -53,4 +52,4 @@ publicInterfaces:
 trustedLinks: []
 status: draft
 createdAt: '2026-09-09T23:12:08.565Z'
-updatedAt: '2026-09-10T00:04:27.173Z'
+updatedAt: '2026-10-18T18:18:10.842Z'

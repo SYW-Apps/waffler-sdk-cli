@@ -18,7 +18,7 @@ description: >-
   DOWNGRADE IS A DECISION, NOT A DEFAULT. An older version offered by a mirror is not automatically
   installed, because "the registry offers 1.0.9" and "you should go back to 1.0.9" are different
   claims and only an operator can make the second.
-subsystem: sdk_cli::distribution
+subsystem: distribution
 componentType: Orchestrator
 owns: []
 dependsOn:

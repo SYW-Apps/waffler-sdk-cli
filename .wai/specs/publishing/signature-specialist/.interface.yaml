@@ -57,7 +57,7 @@ methods:
       deciding whether to upload it: a file whose end cannot be established is one this tool cannot
       promise carries no signature, and refusing costs one clear local message while accepting costs
       an artifact nobody can install.
-    signature: 'detectFraming(bundlePath: string): Framing'
+    signature: 'detectFraming(bundlePath: string): string'
     returns: string
     params:
       - name: bundlePath
@@ -92,8 +92,8 @@ methods:
       after. Once an fqid has shipped a publisher signature, every node that installed it pins that
       publisher; an unsigned publish afterwards is refused as a downgrade, and a DIFFERENT publisher
       is refused outright because rotation is not built.
-    signature: 'signAsPublisher(bundlePath: string, signingKey: bytes): WrittenBundle'
-    returns: sdk_cli::written-bundle
+    signature: 'signAsPublisher(bundlePath: string, signingKey: bytes): written-bundle'
+    returns: written-bundle
     params:
       - name: bundlePath
         type: string

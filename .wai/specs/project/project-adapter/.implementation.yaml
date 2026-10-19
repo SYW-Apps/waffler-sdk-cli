@@ -9,7 +9,7 @@ description: >-
   a path separator, a directory walk, or a JSON parse error — the orchestrator asks for an authored
   manifest and gets one or a refusal, and the compiler is pure.
 contract: iproject-adapter
-sourcePath: sdk/cli/src/project/project_adapter.rs
+sourcePath: src/project/project_adapter.rs
 technologies:
   - filesystem
 methods:
@@ -88,8 +88,8 @@ methods:
           without being able to say why.
         type: local
         assertsInvariants:
-          - sdk_cli::authored-package.artifact-paths-resolve
-          - sdk_cli::authored-package.declarations-name-declared-artifacts
+          - authored-package.artifact-paths-resolve
+          - authored-package.declarations-name-declared-artifacts
       - stepNumber: 4
         description: Written.
         type: return

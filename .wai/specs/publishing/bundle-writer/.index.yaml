@@ -34,7 +34,7 @@ description: >-
   specialist, because "what the archive contains" and "who vouches for it" are separate questions
   and merging them would make an unsigned bundle unrepresentable. That shape is needed: the registry
   requires an unsigned upload on the path where it signs alone.
-subsystem: sdk_cli::publishing
+subsystem: publishing
 componentType: Orchestrator
 owns: []
 dependsOn: []

@@ -20,8 +20,8 @@ methods:
       where to authenticate at all. Before a publish, because the maximum accepted upload size is
       the registry's to state, and a client that guesses it discovers the real number by having a
       large body refused after transferring it.
-    signature: 'fetchProfile(baseUrl: string): RegistryProfile'
-    returns: sdk_cli::registry-profile
+    signature: 'fetchProfile(baseUrl: string): registry-profile'
+    returns: registry-profile
     params:
       - name: baseUrl
         type: string

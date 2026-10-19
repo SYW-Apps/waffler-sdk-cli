@@ -44,13 +44,13 @@ fields:
       Optional here only so an existing project keeps packing; a scaffold always writes one.
     optional: true
   - name: artifacts
-    type: sdk_cli::declared-artifact[]
+    type: list<declared-artifact>
     description: >-
       The files to build and embed, each named by a project-relative path. Empty means the package
       ships no loadable code and installs HOSTED.
     optional: false
   - name: dependencies
-    type: sdk_cli::declared-dependency[]
+    type: list<declared-dependency>
     description: >-
       Package dependencies as fqid + version REQUIREMENT (`^1.0`, not a pin) — the registry resolves
       them against what is published.
@@ -62,32 +62,32 @@ fields:
       can genuinely run without carries `optional: true`, and its absence then stops nothing.
     optional: false
   - name: capabilities
-    type: sdk_cli::declared-capability[]
+    type: list<declared-capability>
     description: >-
       Runtime primitives and other host-targeted capability declarations, each naming the artifact
       that realizes it.
     optional: false
   - name: permissionGroups
-    type: json[]
+    type: list<any>
     description: >-
       The reviewable permission asks, passed through as authored. Their schema belongs to security
       and re-modelling it here would create a second definition that drifts — the registry validates
       the real one.
     optional: false
   - name: fastLaneRequests
-    type: json[]
+    type: list<any>
     description: >-
       Requested fast lanes, `{target, secure}` per entry. The reviewable ASK; a grant is what an
       approval produces on a node and can never be declared here.
     optional: false
   - name: uiPlugins
-    type: sdk_cli::declared-ui-plugin[]
+    type: list<declared-ui-plugin>
     description: >-
       UI plugin bundles this package ships. A plugin rides as an artifact INSIDE the package, so a
       node without the package has no page rather than an empty one.
     optional: false
   - name: middleware
-    type: sdk_cli::declared-middleware[]
+    type: list<declared-middleware>
     description: >-
       Bus middleware this package contributes — interceptors core runs around routed calls.
 

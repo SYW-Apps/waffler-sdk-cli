@@ -31,7 +31,7 @@ fields:
     description: Where the artifact sits locally. Present on success and on failure alike.
     optional: false
   - name: receipt
-    type: json
+    type: any
     description: >-
       The registry's own answer, carried through rather than reinterpreted. Its publication pipeline
       maps distinct refusals to distinct statuses on purpose — not a publisher, no authority over
@@ -40,4 +40,4 @@ fields:
     optional: false
 methods: []
 createdAt: '2026-09-10T00:09:12.696Z'
-updatedAt: '2026-09-10T00:09:12.916Z'
+updatedAt: '2026-10-18T18:18:10.609Z'

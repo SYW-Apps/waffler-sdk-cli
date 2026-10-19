@@ -48,7 +48,7 @@ fields:
       the `wf_prim_v1` ffi signature.
     optional: true
   - name: inputs
-    type: sdk_cli::declared-parameter[]
+    type: list<declared-parameter>
     description: >-
       The calling contract, in READ ORDER. Empty means undeclared, which is a real and different
       statement from zero parameters.

@@ -15,9 +15,9 @@ methods:
       Build a bundle and stop. No network, no credential, nothing uploaded. A publisher key is
       optional; without one the bundle is unsigned, which is what a registry publish expects.
     signature: >-
-      pack(directory: string, outputPath: string, skipBuild: boolean, publisherKeyPath: string?):
-      WrittenBundle
-    returns: sdk_cli::written-bundle
+      pack(directory: string, outputPath: string, skipBuild: bool, publisherKeyPath?: string):
+      written-bundle
+    returns: written-bundle
     params:
       - name: directory
         type: string
@@ -26,7 +26,7 @@ methods:
         type: string
         description: Where to write the bundle.
       - name: skipBuild
-        type: boolean
+        type: bool
         description: Reuse already-built artifacts.
       - name: publisherKeyPath
         type: string
@@ -38,9 +38,9 @@ methods:
   - name: publish
     description: Build a bundle if needed and upload it to the resolved registry.
     signature: >-
-      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean,
-      publisherKeyPath: string?): PublishOutcome
-    returns: sdk_cli::publish-outcome
+      publish(directory: string, bundlePath?: string, registryFlag?: string, skipBuild: bool,
+      publisherKeyPath?: string): publish-outcome
+    returns: publish-outcome
     params:
       - name: directory
         type: string
@@ -54,7 +54,7 @@ methods:
         description: A `--registry` override.
         optional: true
       - name: skipBuild
-        type: boolean
+        type: bool
         description: Reuse already-built artifacts.
       - name: publisherKeyPath
         type: string
@@ -65,7 +65,7 @@ methods:
       command: publish
   - name: unpublish
     description: Withdraw a published version, naming the registry it is being withdrawn from.
-    signature: 'unpublish(fqid: string, version: string, registryFlag: string?): void'
+    signature: 'unpublish(fqid: string, version: string, registryFlag?: string): void'
     returns: void
     params:
       - name: fqid
@@ -91,7 +91,7 @@ methods:
       the package pins that publisher, rotation is refused, and a lost key is a package that can
       never be updated. Making it a thing a developer asks for is what makes the statement land
       while there is still a decision to make.
-    signature: 'newPublisherKey(path: string): PublicKey'
+    signature: 'newPublisherKey(path: string): bytes'
     returns: bytes
     params:
       - name: path

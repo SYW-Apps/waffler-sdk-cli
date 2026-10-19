@@ -24,8 +24,8 @@ methods:
 
       THE URL IS NORMALISED HERE, ONCE. The same normalisation is what the credential store keys on;
       there must not be a second one.
-    signature: 'resolveRegistry(flagValue: string?): TargetRegistry'
-    returns: sdk_cli::target-registry
+    signature: 'resolveRegistry(flagValue?: string): target-registry'
+    returns: target-registry
     params:
       - name: flagValue
         type: string
@@ -70,11 +70,11 @@ methods:
       A token that is set and NOT used is said out loud rather than silently ignored — that state is
       exactly where a developer concludes the tool is broken, and the fix is one sentence naming
       what to add.
-    signature: 'bearerFor(registry: TargetRegistry): string'
+    signature: 'bearerFor(registry: target-registry): string'
     returns: string
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The resolved registry, whose SOURCE decides whether an environment token applies to it.
   - name: signIn
     description: >-
@@ -86,11 +86,11 @@ methods:
       not saying rather than as a failure of the login. Substituting a default issuer would
       authenticate a developer against someone else's identity provider and send the token here, to
       be refused for reasons that name neither.
-    signature: 'signIn(registry: TargetRegistry): RegistryCredential'
-    returns: sdk_cli::registry-credential
+    signature: 'signIn(registry: target-registry): registry-credential'
+    returns: registry-credential
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The registry to sign in to.
   - name: signOut
     description: >-
@@ -100,11 +100,11 @@ methods:
       ONE REGISTRY, NOT ALL OF THEM. Clearing every session on a machine because a developer wanted
       to leave one is a data-loss shape small enough that nobody reports it and annoying enough that
       they stop using the command.
-    signature: 'signOut(registry: TargetRegistry): void'
+    signature: 'signOut(registry: target-registry): void'
     returns: void
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The registry to sign out of.
   - name: whoAmI
     description: >-
@@ -113,11 +113,11 @@ methods:
 
       PER REGISTRY, BECAUSE THAT IS WHAT A CREDENTIAL IS. Asking who I am without naming a registry
       is asking a question with as many answers as there are sessions.
-    signature: 'whoAmI(registry: TargetRegistry): RegistryCredential?'
-    returns: sdk_cli::registry-credential
+    signature: 'whoAmI(registry: target-registry): registry-credential'
+    returns: registry-credential
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The registry to report on.
   - name: setDefault
     description: >-
@@ -127,8 +127,8 @@ methods:
       IT DOES NOT SIGN ANYONE IN, and the output says so when there is no credential for the new
       default — otherwise a `use` to an unauthenticated registry looks like a working session until
       the first publish.
-    signature: 'setDefault(baseUrl: string): TargetRegistry'
-    returns: sdk_cli::target-registry
+    signature: 'setDefault(baseUrl: string): target-registry'
+    returns: target-registry
     params:
       - name: baseUrl
         type: string
@@ -143,11 +143,11 @@ methods:
       'this instance cannot publish' are facts a publish needs before it builds anything, and
       routing them through Session keeps one component talking to a registry about what kind of
       service it is.
-    signature: 'profileOf(registry: TargetRegistry): RegistryProfile'
-    returns: sdk_cli::registry-profile
+    signature: 'profileOf(registry: target-registry): registry-profile'
+    returns: registry-profile
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The registry to describe.
 status: draft
 createdAt: '2026-09-10T00:11:31.265Z'

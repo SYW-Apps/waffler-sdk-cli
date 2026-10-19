@@ -11,14 +11,14 @@ component: project-client-adapter
 methods:
   - name: planFromDirectory
     description: Ask Project for a bundle plan.
-    signature: 'planFromDirectory(directory: string, skipBuild: boolean): BundlePlan'
-    returns: sdk_cli::bundle-plan
+    signature: 'planFromDirectory(directory: string, skipBuild: bool): bundle-plan'
+    returns: bundle-plan
     params:
       - name: directory
         type: string
         description: The project root.
       - name: skipBuild
-        type: boolean
+        type: bool
         description: Reuse already-built artifacts.
 status: draft
 createdAt: '2026-09-10T00:12:41.611Z'

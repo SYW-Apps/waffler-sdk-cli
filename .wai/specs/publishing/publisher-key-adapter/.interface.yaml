@@ -27,7 +27,7 @@ methods:
       THE ENCODING IS THE ONE THE ECOSYSTEM ALREADY USES — a hex-encoded 32-byte seed, the same
       shape a registry's own signing key is configured with. A second encoding for the same kind of
       secret is a second thing to get wrong.
-    signature: 'loadSigningKey(path: string): SigningKey'
+    signature: 'loadSigningKey(path: string): bytes'
     returns: bytes
     params:
       - name: path
@@ -50,7 +50,7 @@ methods:
 
 
       Written owner-only, for the same reason `loadSigningKey` refuses a world-readable one.
-    signature: 'generateSigningKey(path: string): PublicKey'
+    signature: 'generateSigningKey(path: string): bytes'
     returns: bytes
     params:
       - name: path
@@ -59,4 +59,4 @@ methods:
     effect: write
 status: draft
 createdAt: '2026-09-10T07:47:46.894Z'
-updatedAt: '2026-09-10T07:47:46.921Z'
+updatedAt: '2026-10-18T18:18:10.463Z'

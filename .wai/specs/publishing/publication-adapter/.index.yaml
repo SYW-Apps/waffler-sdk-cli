@@ -35,7 +35,7 @@ description: >-
   IT CARRIES A TOKEN AND JUDGES NOTHING. The bearer comes from Session, and a 401 or 403 is surfaced
   rather than pre-empted. A client that decides in advance what a token may do is a client that can
   disagree with the server about permission, and the one that disagrees silently is this one.
-subsystem: sdk_cli::publishing
+subsystem: publishing
 componentType: Adapter
 owns: []
 dependsOn: []

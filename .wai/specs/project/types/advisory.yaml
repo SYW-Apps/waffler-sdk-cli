@@ -17,7 +17,7 @@ description: >-
   does. One type with a severity flag is how a warning ends up rendered as an error, or an error
   filtered out as a warning; two types make each consumer say which one it handles.
 subsystem: project
-group: sdk_cli::authored-manifest
+group: authored-manifest
 fields:
   - name: field
     type: string

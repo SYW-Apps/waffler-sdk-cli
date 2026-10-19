@@ -12,8 +12,8 @@ methods:
     description: >-
       Which registry does this invocation address, and why. Publishing's first question, asked once
       per command.
-    signature: 'resolve(flagValue: string?): TargetRegistry'
-    returns: sdk_cli::target-registry
+    signature: 'resolve(flagValue?: string): target-registry'
+    returns: target-registry
     params:
       - name: flagValue
         type: string
@@ -26,11 +26,11 @@ methods:
     description: >-
       A usable access token for a resolved registry, refreshed on a margin. Refuses rather than
       returning an empty bearer.
-    signature: 'bearer(registry: TargetRegistry): string'
+    signature: 'bearer(registry: target-registry): string'
     returns: string
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The resolved registry.
     endpoint:
       transport: CLI
@@ -39,19 +39,19 @@ methods:
     description: >-
       What the registry says about itself. Publishing needs the accepted upload size and whether the
       instance can publish at all.
-    signature: 'profile(registry: TargetRegistry): RegistryProfile'
-    returns: sdk_cli::registry-profile
+    signature: 'profile(registry: target-registry): registry-profile'
+    returns: registry-profile
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The resolved registry.
     endpoint:
       transport: CLI
       command: registry --info
   - name: login
     description: Sign in to a registry, against whatever issuer that registry advertises.
-    signature: 'login(flagValue: string?): RegistryCredential'
-    returns: sdk_cli::registry-credential
+    signature: 'login(flagValue?: string): registry-credential'
+    returns: registry-credential
     params:
       - name: flagValue
         type: string
@@ -62,7 +62,7 @@ methods:
       command: login
   - name: logout
     description: Sign out of one registry, leaving every other session intact.
-    signature: 'logout(flagValue: string?): void'
+    signature: 'logout(flagValue?: string): void'
     returns: void
     params:
       - name: flagValue
@@ -74,8 +74,8 @@ methods:
       command: logout
   - name: whoami
     description: Report the identity held for a registry, naming the registry it is for.
-    signature: 'whoami(flagValue: string?): RegistryCredential?'
-    returns: sdk_cli::registry-credential
+    signature: 'whoami(flagValue?: string): registry-credential'
+    returns: registry-credential
     params:
       - name: flagValue
         type: string
@@ -86,8 +86,8 @@ methods:
       command: whoami
   - name: use
     description: Persist a registry as the default, and say plainly whether there is a credential for it.
-    signature: 'use(baseUrl: string): TargetRegistry'
-    returns: sdk_cli::target-registry
+    signature: 'use(baseUrl: string): target-registry'
+    returns: target-registry
     params:
       - name: baseUrl
         type: string

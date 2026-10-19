@@ -41,8 +41,7 @@ description: >-
   that disagrees silently is this one.
 parentSystem: Waffler Developer CLI
 publicInterfaces:
-  - type: Custom
-    details: >-
+  - details: >-
       In-process library call on the Portal's own methods, the same ones the
       `login`/`logout`/`whoami`/`use` commands bind to. Publishing asks two things and never more:
       which registry does this invocation address, and what bearer should be presented to it.
@@ -62,4 +61,4 @@ lifecycle:
 trustedLinks: []
 status: draft
 createdAt: '2026-09-09T23:11:53.494Z'
-updatedAt: '2026-09-10T00:20:51.808Z'
+updatedAt: '2026-10-18T18:18:10.883Z'

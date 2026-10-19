@@ -15,7 +15,7 @@ description: >-
 subsystem: project
 fields:
   - name: ran
-    type: boolean
+    type: bool
     description: Whether a toolchain was actually invoked, or existing artifacts were reused.
     optional: false
   - name: crateManifest
@@ -32,7 +32,7 @@ fields:
       about the profile.
     optional: false
   - name: succeeded
-    type: boolean
+    type: bool
     description: Whether the toolchain exited zero. Exit status decides, not output parsing.
     optional: false
   - name: output
@@ -41,4 +41,4 @@ fields:
     optional: false
 methods: []
 createdAt: '2026-09-10T00:14:09.403Z'
-updatedAt: '2026-09-10T00:14:09.581Z'
+updatedAt: '2026-10-18T18:18:10.543Z'

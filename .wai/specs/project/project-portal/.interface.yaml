@@ -12,14 +12,14 @@ component: project-portal
 methods:
   - name: plan
     description: Produce a bundle plan for a project directory. Publishing's only question of Project.
-    signature: 'plan(directory: string, skipBuild: boolean): BundlePlan'
-    returns: sdk_cli::bundle-plan
+    signature: 'plan(directory: string, skipBuild: bool): bundle-plan'
+    returns: bundle-plan
     params:
       - name: directory
         type: string
         description: The project root.
       - name: skipBuild
-        type: boolean
+        type: bool
         description: Reuse already-built artifacts.
     endpoint:
       transport: CLI
@@ -28,8 +28,8 @@ methods:
     description: >-
       Check the manifest and the declaration consistency without building. Answers with every
       violation, so a manifest is fixed once rather than once per field.
-    signature: 'validate(directory: string): Violation[]'
-    returns: json[]
+    signature: 'validate(directory: string): list<any>'
+    returns: list<any>
     params:
       - name: directory
         type: string
@@ -39,8 +39,8 @@ methods:
       command: validate
   - name: build
     description: Build the project's declared artifacts and report which crate and profile were used.
-    signature: 'build(directory: string): BuildReport'
-    returns: sdk_cli::build-report
+    signature: 'build(directory: string): build-report'
+    returns: build-report
     params:
       - name: directory
         type: string
@@ -52,7 +52,7 @@ methods:
     description: Create a new package project.
     signature: >-
       scaffold(directory: string, fqid: string, version: string, description: string, overwrite:
-      boolean): void
+      bool): void
     returns: void
     params:
       - name: directory
@@ -68,7 +68,7 @@ methods:
         type: string
         description: Catalog prose.
       - name: overwrite
-        type: boolean
+        type: bool
         description: Permission to write into a non-empty directory.
     endpoint:
       transport: CLI
@@ -81,8 +81,8 @@ methods:
 
       A LIBRARY METHOD LIKE THE REST, so an in-process caller such as the docker image build can ask
       for the same advice a developer at a terminal sees.
-    signature: 'advise(directory: string): Advisory[]'
-    returns: sdk_cli::advisory[]
+    signature: 'advise(directory: string): list<advisory>'
+    returns: list<advisory>
     params:
       - name: directory
         type: string

@@ -25,8 +25,8 @@ methods:
       the ordinary case. A MALFORMED file IS an error naming the path: silently replacing an
       unreadable credential file with an empty session is how a developer's stored logins vanish
       with no event that says so.
-    signature: 'load(): PersistedSession'
-    returns: json
+    signature: 'load(): any'
+    returns: any
     params: []
     effect: read
   - name: credentialFor
@@ -37,8 +37,8 @@ methods:
       THE KEY IS THE NORMALISED URL, produced by the resolver and by nothing else. A second
       normalisation would let two spellings of one registry hold two credentials and use whichever
       the current spelling found.
-    signature: 'credentialFor(registry: string): RegistryCredential?'
-    returns: sdk_cli::registry-credential
+    signature: 'credentialFor(registry: string): registry-credential'
+    returns: registry-credential
     params:
       - name: registry
         type: string
@@ -53,11 +53,11 @@ methods:
       and a credential file that can be committed eventually is. The write is ATOMIC — a temporary
       file in the same directory, then a rename — because a process interrupted mid-write otherwise
       leaves a truncated document, and the next run reports every stored login as gone.
-    signature: 'putCredential(credential: RegistryCredential): void'
+    signature: 'putCredential(credential: registry-credential): void'
     returns: void
     params:
       - name: credential
-        type: sdk_cli::registry-credential
+        type: registry-credential
         description: The session to persist.
     guarantees:
       - idempotent
@@ -72,8 +72,8 @@ methods:
       and the two need different sentences: 'you are not signed in to this registry' versus 'your
       session expired'. Removing an entry that is not there is SUCCESS — signing out twice is not a
       mistake — and the return says which happened without making one of them a failure.
-    signature: 'removeCredential(registry: string): boolean'
-    returns: boolean
+    signature: 'removeCredential(registry: string): bool'
+    returns: bool
     params:
       - name: registry
         type: string
@@ -86,7 +86,7 @@ methods:
     description: >-
       The persisted `use` default, or none. A tool that has never had `use` run against it has no
       default, and that is the ordinary first-run state.
-    signature: 'defaultRegistry(): string?'
+    signature: 'defaultRegistry(): string'
     returns: string
     params: []
     effect: read

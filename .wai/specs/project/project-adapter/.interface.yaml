@@ -18,8 +18,8 @@ methods:
       FINDING A LEGACY `package.json` AND NO `waffler.json` IS REPORTED AS EXACTLY THAT, naming both
       files. The legacy model shares one field NAME with this one and no meaning, so the alternative
       — reading it — succeeds and produces a bundle wrong in every field.
-    signature: 'readAuthoredManifest(directory: string): AuthoredPackage'
-    returns: sdk_cli::authored-package
+    signature: 'readAuthoredManifest(directory: string): authored-package'
+    returns: authored-package
     params:
       - name: directory
         type: string
@@ -32,14 +32,14 @@ methods:
       EXACT RESOLUTION, NEVER A SEARCH. The previous tool tried the release target dir, the wasm
       target dir and the project root and took the first hit, which made a forgotten stale artifact
       as good as a fresh one with nothing able to report it.
-    signature: 'locateArtifact(directory: string, declared: DeclaredArtifact): LocatedArtifact'
-    returns: sdk_cli::located-artifact
+    signature: 'locateArtifact(directory: string, declared: declared-artifact): located-artifact'
+    returns: located-artifact
     params:
       - name: directory
         type: string
         description: The project root the path is relative to.
       - name: declared
-        type: sdk_cli::declared-artifact
+        type: declared-artifact
         description: The artifact as the manifest declares it.
   - name: readNamespaceTree
     description: >-
@@ -50,8 +50,8 @@ methods:
       re-emitted it would be a second implementation of a format it does not own, and it would be
       the one that drifts. An absent `namespace/` directory is an empty result, not an error — a
       package need not ship entities.
-    signature: 'readNamespaceTree(directory: string): FileRef[]'
-    returns: json[]
+    signature: 'readNamespaceTree(directory: string): list<any>'
+    returns: list<any>
     params:
       - name: directory
         type: string
@@ -63,17 +63,17 @@ methods:
 
       IT REFUSES A NON-EMPTY TARGET unless overwrite is explicitly asked for. A scaffold that
       clobbers eventually eats work, and the cost of refusing is one flag.
-    signature: 'writeProjectFiles(directory: string, files: RenderedFile[], overwrite: boolean): void'
+    signature: 'writeProjectFiles(directory: string, files: list<any>, overwrite: bool): void'
     returns: void
     params:
       - name: directory
         type: string
         description: Where to write.
       - name: files
-        type: json[]
+        type: list<any>
         description: Relative path and content pairs, rendered by the scaffold specialist.
       - name: overwrite
-        type: boolean
+        type: bool
         description: Permission to write into a directory that is not empty.
     effect: write
 status: draft

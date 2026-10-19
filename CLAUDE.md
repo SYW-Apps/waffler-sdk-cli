@@ -1,3 +1,4 @@
+<!-- wairon-root-start -->
 @.claude/CLAUDE.md
 
 # Wairon SDD Project
@@ -9,3 +10,4 @@ full context, so don't search the project to learn how wairon or SDD works.
 To design or modify the system, invoke the **`sdd-architect`** skill
 (in `.claude/skills/`). Author and validate specs with the `sdd_*` MCP tools;
 the `wairon` CLI is the human developer's tool, not yours.
+<!-- wairon-root-end -->

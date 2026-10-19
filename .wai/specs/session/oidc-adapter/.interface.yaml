@@ -34,8 +34,8 @@ methods:
       THE ISSUER COMES FROM THE REGISTRY BEING ADDRESSED. A client that knows an issuer in advance
       can only ever talk to one deployment, which is the limitation this whole subsystem exists to
       remove.
-    signature: 'authorize(issuer: string, audience: string, clientId: string): TokenSet'
-    returns: json
+    signature: 'authorize(issuer: string, audience: string, clientId: string): any'
+    returns: any
     params:
       - name: issuer
         type: string
@@ -58,8 +58,8 @@ methods:
       A FAILED REFRESH IS REPORTED AS FAILED, not as a silent re-prompt. The caller decides whether
       to discard the credential and ask for a browser — an adapter that transparently escalated to
       an interactive flow would open a browser from inside a CI run.
-    signature: 'refresh(issuer: string, clientId: string, refreshToken: string): TokenSet'
-    returns: json
+    signature: 'refresh(issuer: string, clientId: string, refreshToken: string): any'
+    returns: any
     params:
       - name: issuer
         type: string
@@ -72,4 +72,4 @@ methods:
         description: The stored refresh token.
 status: draft
 createdAt: '2026-09-10T00:11:09.605Z'
-updatedAt: '2026-09-10T00:11:09.620Z'
+updatedAt: '2026-10-18T18:18:10.501Z'

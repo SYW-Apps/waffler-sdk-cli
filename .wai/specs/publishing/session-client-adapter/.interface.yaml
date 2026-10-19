@@ -19,8 +19,8 @@ methods:
     description: >-
       Which registry this command addresses, and which source said so. Called once, before anything
       irreversible, so the answer can be reported.
-    signature: 'target(flagValue: string?): TargetRegistry'
-    returns: sdk_cli::target-registry
+    signature: 'target(flagValue?: string): target-registry'
+    returns: target-registry
     params:
       - name: flagValue
         type: string
@@ -30,11 +30,11 @@ methods:
     description: >-
       What that registry accepts and whether it can publish at all. Read before a build, because
       'this instance only serves downloads' is worth the request that saves the build.
-    signature: 'describe(registry: TargetRegistry): RegistryProfile'
-    returns: sdk_cli::registry-profile
+    signature: 'describe(registry: target-registry): registry-profile'
+    returns: registry-profile
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The resolved registry.
   - name: bearer
     description: >-
@@ -47,11 +47,11 @@ methods:
 
       A MISSING CREDENTIAL COMES BACK AS A REFUSAL naming the registry and how to sign in to it,
       never as an empty bearer.
-    signature: 'bearer(registry: TargetRegistry): string'
+    signature: 'bearer(registry: target-registry): string'
     returns: string
     params:
       - name: registry
-        type: sdk_cli::target-registry
+        type: target-registry
         description: The resolved registry.
 status: draft
 createdAt: '2026-09-10T00:12:52.508Z'

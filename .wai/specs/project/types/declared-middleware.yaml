@@ -41,7 +41,7 @@ description: >-
   typed scope replaced. The scope types already refuse unknown keys this way; this makes the
   declaration around them agree.
 subsystem: project
-group: sdk_cli::authored-manifest
+group: authored-manifest
 fields:
   - name: id
     type: string
@@ -70,7 +70,7 @@ fields:
       case — and a rule that fails the correct shape is worse than no rule.
     optional: false
   - name: scope
-    type: '::shared::middleware-scope'
+    type: shared::middleware-scope
     description: >-
       What this interceptor sees: a `commands` block, an `events` block, header predicates, and an
       active toggle. CORE'S TYPE, embedded rather than mirrored.
@@ -136,7 +136,7 @@ fields:
       from one that predates the field.
     optional: true
   - name: kind
-    type: '::shared::middleware-kind'
+    type: shared::middleware-kind
     description: >-
       May this interceptor's VERDICT stop or alter a message? CORE'S ENUM, embedded exactly as the
       scope is: `Enforcing` (the default) or `Observing`.

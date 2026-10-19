@@ -1,0 +1,10 @@
+externals:
+  shared:
+    project: shared
+    snapshot: .wai/externals/shared.yaml
+    digest: sha256:26ebf17f6221207f0b25ce6f2b47aa86ea468978327c527f5d69deffe4be55a0
+    used:
+      middleware-kind:
+        type: sha256:ef97babbe53ba61ed3e765a7fbf2c06488ad7556c910d83250cf2664d5012326
+      middleware-scope:
+        type: sha256:28e4a0c6b0d7371635077ff5e37412275b70c791e6891609ac60aad773fbbb48

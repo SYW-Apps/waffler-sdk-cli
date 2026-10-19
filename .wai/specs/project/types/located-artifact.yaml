@@ -30,11 +30,11 @@ fields:
     description: Where the file actually is, resolved and confirmed readable.
     optional: false
   - name: sizeBytes
-    type: integer
+    type: int
     description: >-
       Measured at location time so an oversized bundle can be refused before an upload rather than
       during one.
     optional: false
 methods: []
 createdAt: '2026-09-10T00:08:04.847Z'
-updatedAt: '2026-09-10T00:08:05.108Z'
+updatedAt: '2026-10-18T18:18:10.578Z'

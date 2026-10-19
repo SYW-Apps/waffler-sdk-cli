@@ -26,7 +26,7 @@ description: >-
   NETWORK FAILURE IS NOT A NEW VERSION. Unreachable origins mean "unknown", never "you are up to
   date" — a checker that reports currency when it could not check is worse than one that reports
   nothing, because the operator stops looking.
-subsystem: sdk_cli::distribution
+subsystem: distribution
 componentType: Adapter
 owns: []
 dependsOn: []

@@ -25,9 +25,9 @@ methods:
       signature installs and updates exactly as it always has. Making the key mandatory would
       silently push every existing package through a door that cannot be reopened.
     signature: >-
-      pack(directory: string, outputPath: string, skipBuild: boolean, publisherKeyPath: string?):
-      WrittenBundle
-    returns: sdk_cli::written-bundle
+      pack(directory: string, outputPath: string, skipBuild: bool, publisherKeyPath?: string):
+      written-bundle
+    returns: written-bundle
     params:
       - name: directory
         type: string
@@ -36,7 +36,7 @@ methods:
         type: string
         description: Where to write the bundle.
       - name: skipBuild
-        type: boolean
+        type: bool
         description: Reuse already-built artifacts.
       - name: publisherKeyPath
         type: string
@@ -73,9 +73,9 @@ methods:
       key is a package that can never be updated — so a first signature is announced rather than
       performed quietly.
     signature: >-
-      publish(directory: string, bundlePath: string?, registryFlag: string?, skipBuild: boolean,
-      publisherKeyPath: string?): PublishOutcome
-    returns: sdk_cli::publish-outcome
+      publish(directory: string, bundlePath?: string, registryFlag?: string, skipBuild: bool,
+      publisherKeyPath?: string): publish-outcome
+    returns: publish-outcome
     params:
       - name: directory
         type: string
@@ -91,7 +91,7 @@ methods:
         description: A `--registry` override.
         optional: true
       - name: skipBuild
-        type: boolean
+        type: bool
         description: Reuse already-built artifacts.
       - name: publisherKeyPath
         type: string
@@ -113,7 +113,7 @@ methods:
       custody because another version may reference the same bytes. Telling a developer their bytes
       were deleted when they were not is the kind of wrong that is only discovered by someone
       relying on it.
-    signature: 'unpublish(fqid: string, version: string, registryFlag: string?): void'
+    signature: 'unpublish(fqid: string, version: string, registryFlag?: string): void'
     returns: void
     params:
       - name: fqid
@@ -135,7 +135,7 @@ methods:
       itself even for a one-line delegation: the statement that has to accompany a new key is
       workflow, and putting it in a command handler would leave the library path able to mint one
       silently.
-    signature: 'newPublisherKey(path: string): PublicKey'
+    signature: 'newPublisherKey(path: string): bytes'
     returns: bytes
     params:
       - name: path

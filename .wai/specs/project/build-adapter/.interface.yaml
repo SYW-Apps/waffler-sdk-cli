@@ -29,8 +29,8 @@ methods:
       THE CRATE IS NAMED, NEVER INFERRED. Deriving a package name from a package fqid worked until
       the two differed, and then it built the wrong crate and packed its artifact under the right
       name.
-    signature: 'buildRustCrate(manifestPath: string): BuildReport'
-    returns: sdk_cli::build-report
+    signature: 'buildRustCrate(manifestPath: string): build-report'
+    returns: build-report
     params:
       - name: manifestPath
         type: string

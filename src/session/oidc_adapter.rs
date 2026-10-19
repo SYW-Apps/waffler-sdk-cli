@@ -179,20 +179,71 @@ pub async fn refresh(
     serde_json::from_str(&body).context("the token endpoint did not answer with a token set")
 }
 
-/// Accept exactly one request on the loopback listener and read the code out of it.
+/// Accept exactly one request on the loopback listener and read the code out of it, giving up at
+/// [`CALLBACK_TIMEOUT`].
+///
+/// ## The deadline could not fire when the browser never came back
+///
+/// This polls a NON-BLOCKING listener because the previous shape could not enforce its own timeout.
+/// It was `for stream in listener.incoming()` over a BLOCKING listener, with the deadline checked
+/// as the first statement of the body — so the check only ran once a connection had already
+/// arrived. If the developer closed the tab, or never completed the issuer's form, `incoming()`
+/// parked forever and the CLI hung with no output. The one case the message
+/// "the browser did not come back within N seconds" names is exactly the case it could not detect;
+/// it could only fire when the browser DID come back, late.
+///
+/// `clippy::never_loop` is what surfaced it — the body returned on its first iteration, so the loop
+/// was a `.next()` in disguise. **Clippy's suggested fix is the wrong one here:** rewriting it as
+/// `if let Some(stream) = listener.incoming().next()` silences the lint and keeps the hang, because
+/// it is still one blocking accept with no deadline. The loop below is a real loop.
 fn wait_for_code(listener: TcpListener, expected_state: &str) -> Result<String> {
+    wait_for_code_until(listener, expected_state, std::time::Instant::now() + CALLBACK_TIMEOUT)
+}
+
+/// The same, with the deadline passed in.
+///
+/// SPLIT OUT SO THE DEADLINE IS TESTABLE. `CALLBACK_TIMEOUT` is five minutes, so a test of the
+/// give-up path cannot use it; nothing else about this function needs an issuer or a browser, which
+/// is why the timeout is the one part of the login flow that CAN be proven in isolation. The
+/// regression it guards — a blocking accept that parked forever — had no test and shipped for
+/// months behind a CI that could not run.
+fn wait_for_code_until(
+    listener: TcpListener,
+    expected_state: &str,
+    deadline: std::time::Instant,
+) -> Result<String> {
+    // NON-BLOCKING so `accept` returns `WouldBlock` instead of parking, which is what lets the
+    // deadline be checked while nothing has connected yet.
     listener
-        .set_nonblocking(false)
+        .set_nonblocking(true)
         .context("configuring the loopback listener")?;
 
-    let deadline = std::time::Instant::now() + CALLBACK_TIMEOUT;
-    // A read timeout per connection, so a connection that opens and says nothing cannot hold the
-    // login open past the deadline.
-    for stream in listener.incoming() {
-        if std::time::Instant::now() > deadline {
-            bail!("the browser did not come back within {} seconds", CALLBACK_TIMEOUT.as_secs());
-        }
-        let mut stream = stream.context("accepting the login redirect")?;
+    loop {
+        let stream = match listener.accept() {
+            Ok((stream, _peer)) => stream,
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                if std::time::Instant::now() > deadline {
+                    bail!(
+                        "the browser did not come back within {} seconds",
+                        CALLBACK_TIMEOUT.as_secs()
+                    );
+                }
+                // Short enough that a developer finishing the flow sees no delay, long enough that
+                // waiting five minutes is not a spin.
+                std::thread::sleep(Duration::from_millis(100));
+                continue;
+            }
+            Err(e) => return Err(e).context("accepting the login redirect"),
+        };
+        let mut stream = stream;
+        // THE ACCEPTED SOCKET INHERITS NON-BLOCKING ON SOME PLATFORMS, and this tool ships on
+        // Windows and macOS as well as Linux. Left non-blocking, the `read_line` below would
+        // return `WouldBlock` immediately and the redirect would read as an empty request.
+        stream
+            .set_nonblocking(false)
+            .context("configuring the accepted login redirect")?;
+        // A read timeout per connection, so a connection that opens and says nothing cannot hold
+        // the login open past the deadline.
         stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
 
         let mut request_line = String::new();
@@ -253,7 +304,6 @@ fn wait_for_code(listener: TcpListener, expected_state: &str) -> Result<String> 
 
         return result;
     }
-    bail!("the loopback listener closed before the browser came back")
 }
 
 /// A URL-safe random string with no padding.

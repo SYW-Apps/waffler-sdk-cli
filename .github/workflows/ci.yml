@@ -1,10 +1,61 @@
-name: CI
+# CI — MANUAL ONLY, AND IT CANNOT PASS FROM THIS REPOSITORY ALONE.
+#
+# ## Why there is no automatic build check here
+#
+# `Cargo.toml` depends on two crates that live OUTSIDE this repository:
+#
+#     waffler_shared  = { path = "../../shared" }              # added 2026-09-10 (b912c31)
+#     message-hygiene = { path = "../../tools/message-hygiene" } # added 2026-10-03 (9bd51c3)
+#
+# `actions/checkout` clones only `waffler-sdk-cli`, so neither path exists and `cargo metadata`
+# fails before any step can run. `cargo fmt` runs `cargo metadata` first and then prints its own
+# HELP TEXT, which makes the failure look like a bad argument — it is not; it is the missing
+# manifest, and every cargo step dies the same way.
+#
+# It is not cheaply fixable. `waffler-shared` is a PRIVATE repository and `tools/message-hygiene`
+# lives inside the private parent, so the default `GITHUB_TOKEN` (scoped to this repo) cannot clone
+# either, and `actions/checkout --submodules` uses that same token. A working per-repo build needs a
+# GitHub App installation token or an org PAT secret plus checkouts that reproduce the monorepo's
+# relative layout — and the owner decided on 2026-10-19 that Waffler becomes a MONOREPO with
+# waffler_core at the centre (IMPLEMENTATION_PLAN.md §8), after the new SDK and packages-host
+# phases. That move fixes this class for free, so the token infrastructure is deliberately NOT
+# being built.
+#
+# ## Why it is disabled rather than deleted
+#
+# The steps below are correct and will work verbatim once this crate is a workspace member of the
+# monorepo. Kept here because this file is where the next person looks for "why is there no CI",
+# and a commit message is not where that answer survives. Automatic triggers are removed so it
+# cannot be permanently red: a check that structurally cannot pass is not a check, and this one hid
+# its own breakage for five MONTHS precisely because red was its normal state.
+#
+# ## What was hiding behind the red, measured 2026-10-20
+#
+# Running these steps locally WITH the siblings present found two real defects that this CI would
+# have caught the day they landed:
+#
+#   * `clippy::never_loop` in `src/session/oidc_adapter.rs` — the login callback waited on a
+#     blocking listener and could not enforce its own five-minute timeout, so an abandoned browser
+#     tab hung the CLI forever. Fixed, with a regression test.
+#   * 258 `cargo fmt` diff hunks of accumulated drift on `development`, and 25 on `main`.
+#
+# `main` (v0.1.14) carries NO cross-repo path dependency and builds and tests fine in isolation —
+# its CI failure, which began 2026-05-08, is lint debt alone and is fixable in this repository. The
+# dependency reason above applies to `development`/`dev` only. The two branches are red for two
+# different reasons; do not assume one fix covers both.
+#
+# ## The gate until the monorepo lands
+#
+# There is none in this repository, and that is deliberate rather than overlooked. `release.yml`
+# still works and is how users get this tool; note that its last green run was 2026-05-08, BEFORE
+# the cross-repo dependency landed on `development`, so it is proven only for `main`.
+name: CI (manual — requires the monorepo layout)
 
 on:
-  push:
-    branches: [main, dev]
-  pull_request:
-    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,6 +66,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # SAYS WHY BEFORE CARGO SAYS SOMETHING MISLEADING. Dispatched from this repository the
+      # siblings are absent, and without this the first failure is cargo's help text.
+      - name: Require the monorepo layout
+        run: |
+          missing=0
+          for p in ../../shared ../../tools/message-hygiene; do
+            if [ ! -e "$p" ]; then echo "missing: $p"; missing=1; fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo
+            echo "This crate has path dependencies outside its own repository, so these steps"
+            echo "cannot run from a checkout of waffler-sdk-cli alone. Run them from a checkout of"
+            echo "the monorepo (where shared/ and tools/ are siblings), or wait for this crate to"
+            echo "become a workspace member of it. See the header of this file."
+            exit 1
+          fi
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -32,18 +100,6 @@ jobs:
 
       - name: Build
         run: cargo build
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
 
       - name: Test
         run: cargo test

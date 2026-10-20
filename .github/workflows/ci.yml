@@ -21,6 +21,13 @@
 # phases. That move fixes this class for free, so the token infrastructure is deliberately NOT
 # being built.
 #
+# TWO owner decisions point the same way, which is what makes that deliberate rather than merely
+# postponed. The monorepo (2026-10-19) makes this crate a workspace member, so the siblings are
+# simply present. And on 2026-10-20 the owner decided these repositories go back to being PRIVATE:
+# `waffler-sdk-cli` was made public only to help the GitHub registry host packages, and the SYW CDN
+# now covers that, so the reason is spent. There will be no public per-repo build to fix. Both roads
+# lead away from a token and neither leads to one. The owner called it a LATER migration, not today.
+#
 # ## Why it is disabled rather than deleted
 #
 # The steps below are correct and will work verbatim once this crate is a workspace member of the
@@ -37,7 +44,14 @@
 #   * `clippy::never_loop` in `src/session/oidc_adapter.rs` — the login callback waited on a
 #     blocking listener and could not enforce its own five-minute timeout, so an abandoned browser
 #     tab hung the CLI forever. Fixed, with a regression test.
-#   * 258 `cargo fmt` diff hunks of accumulated drift on `development`, and 25 on `main`.
+#   * 258 `cargo fmt` diff hunks of accumulated drift on `development`, and 25 on `main`. NOT
+#     applied, and as of 2026-10-20 that is settled rather than postponed: there is no
+#     `rustfmt.toml` ANYWHERE in the family — zero found by a traversal that found 154 `Cargo.toml`
+#     files, so the search was working — and `waffler_core` alone carries 32,671 changed lines of
+#     the same drift (core's measurement). `cargo fmt` has never been policy here, so reformatting
+#     this one crate upholds no convention it is violating; it would only collide with in-flight
+#     work. It belongs in the monorepo move, where ONE committed `rustfmt.toml` plus one reformat
+#     covers the whole workspace at once instead of thirteen repositories separately.
 #
 # `main` (v0.1.14) carries NO cross-repo path dependency and builds and tests fine in isolation —
 # its CI failure, which began 2026-05-08, is lint debt alone and is fixable in this repository. The

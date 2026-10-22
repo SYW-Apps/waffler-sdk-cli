@@ -1,7 +1,7 @@
 projectName: Shared
 origin: generated
-stateId: sha256:7dbed1d3a729da83f27b04cfbb7d93ed61967b85d5d52b15e5fce8c134b5f155
-generatedAt: '2026-10-18T18:17:36.965Z'
+stateId: sha256:14994fc80570550d536baec45c8623e3de43d50943a2109f2f2d6b381b946f84
+generatedAt: '2026-10-22T15:09:16.522Z'
 interfaces: []
 types:
   - id: access-decision
@@ -8882,3 +8882,4 @@ exportedTypes:
     type: zip-entry-info
     audience: project
 audience: project
+targetLanguage: rust

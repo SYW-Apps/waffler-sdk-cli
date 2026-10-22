@@ -1,4 +1,4 @@
-<!-- wairon-version: 6.0.0 -->
+<!-- wairon-version: 6.1.2 -->
 <!-- wairon-generated — do not edit directly; the human developer rebuilds this with `wairon generate` -->
 
 # Domain Map (4 domains)
@@ -27,7 +27,7 @@ If `.wai/specs/` exists, the wairon SDD workflow is active; otherwise ignore it.
   5. **Design First, then approval**: Complete the spec and pass `sdd_validate_tree`, then ask the human to approve it with `wairon lock` before writing code. Approval is the lock record (`.wai/lock.json`), not a spec's `status` — the lock does not rewrite statuses; `sdd_get_status` reports the approval state. Code linkage (`sourcePath`, `symbol`, `simPath`, …) is not part of the approval: declare planned source paths at design time, they cost no re-lock.
   6. **Prose is design; linkage is not**: an L4/L5 prose change — an implementation's or a method's description, intent or narrative step text — IS a design change: it re-opens the approval, so `wairon lock` is owed before code is implemented against it (an implement step asked for in the same turn as a prose edit waits for the human's re-lock; sequence spec turn → lock → code turn). Only code linkage is outside it.
   7. **Consistency**: Code must match L3 interfaces and L5 narratives exactly. If the spec is wrong, stop and update the spec.
-  8. **Members & References**: A project may declare **members** in its `.wai/project.yaml` `members` (create one with `sdd_add_member`). A **part** (the default) stores some of this project's subsystems in another folder or repository: local ids, this project's lock. A **project** member is an independent boundary with its own spec tree and lock, designed from its own root. Reference what another project exports as `alias::name` (the alias is a member or a declared external, the name a public name of its L0 export table); an id without `::` is local. A leading `::`, `super::`, member paths and an L1 subsystem carrying `projectPath` are deprecated: they still resolve for one release, are reported, and `wairon doctor --fix` rewrites them.
+  8. **Members & References**: A project may declare **members** in its `.wai/project.yaml` `members` (create one with `sdd_add_member`). A **part** (the default) stores some of this project's subsystems in another folder or repository: local ids, this project's lock. A **project** member is an independent boundary with its own spec tree and lock, designed from its own root. Reference what another project exports as `alias::name` (the alias is a member or a declared external, the name a public name of its L0 export table); an id without `::` is local. A leading `::`, `super::`, member paths and an L1 subsystem carrying `projectPath` are wairon 5 forms: they are read only while `wairon upgrade` rewrites a tree wairon 5 wrote, and refused anywhere else.
   9. **Reachability**: every Portal verb is reached by a modelled caller or declared an entry (`invokedBy: { kind: entry }`) for real callers outside the design — never an entry invented to silence a finding.
 
 ### Code linkage facts
@@ -42,6 +42,6 @@ The `wairon` CLI is the human developer's tool: you never run it, but when the h
 - `wairon externals pin <alias>` — re-pin an external once its uses are adapted; `wairon externals status` — the live compatibility gate (exit 1 incompatible, 2 not compared).
 - `wairon network declare` — declare this project's network boundary (your tool for it is `sdd_set_network`).
 - `wairon member add | attach | detach | adopt | promote | demote | internalize | move | rename-alias | update` — the human's twins of the member tools; their `--report` is your `dryRun`.
-- `wairon doctor --fix` — rewrite deprecated forms; `wairon generate` — refresh the generated guides, skills and context.
+- `wairon upgrade` — move a project written by an older wairon major to this one (rewrites deprecated forms; `--report` shows the plan); `wairon doctor --fix` — finish unfinished transactions and repair signatures, type spellings and stale guides; `wairon generate` — refresh the generated guides, skills and context.
 - `wairon agent customize <id>` — scaffold `.wai/agents/<id>.md`, guidance folded into every brief of that agent; `wairon agent brief <id>` — print a live brief.
 - `wairon status` — readiness and approval; `wairon diagram` — architecture diagrams; `wairon network flows` — the allowed-flows matrix.

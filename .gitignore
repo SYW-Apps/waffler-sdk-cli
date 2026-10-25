@@ -3,3 +3,10 @@ target/
 
 # Python bytecode from the live_dev harness, which runs its scripts in a container.
 __pycache__/
+
+# wairon's spec-write transaction lock, written per spec tree by any sdd_* write -- a dryRun
+# included, since it runs the whole write path and only skips the disk -- and left behind once the
+# transaction closes. Never commit one: it holds a pid, a host name and a token, so committing it
+# publishes this machine's state and hands the next checkout a lock that was never held there.
+# The leading `**/` covers a member tree nested inside this repo, which keeps its own .wai.
+**/.wai/.spec-write.lock/

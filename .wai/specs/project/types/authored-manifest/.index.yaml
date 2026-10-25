@@ -1,0 +1,9 @@
+kind: group
+id: authored-manifest
+name: Authored Manifest
+description: >-
+  What a developer declares in waffler.json and what this tool answers back about it, in the
+  authored spelling - not the compiled manifest the tool writes.
+subsystem: project
+createdAt: '2026-10-24T20:44:24.987Z'
+updatedAt: '2026-10-24T20:44:25.099Z'

@@ -1,4 +1,4 @@
-<!-- wairon-version: 6.1.2 -->
+<!-- wairon-version: 6.2.1 -->
 <!-- wairon-generated — do not edit directly; the human developer rebuilds this with `wairon generate` -->
 
 # Domain Map (4 domains)
@@ -34,6 +34,9 @@ If `.wai/specs/` exists, the wairon SDD workflow is active; otherwise ignore it.
 - **`injectedParams` are set when the code exists, by the implementer**: never declare them at design time. They name a parameter a framework imposes on written code (a request handle, a context) beside the contract's own; the implementer declares them with `sdd_write_narrative` (`injectedParams`) or `sdd_update_spec` once its code takes one, and removes a design-time guess its code does not take (`UNUSED_INJECTED_PARAM`) the same way — code linkage, no re-lock.
 - **Plain JavaScript is checked too**: a JSDoc `@typedef` with `@property` lines declares a plain-JS shape, and in a binding module its field names are compared with the producer's type like a TypeScript interface's — add one rather than telling the human a `.js`/`.cjs` binding's fields cannot be checked.
 
+### Type groups
+- **Type groups**: types may be organized in a tree of groups (`sdd_add_group`, a type's `group`; a group may name a `parent`, and the folders on disk mirror the parent chain). Grouping changes layout and presentation only — type ids stay bare and global, and no reference resolves through a group. Move a type between groups by updating its `group` (its file follows); `sdd_move_spec`, `sdd_rename_spec` and `sdd_delete_spec` take `kind: group`.
+
 ### What the human runs — recommend these, never run them
 The `wairon` CLI is the human developer's tool: you never run it, but when the human asks for something only it does, tell them the exact command:
 - `wairon lock` — approve the design (then commit `.wai/lock.json`); `wairon lock-check` is the CI merge gate on that approval.
@@ -45,3 +48,4 @@ The `wairon` CLI is the human developer's tool: you never run it, but when the h
 - `wairon upgrade` — move a project written by an older wairon major to this one (rewrites deprecated forms; `--report` shows the plan); `wairon doctor --fix` — finish unfinished transactions and repair signatures, type spellings and stale guides; `wairon generate` — refresh the generated guides, skills and context.
 - `wairon agent customize <id>` — scaffold `.wai/agents/<id>.md`, guidance folded into every brief of that agent; `wairon agent brief <id>` — print a live brief.
 - `wairon status` — readiness and approval; `wairon diagram` — architecture diagrams; `wairon network flows` — the allowed-flows matrix.
+- `wairon dev` — a local web UI over this project: canvas, specs, findings. When the human asks for a visual or browsable view of the design, point them at it.

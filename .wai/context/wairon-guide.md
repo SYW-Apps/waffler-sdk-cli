@@ -1,4 +1,4 @@
-<!-- wairon-version: 6.2.1 -->
+<!-- wairon-version: 6.7.4-dev.17 -->
 <!-- wairon-generated — do not edit directly; the human developer rebuilds this with `wairon generate` -->
 
 # Domain Map (4 domains)
@@ -17,7 +17,7 @@
 If `.wai/specs/` exists, the wairon SDD workflow is active; otherwise ignore it. wairon does not orchestrate sessions — it equips yours.
 
 ### In SDD Projects:
-- **Source of Truth**: All architecture lives in the spec tree under `.wai/specs/` (L0 System → L1 Subsystem → L2 Component → L3 Interface → L4 Implementation → L5 Narrative). Agent files under `.claude/agents/` are an opt-in generated view (`rules.materializeAgentFiles`) — never edit them; agents are served as live briefs.
+- **Source of Truth**: All architecture lives in the spec tree under `.wai/specs/` (L0 System → L1 Subsystem → L2 Component → L3 Interface → L4 Implementation → L5 Narrative). It is the design of record: a design or plan written anywhere else is not the project's design until it is in the specs, and the lock is its approval, whatever other workflow runs beside it. Agent files under `.claude/agents/` are an opt-in generated view (`rules.materializeAgentFiles`) — never edit them; agents are served as live briefs.
 - **Validation**: Conformance checks (stereotype rules, cycle checks, reference integrity) are run via the `sdd_validate_tree` MCP tool.
 - **Operating Rules**:
   1. **Skills**: Use `sdd-architect` to design (and `sdd-implement`, `sdd-narrative`, `sdd-auditor`). Refer to project's local guide file for detailed constraints.

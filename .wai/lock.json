@@ -2,14 +2,14 @@
   "format": 3,
   "stateId": {
     "algorithm": "sha256+design-2+doctrine+inputs+members",
-    "digest": "ce44efbfa7aa15ec45beb20d37e513fe58943a37845c5a5686e18eebd9d52eb7"
+    "digest": "8697f4550fa0fc77718e6c4b332b0fcdfd25876876a087a4347e8859d684414f"
   },
-  "lockedAt": "2026-10-22T15:48:30.002Z",
+  "lockedAt": "2026-11-15T23:45:01.912Z",
   "lockedBy": {
     "id": "Robbe-Vr <robbe.vrijenhoek@kpnmail.nl>",
     "source": "git"
   },
-  "validatorVersion": "6.1.2",
+  "validatorVersion": "6.7.4-dev.17",
   "validationResult": {
     "valid": true,
     "errors": 0,
@@ -42,14 +42,15 @@
     ".wai/specs/project/scaffold-specialist/.implementation.yaml": "675071e89f773b6f5544c12337640b795a5eb1ac0378eb3a7b053aa24ffc42a8",
     ".wai/specs/project/scaffold-specialist/.index.yaml": "27d4ecf540df4af5397e029989f15b21b89d62a0bf54277af03bf6a971c12f35",
     ".wai/specs/project/scaffold-specialist/.interface.yaml": "1528187e6b0adb53084aac39a64fdbe35583f2d63ee9f987c30c48fe5fc06954",
-    ".wai/specs/project/types/advisory.yaml": "a5034b7cf16e7f3fb653aa018b9c72c99053d36853408d71c381051995a1bc8f",
+    ".wai/specs/project/types/authored-manifest/.index.yaml": "aad590e2f247122a11e359983818fa49ef5c01744c188dfe64d5048400789747",
+    ".wai/specs/project/types/authored-manifest/advisory.yaml": "a5034b7cf16e7f3fb653aa018b9c72c99053d36853408d71c381051995a1bc8f",
+    ".wai/specs/project/types/authored-manifest/declared-middleware.yaml": "77cab3f42320d8bce600e6d45b571c36bf1b41432627640a2b6d356955e86fd9",
     ".wai/specs/project/types/authored-package.yaml": "aa117daf8f7bd10199ce27876a6b208c640175cc558488dfab860f3d81a4ea9f",
     ".wai/specs/project/types/build-report.yaml": "be5df07efa91319f94369a52a547f0725fe5e3c4218edffe08faa482f93a3c4c",
     ".wai/specs/project/types/bundle-plan.yaml": "dca3fe9f81ffd2bced73f51579f50e1e76666fab3ce50fdcf13024223af85cc8",
     ".wai/specs/project/types/declared-artifact.yaml": "0500ed18ef6c75054f68a6cff42e1e6d0831ea89a3f1bb5e112c1fe6e44736b2",
     ".wai/specs/project/types/declared-capability.yaml": "81fdf4969dbade12f3b5e43501666326470ca45a3719f29e4c755c75d0163d61",
     ".wai/specs/project/types/declared-dependency.yaml": "98591a7e7b5eb60cab2cb3b814dda24d2fc3a6134f3c8b5dbfb44ae99236dd08",
-    ".wai/specs/project/types/declared-middleware.yaml": "77cab3f42320d8bce600e6d45b571c36bf1b41432627640a2b6d356955e86fd9",
     ".wai/specs/project/types/declared-parameter.yaml": "48e4064cc7c7aa223f34261c456d460c0c459c45f01c68e4af4de36c2c46791a",
     ".wai/specs/project/types/declared-ui-plugin.yaml": "ee879e92f92f9c8f3054a8fa22cbca2fedbd7bd4216124232eb146dbbd942da4",
     ".wai/specs/project/types/located-artifact.yaml": "6705c5c5fc1eadaee8e039a432633a05183c2b1402d2c23b7e84c2d032c750b0",
@@ -103,7 +104,7 @@
   "specsReading": "design",
   "gateParts": {
     "design": "517d18d727fceac95b188c2ef144e38fdf280db592a1e50bbbc835ec5db5f251",
-    "release": "9de73b24df9f3251ac78e334a0428ee64926abd148137a0dc1774423e2de60d7",
+    "release": "c1f13a75fdbc1a955c9ff6fa2a6272626739d4bc0502c110f3c4ce37e2706881",
     "rules": "43cfe6d38257bec2e42ffe6373ef015dced356ed125dba4fbe9d8a275d4eaa42",
     "packs": "e58a07166d3239b3e4dddbc10594d72ee7e7e564bb94b2b08d9eadfc80279119",
     "composition": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
@@ -113,8 +114,8 @@
   "members": {},
   "code": {
     "analyzer": {
-      "validatorVersion": "6.1.2",
-      "doctrineDigest": "5222eed59e47ca195238f0e5bc5b6c4d978d1ef22841689ec284a18525757840",
+      "validatorVersion": "6.7.4-dev.17",
+      "doctrineDigest": "5fa0cf80fc5782a9b71a07783fba35bb23c8c11031e3268bcca44f57b47c7e04",
       "grade": "pattern"
     },
     "errors": 0,

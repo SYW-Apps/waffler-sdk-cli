@@ -165,7 +165,12 @@ async def main():
             GROUP_ID,
             "Call devbot.example.hello",
             "Lets the web app call the capability of a package installed from a registry after the web app was packed.",
-            "Approved",
+            # "PendingReview", NOT "Approved". Since the host-stamped-status round, `groups.save`
+            # IGNORES a caller-supplied status: it stamps PendingReview for a new (source, id) and
+            # keeps the stored value for an existing one. Only permission_groups.approve/reject
+            # write a verdict. Sending "Approved" here would assert an approval this call does not
+            # receive -- which is the defect that round closed, and the reason step 3 now approves.
+            "PendingReview",
             True,
             "Custom",
             [[bus_command_pattern(FQID), "Allow", 100]],
@@ -179,14 +184,32 @@ async def main():
         else:
             ok("group saved")
 
-        step("3. bind it to the calling principal")
+        step("3. bind it to the calling principal, then APPROVE the group")
         # Binding positional: id, group_id, principal(PrincipalPattern[principal_type, id]), source, approved
-        binding = [BINDING_ID, GROUP_ID, ["Package", CALLER], "Custom", True]
+        #
+        # `approved` is False, not True: add_binding stamps it false, and a binding is approved only
+        # by its group's review. Sending True would claim an approval this call does not receive --
+        # and on a node PREDATING the stamp it would take effect without review, which is the hole,
+        # not a fallback.
+        binding = [BINDING_ID, GROUP_ID, ["Package", CALLER], "Custom", False]
         result, error = await rpc(ws, "security", "bindings.add", binding)
         if error:
             bad(f"bindings.add refused: {error}")
         else:
-            ok("binding added")
+            ok("binding added (pending)")
+
+        # THE REVIEW IS A SEPARATE CALL, and it is what flattens the rule. Nothing above granted
+        # anything: the save was stamped PendingReview and the binding stamped unapproved, so an
+        # unapproved group emits no rule at all. approve_group flips the group AND the bindings in
+        # its own scope -- which is why the binding above must carry source "Custom", matching the
+        # group's scope, or the review would leave it behind.
+        #
+        # GroupReviewReq positional: group_id, source
+        _, error = await rpc(ws, "security", "permission_groups.approve", [GROUP_ID, "Custom"])
+        if error:
+            bad(f"permission_groups.approve refused: {error}")
+        else:
+            ok("group approved")
 
         step("4. DOES IT ANSWER NOW?")
         result, error = await echo_call(ws, "hello from the cycle")

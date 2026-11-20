@@ -131,7 +131,10 @@ async def grant(ws, fqid):
         group_id,
         f"Call {fqid}",
         "Lets the web app call a package installed from a registry after the web app was packed.",
-        "Approved",
+        # "PendingReview", NOT "Approved": `groups.save` IGNORES a caller-supplied status and stamps
+        # PendingReview for a new (source, id). Only permission_groups.approve writes a verdict, so
+        # the review below is what grants, not this field.
+        "PendingReview",
         True,
         # An OPERATOR authored this. Claiming the package as the source would read as something the
         # package itself requested.
@@ -145,10 +148,19 @@ async def grant(ws, fqid):
     if error:
         return f"groups.save refused for {fqid}: {error}"
     # Binding positional: id, group_id, principal(PrincipalPattern[principal_type, id]), source, approved
-    binding = ["op." + CALLER + "." + group_id, group_id, ["Package", CALLER], "Custom", True]
+    #
+    # `approved` False: add_binding stamps it false, and only the group's review approves a binding.
+    # Source "Custom" must match the group's scope, or approve_group would flip the group and leave
+    # this binding behind.
+    binding = ["op." + CALLER + "." + group_id, group_id, ["Package", CALLER], "Custom", False]
     _, error = await rpc(ws, "security", "bindings.add", binding)
     if error:
         return f"bindings.add refused for {fqid}: {error}"
+    # THE REVIEW GRANTS. Until it runs, the group is PendingReview and emits no rule, so the two
+    # calls above have granted nothing. GroupReviewReq positional: group_id, source.
+    _, error = await rpc(ws, "security", "permission_groups.approve", [group_id, "Custom"])
+    if error:
+        return f"permission_groups.approve refused for {fqid}: {error}"
     return None
 
 

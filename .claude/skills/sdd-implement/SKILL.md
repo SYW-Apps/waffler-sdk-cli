@@ -1,6 +1,6 @@
 ---
 name: sdd-implement
-description: Generate concrete source code implementing a specified L2 component strictly from its finalized specs, with hard gating checks. Use when implementing or writing code for a fully-spec'd component.
+description: Generate concrete source code implementing a specified L2 component strictly from its finalized specs, with hard gating checks. Use when implementing or writing code for a fully-spec'd, approved component.
 ---
 
 # Skill: sdd-implement
@@ -31,7 +31,7 @@ You are the **Spec-to-Code Compiler**. Your job is to generate concrete source c
 5. You may not omit any steps.
 6. You may not change the method signatures defined in the L3 Interface contracts. Contracts spell types in wairon's neutral grammar (`list<T>`, `map<K, V>`, `T?`, `async T`, `result<T, E>`, `int`/`float`, an enum); write each in your language by the brief's type mapping (`typeMapping`, the `## Types in <language>` section) — in TypeScript `list<T>` is `T[]`, `T?` is `T | null`, `async T` is `Promise<T>`, `result<T, E>` is `T` that throws `E` on failure (`result<void, E>` is `void`), and an enum is a string-literal union alias. Annotate each realizing function's return with the contract's `returns` (the gate compares them: `RETURN_TYPE_MISMATCH`); in Python, name parameters in snake_case (the contract's `documentId` is `document_id`) and annotate them and the return — the gate reads `def` signatures too.
    - Add no public surface the contract does not declare: a helper method is `private` (a leading underscore in Python), a module helper is not exported unless something uses it. A public method or exported function no contract declares and nothing uses is `UNDECLARED_PUBLIC_MEMBER`.
-   - Every call your function makes, in its own body, to a collaborator its narrative names is a narrative step (`UNNARRATED_CALL` otherwise); where the method's `detail` is stated, every call into another component is (`UNNARRATED_CALL` too), and where it is not, a call to another collaborator is an open route the design allows (`OPEN_ROUTE_CALL`, a notice) — report it in your summary rather than leaving it unsaid; a Portal served by a router names it in the implementation's `router:` (`ROUTES_UNCHECKED` otherwise).
+   - Every call your function makes, in its own body, to a collaborator its narrative names is a narrative step (`UNNARRATED_CALL` otherwise); where the method's `detail` is stated, every call into another component is (`UNNARRATED_CALL` too), and where it is not, a call to another collaborator is an open route the design allows (`OPEN_ROUTE_CALL`, a notice) — report it in your summary rather than leaving it unsaid; a Portal served by a router names it in the implementation's `router:` (`ROUTES_UNCHECKED` otherwise) — also when the routes live in another module (`src/server.ts#routes`): the notice `ROUTER_UNDECLARED` means no route of that Portal was compared, so set the linkage rather than report the notice as harmless.
 7. All code must match the declarative nature of the blueprints.
 8. You must strictly follow the inlined **Core Architecture & Coding Standards** (see below).
 9. **Escalate spec contradictions — never ship "spec-faithful but wrong".** "Spec is law"
@@ -93,7 +93,9 @@ You are the **Spec-to-Code Compiler**. Your job is to generate concrete source c
      statically proves the harness exists and its import graph wires the REAL modules
      (`SIM_FILE_MISSING` / `UNWIRED_INTEGRATION_SIM`), and holds the rest of the
      subsystem to the same bar (`MISSING_INTEGRATION_SIM` activates on first
-     adoption). CI proves it passes; the validator proves it is wired.
+     adoption: declaring the first simPath in a subsystem makes the rest of it owe
+     one; the usual answers are one shared N:1 harness for the subsystem, or a
+     reasoned `lint.allow` for a client Adapter that only wraps an outside call). CI proves it passes; the validator proves it is wired.
    - **Optionally claim path coverage** with string anchors in the harness:
      `"sim:<component-id>.<method>"` for the happy path and
      `"sim:<component-id>.<method>:<label>"` for the error path whose `throw` step
@@ -180,7 +182,7 @@ All implementation work must strictly adhere to these rules:
      - `Index` (handles read-path lookups, optimized query maps).
      - `Query` (a Repository member computing reads over its Store per call; depends only on its Store, a backend Adapter or pure logic).
      - `Actor` (owns one live thing, such as a session, connection, timer or entity instance, and its runtime state; its methods are full flowcharts, and it changes that state only after a commit).
-     - `Adapter` (the only block doing external I/O).
+     - `Adapter` (the client block for an outside system; recommended rather than required, since it keeps one place to change a library and lets other components make an outside call in one step).
      - `Observer` (subscribes to events and forwards them).
    - **Reach, transports and libraries**:
      - A Portal's verbs are reached by the callers the design models or by the outside callers its `invokedBy` entry names. Serve exactly those: the Portal's L4 `router` is the entry its file exports for whatever process hosts it. Never add a verb, route or command the contract does not declare, and never ask for an entry to make an `UNUSED_*` finding go away — report the unreached verb instead.

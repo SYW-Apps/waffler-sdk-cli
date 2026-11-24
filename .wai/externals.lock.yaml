@@ -2,7 +2,7 @@ externals:
   shared:
     project: shared
     snapshot: .wai/externals/shared.yaml
-    digest: sha256:26ebf17f6221207f0b25ce6f2b47aa86ea468978327c527f5d69deffe4be55a0
+    digest: sha256:299dbd45e925f02377d7fbe2525cf32892383e0e971fb45987320b27574f3d8b
     used:
       middleware-kind:
         type: sha256:ef97babbe53ba61ed3e765a7fbf2c06488ad7556c910d83250cf2664d5012326

@@ -1,7 +1,7 @@
 projectName: Shared
 origin: generated
-stateId: sha256:14994fc80570550d536baec45c8623e3de43d50943a2109f2f2d6b381b946f84
-generatedAt: '2026-10-22T15:09:16.522Z'
+stateId: sha256:e2df36311b71cf070bb9ea8f71417d4d70ba89dd0c7b79f1cfe447d34652b7d7
+generatedAt: '2026-11-24T19:15:15.332Z'
 interfaces: []
 types:
   - id: access-decision
@@ -256,7 +256,7 @@ types:
     kind: value-object
     fields:
       - name: uuid
-        type: any
+        type: uuid-value
         description: The referenced blueprint's uuid.
   - id: bound-graph
     name: BoundGraph
@@ -550,7 +550,7 @@ types:
     kind: value-object
     fields:
       - name: class_uuid
-        type: any
+        type: uuid-value
         description: The class uuid.
       - name: methods
         type: any
@@ -656,8 +656,9 @@ types:
       - name: value
         type: string
         description: >-
-          Enabled | ApprovedGroupIds | SignedBy | MiddlewareReviews - the PackageConsent field this
-          change names.
+          Enabled | ApprovedGroupIds | SignedBy | MiddlewareReviews | TokenRelayReview - the
+          PackageConsent field this change names. A restatement of the enum (see the type
+          description): it changes with it.
   - id: console-frame
     name: ConsoleFrame
     kind: value-object
@@ -952,7 +953,7 @@ types:
         type: string
         description: The debug session id.
       - name: execution_id
-        type: any
+        type: uuid-value
         description: The execution being debugged.
       - name: breakpoints
         type: any
@@ -1155,7 +1156,7 @@ types:
     kind: value-object
     fields:
       - name: uuid
-        type: any
+        type: uuid-value
         description: The referenced entity's id.
       - name: entity_type
         type: string
@@ -1196,7 +1197,7 @@ types:
     kind: value-object
     fields:
       - name: class_uuid
-        type: any
+        type: uuid-value
         description: The Error class uuid (trap-match key).
       - name: message
         type: string
@@ -1483,7 +1484,7 @@ types:
     kind: value-object
     fields:
       - name: execution_id
-        type: any
+        type: uuid-value
         description: The execution id.
       - name: principal
         type: security-principal
@@ -1497,10 +1498,10 @@ types:
     kind: value-object
     fields:
       - name: execution_id
-        type: any
+        type: uuid-value
         description: The execution's unique id.
       - name: blueprint_uuid
-        type: any
+        type: uuid-value
         description: The blueprint being executed.
       - name: status
         type: string
@@ -1884,7 +1885,7 @@ types:
     kind: value-object
     fields:
       - name: uuid
-        type: any
+        type: uuid-value
         description: The owning entity's uuid.
       - name: part
         type: string
@@ -2319,7 +2320,31 @@ types:
         optional: true
       - name: hosting_mode
         type: string
-        description: DIRECT (in-process) | HOSTED (separate process; default, one-way toward isolation).
+        description: >-
+          DIRECT (in-process) | HOSTED (separate process; default, one-way toward isolation).
+          ISOLATION ONLY: it does NOT decide whether this package starts — that is
+          `needs_a_process`, which reads the artifact set. HOST-STAMPED, NOT DECLARED: a
+          RUNTIME-MANAGED fact like `signed_by` and each capability's `owner` (A20) — same field,
+          same wire shape, but core COMPUTES it and never reads the manifest's value. It is DERIVED
+          AT INSTALL from trust, never from the manifest: DIRECT when an operator's
+          DirectHostingOverride is armed for this package and matches the code being installed
+          (consumed by that install), or when `signed_by` is an anchor the node lets earn DIRECT
+          (never the published dev anchor) AND the install's publisher-pin outcome does not rest on
+          a human (`PublisherPinOutcome::rests_on_a_human`); HOSTED otherwise. It has its OWN
+          DURABLE FACT — PackageHosting, in its own sealed collection; beside `signed_by` in kind,
+          not in storage — and is stamped at BOTH doors — install (`into_record`) and hydration
+          (`reconstruct`) — because the persisted `.manifest` part is the AUTHOR's JSON and decodes
+          into this same type, so a value stamped only at install would be the author's again at the
+          next restart. ABSENT ⇒ HOSTED, NEVER THE MANIFEST'S OWN VALUE — the rule
+          `approved_group_ids` and `middleware_reviews` already follow in `reconstruct` — so every
+          record written before the derivation existed lands isolated by construction, with no
+          migration and no marker; and the serde default (HOSTED) is correct rather than merely
+          harmless: the absent value and the safe value are the same value. THE DERIVATION DOES NOT
+          RE-RUN AT START, deliberately: removing a trust anchor refuses NEW bundles from that
+          identity and does not re-isolate an installed package, just as it un-approves no
+          permission group, fast-lane grant or pin, and re-isolating would change hosting under an
+          open channel. The instrument for a package that must stop is `suspension:{fqid}` plus the
+          advisory feed.
       - name: permission_groups
         type: list<stored-permission-group>
         description: >-
@@ -2412,6 +2437,66 @@ types:
           that decodes the full positional record (the marketplace does, deliberately):
           consumer-first, and consumer DEPLOYED first.
         optional: true
+      - name: token_relay
+        type: bool
+        description: >-
+          Does this package CLAIM to relay user tokens — to forward a caller's user token (the jwt
+          header) on the COMMAND path, so the identity provider can verify the user behind the call?
+          AUTHOR-DECLARED: it reaches the record from the manifest like every declared field, and it
+          is a CLAIM, never a grant. Core never reads it to decide anything; what core reads is
+          token_relay_review.
+
+
+          A SEPARATE FIELD FROM ITS DECISION, deliberately. One slot holding both (an optional
+          review whose absence meant 'unclaimed') would put the author's claim inside the field
+          consent lives in: the author would write the value its own approval is read from, which is
+          self-approval, and the one-field-two-questions shape MiddlewareDeclaration's required/kind
+          split already refused. NOT A PERMISSION GROUP either: only approved_group_ids is durable
+          on this record, so a rejected group reads back as Pending after a boot — two states where
+          this decision needs three.
+
+
+          ONE STEM, three sites: token_relay (the claim), token_relay_review (the decision) and
+          approved_token_relay (the boot-consent carrier key on a package's waffles.json
+          declaration, read by core), so a search for token_relay finds every one of them.
+
+
+          APPENDED — positional MessagePack, field order is contract; serde-default false, so every
+          record written before the field decodes as a package that claims nothing. BREAKING for
+          every consumer that decodes the full positional record (the waffler_ui decoder, the
+          marketplace): READERS FIRST, and deployed first.
+        optional: true
+      - name: token_relay_review
+        type: review-state
+        description: >-
+          The operator's decision about this package's token_relay claim. HOST-WRITTEN, never
+          author-supplied: an author value in the manifest is overwritten at install, and at
+          hydration the persisted decision wins over the manifest's — the rule approved_group_ids
+          and middleware_reviews already follow, because the party asking for a consent does not get
+          to supply the answer.
+
+
+          THREE STATES AND AN ABSENCE. Absent means NEVER PRESENTED — distinct from a recorded
+          Pending, and absent is NEVER Rejected, which is a decision an operator already made.
+          Approved is the only state anything acts on.
+
+
+          CORE READS THIS, NEVER THE CLAIM: the jwt exemption on the command path holds only while
+          this is Approved. Anything else WITHHOLDS THE EXEMPTION AND NEVER REFUSES THE ENABLE — a
+          package whose claim is unapproved still runs; its forwarded tokens are cleared at ingress
+          like any guest's, and the relay's own authority applies.
+
+
+          CARRIED ACROSS AN UPDATE ONLY WHILE THE CLAIM IS UNCHANGED. The claim is a bool, so
+          'unchanged' IS the binding and no digest is needed (MiddlewareDeclaration's marker needed
+          one because a declaration has a scope to widen; this claim has nothing but itself). false
+          -> true returns to Pending; true -> false drops the decision to absent; true -> true
+          carries it.
+
+
+          APPENDED after token_relay — positional MessagePack, field order is contract;
+          serde-default absent.
+        optional: true
   - id: instruction-subset
     name: InstructionSubset
     kind: value-object
@@ -2499,7 +2584,12 @@ types:
         description: Creation time, epoch milliseconds.
       - name: source
         type: string
-        description: The emitting principal (service FQID / package fingerprint).
+        description: >-
+          CALLER-STATED attribution, free-form: producers write a crate uuid, a blueprint uuid,
+          "vault" or "sim" — not one kind of name. Despite earlier wording it is NOT "the emitting
+          principal": the principal the node ESTABLISHED is `recorded_by`, which a caller cannot
+          set. Left free-form because every existing producer and reader depends on it, so the
+          honest fix is to name the two facts separately rather than to overwrite this one.
       - name: target
         type: string
         description: >-
@@ -2544,6 +2634,20 @@ types:
       - name: strict_journal
         type: bool
         description: If true, a ship/fsync failure is fatal to the caller (no proceed without durable ack).
+      - name: recorded_by
+        type: security-principal
+        description: >-
+          The principal the NODE established as having recorded this entry — derived by the journal
+          Portal from the non-forgeable ctx.caller at admission, never read from the shipped entry,
+          and overwritten if a caller supplies one. The minter-derived half of the journald
+          partition, whose caller-stated half is `source`.
+
+
+          OPTIONAL because ABSENT and "recorded by nobody" are different facts: an entry written
+          before this field existed has no answer, and a required field would have to invent one. It
+          is the LAST wire slot so an existing segment, whose positional MsgPack record is one
+          element shorter, still decodes and still verifies against the chain.
+        optional: true
   - id: journal-level
     name: JournalLevel
     kind: value-object
@@ -2671,10 +2775,10 @@ types:
     kind: value-object
     fields:
       - name: instance_uuid
-        type: any
+        type: uuid-value
         description: The live instance's unique id.
       - name: class_uuid
-        type: any
+        type: uuid-value
         description: The instance's class.
       - name: state
         type: any
@@ -2722,7 +2826,7 @@ types:
     kind: value-object
     fields:
       - name: uuid
-        type: any
+        type: uuid-value
         description: The blueprint uuid.
       - name: program
         type: flattened-program
@@ -2735,7 +2839,7 @@ types:
     kind: value-object
     fields:
       - name: entry
-        type: any
+        type: uuid-value
         description: The entry blueprint uuid.
       - name: closure
         type: any
@@ -2816,7 +2920,36 @@ types:
         optional: true
       - name: jwt
         type: string
-        description: Raw bearer token; parsed by auth.identity's middleware (core ships none).
+        description: >-
+          The raw bearer token of a USER — the one credential a header may carry. Core ships no
+          parser: the declared identity provider's middleware consumes it.
+
+
+          WHO MAY SET IT: only a declared RELAY. It is CLEARED from every guest envelope on ingress
+          (the process host's scrub of caller-asserted headers), with ONE exemption: the COMMAND
+          path from a package whose manifest claims token_relay and whose operator decision,
+          token_relay_review, is Approved — a decision carried across an update only while the claim
+          is unchanged — keyed on its FQID, never its fingerprint. If the claim ever grows substance
+          — which issuers, which targets it relays to — a digest earns its place and this wording is
+          revisited. The exemption is on the command path and NOT inside the shared scrub, because
+          the event path shares that scrub and an exemption written there would put bearer tokens on
+          events to every subscriber. The exemption carries a CLAIM, not an identity: the relay
+          asserts whose token it is, and only the identity provider verifying the signature makes it
+          one.
+
+
+          HOW LONG IT LIVES: until the end of the chain. The BROKER CLEARS it unconditionally once
+          the chain has run — that is the DEFENCE, and it holds whether or not the identity
+          provider's layer was in scope, which (absent identity being relay authority, not refusal)
+          it often is not. The identity provider's layer, when it runs, verifies the token locally
+          and clears it in its own patch too, replacing it with validated identity facts
+          (authenticated, HEADER_IDENTITY_SUBJECT) — that is the BACKSTOP. So the receiving Portal,
+          and the Response it echoes its headers into, never sees the credential. Within the chain
+          EVERY in-scope layer sees it, ahead of the identity provider and behind it alike: every
+          layer reads the envelope as it arrived, so priority does not limit visibility, and
+          approving a layer whose scope admits a relayed command is handing it the user's token.
+          What this concedes, stated where an operator reads it: a compromised relay can impersonate
+          any user who authenticated through it for the life of their token.
         optional: true
       - name: trace_id
         type: string
@@ -2851,8 +2984,37 @@ types:
       - name: authenticated
         type: bool
         description: >-
-          Set by auth.identity's JWT middleware; gates whether JWT-derived User/AuthRole/AuthGroup
-          claim keys in the open map are promoted to principals downstream.
+          Whether the declared identity provider has VERIFIED a user token for this message.
+
+
+          WHO MAY SET IT, THROUGH THE BUS: only the DECLARED IDENTITY PROVIDER. It is
+          PROVIDER-DECIDED (see the type description), with HEADER_IDENTITY_SUBJECT: CLEARED from
+          every guest envelope on ingress, with NO exemption (unlike jwt), and the host REFUSES a
+          patch to it from any layer whose declaration does not carry the identity_provider marker —
+          a marker bound into the declaration's consent digest, so the operator approved WHICH
+          package is the identity authority. It is deliberately in neither the decided-reserved set
+          nor PLATFORM_MINTED_HEADERS, because setting it is the provider's designed output: the
+          restriction is on WHOSE patch, not on the key.
+
+
+          A SECOND, DISTINCT PRODUCER that restriction never sees: HOST CODE constructs header sets
+          with authenticated already true — the runtime's relay headers and its fallback headers,
+          core's lifecycle event publisher, and the context of a direct in-process dispatch — not
+          through a patch, so a patch-time check never meets them. On those, true says 'built by the
+          host', not 'a user was verified'. So the identity provider WRITES this field and never
+          reads it as an input.
+
+
+          INCOMPLETE — the promotion of a verified user into User / AuthRole / AuthGroup principals
+          downstream is NOT BUILT. What is missing: no core reader acts on this field (security's
+          group index expands a caller to its own principal only — the claim-key promotion it once
+          did, from an UNVERIFIED jwt, was removed), and no live code produces a User, AuthRole or
+          AuthGroup principal. What unblocks it: a promotion step that reads the identity provider's
+          validated facts (HEADER_IDENTITY_SUBJECT), never this flag alone, given the host producers
+          above. What a caller wrongly believes today: that a true value here makes downstream
+          authorization see a user. It does not — a rule sourced at User, AuthRole or AuthGroup
+          matches no principal on the bus, so a grant written for a user grants nothing and a deny
+          written for one denies nothing.
         optional: true
       - name: developer_mode
         type: bool
@@ -2862,8 +3024,14 @@ types:
         type: map<string, string>
         description: >-
           The open metadata map (incl. parsed JWT-claim keys). Named cross-cutting headers above are
-          pinned (with their §5.5 trust rules); only truly-open metadata rides here — with ONE
-          load-bearing exception, the HEADER_SUBJECT_TYPE key.
+          pinned (with their §5.5 trust rules); only truly-open metadata rides here — with
+          load-bearing exceptions a reader acts on: the HEADER_SUBJECT_TYPE key, the three
+          INTERCEPTED keys (HEADER_INTERCEPTED_CAPABILITY, HEADER_INTERCEPTED_TARGET,
+          HEADER_INTERCEPTED_TOPIC), and the identity. keys (HEADER_IDENTITY_PREFIX, today
+          HEADER_IDENTITY_SUBJECT). They are believed by THREE different mechanisms, and the
+          difference is the point: subject_type is believed from a trusted relayer, the intercepted
+          keys because nobody but the host can leave them standing, the identity keys because nobody
+          but the marked identity provider can write them.
 
 
           subject_type carries WHICH KIND of subject a relayed run is, as a PrincipalType token
@@ -2877,6 +3045,73 @@ types:
           and none is SDK-reserved. The enforcer accepts only the three run-subject tokens; anything
           else, or an absent key, reads as the pre-split legacy Blueprint, which covers all three
           run subjects, so an older peer behaves exactly as before.
+
+
+          intercepted_capability carries WHICH CAPABILITY a package middleware is intercepting: the
+          target's name@version, as the capability field named it on the intercepted envelope. It
+          has to exist because the host OVERWRITES capability with the middleware's own handler name
+          on the header set it hands the guest, and must, since that name is how the guest's
+          dispatch routes internally; the target was lost on that line, never by design. Without it
+          only an authenticator is implementable: an authorization policy keyed on the target has no
+          input, and one handler serving several scopes cannot tell which fired. It is not something
+          the caller tells the middleware: it is the fact the layer was SELECTED by, so the host
+          mints it from routing, as part of the invocation's framing, and not by copying the
+          caller's header set. It rides here rather than as a pinned field because MessageHeaders is
+          MEASURED by the wire-abi gate as the bus headers inside every envelope and response, so a
+          typed field is a wire-shape change to every message the bus carries, while a keyed
+          addition to this map is not; and this map is already where keyed header facts live
+          (subject_type, fs.path). Unlike subject_type it is NOT believed from a relayer: it is in
+          PLATFORM_MINTED_HEADERS, so a guest asserting it has it cleared and the attempt reported,
+          and a middleware's patch naming it is stripped. Without that listing the key would be
+          worthless, because a package could claim to be intercepting something it is not.
+          UNPATCHABLE because a middleware rewriting it would RE-TARGET THE NEXT LAYER'S VIEW of
+          what is being intercepted: a permissive layer could blank or rewrite the target so a
+          stricter layer downstream can no longer key on it, and refuses everything or matches the
+          wrong policy. An ABSENT key means the target is UNKNOWN, never 'any', and absence is
+          legitimate: a message that is not a capability call (an event) has no target to carry. So
+          a policy that REQUIRES the target cannot be evaluated without it and must refuse rather
+          than default-allow; a policy that does not key on the target is unaffected, and whether a
+          capability-keyed policy applies to a non-capability message is the middleware's own to
+          state.
+
+
+          intercepted_target and intercepted_topic complete the same fact. A verb alone does not
+          name what is being called — verbs collide across services (update, request, search) — so a
+          policy keyed on the capability still cannot tell one service's update from another's. The
+          pipeline SELECTS a layer on the envelope's target (the addressed service, for a command)
+          and its topic (for an event), and the guest's invocation carries neither: it receives the
+          caller, the headers and the payload. intercepted_target is the envelope's target,
+          intercepted_topic the envelope's topic, each minted by the host from routing exactly as
+          intercepted_capability is, on BOTH header paths, listed in PLATFORM_MINTED_HEADERS for the
+          same reason, and unpatchable for the same reason. Each is STAMPED WHEN ITS ENVELOPE FIELD
+          IS PRESENT AND REMOVED WHEN IT IS ABSENT, because a carried key on the header-copying path
+          must never outlive the routing it claims to describe: an absent intercepted_target means
+          the message is not a command, an absent intercepted_topic that it is not an event — never
+          that the host forgot. The same evaluability rule holds: a policy that REQUIRES one of them
+          refuses without it.
+
+
+          WHO CALLED is deliberately NOT minted yet, and a policy must not key on the header that
+          looks like it. headers.source is AUTHORED BY THE SENDER (a guest writes its own, and the
+          guest-envelope scrub does not clear it), so a policy keyed on it is keyed on an assertion.
+          The envelope's source is host-stamped and non-forgeable, but for a package it is the
+          FINGERPRINT — node-specific and re-issued per install, so no policy should key on it
+          either. The honest, portable spelling is the RESOLVED caller principal, and the host that
+          invokes a middleware does not hold a resolver today; minting it is owed, as its own
+          design, not folded into this one.
+
+
+          identity.sub (HEADER_IDENTITY_SUBJECT) carries WHO the identity provider verified: the
+          validated subject of the user token (its sub claim), written by the marked identity
+          provider's patch beside authenticated, after verifying the token. PROVIDER-DECIDED (see
+          the type description): the whole identity. namespace (HEADER_IDENTITY_PREFIX) is cleared
+          from every guest envelope at ingress, the user-token relay included, and only the layer
+          carrying the identity_provider marker may patch a key in it. PREFIX-SCOPED, as the fs.*
+          keys are, so ingress clears a namespace rather than a list of keys and a validated fact
+          added under it later is covered without a second edit. Patches apply after the chain, so
+          it reaches the receiving Portal and is never seen by the layers of the chain that wrote
+          it. ABSENT means no user was verified for this message, and the relay's own authority
+          applies — absence is not a refusal.
         optional: true
   - id: message-target
     name: MessageTarget
@@ -2885,9 +3120,9 @@ types:
       - name: kind
         type: string
         description: >-
-          The resource class: Command | Event | Filesystem | Network | Process | Device | Secret |
-          External. It decides which rules may answer at all — a Filesystem rule never decides a
-          Command request, and a Process rule never decides a Device request.
+          The resource class: Command | Event | Filesystem | Network | Process | Device | Console |
+          Secret | External. It decides which rules may answer at all — a Filesystem rule never
+          decides a Command request, and a Process rule never decides a Device request.
       - name: name
         type: string
         description: >-
@@ -2895,8 +3130,9 @@ types:
           (the command rides `verb`, and the joined "service:command" is never valid here); Event
           the full topic string; Filesystem the canonical absolute host path; Network the host or
           host:port; Process the command or environment-variable name; Device the device-endpoint
-          name (gpu:0, comm:COM3, mmio:0xfe000000); Secret the secret_uuid (the class rides
-          `class_uuid`); External the plugin system's own resource id.
+          name (gpu:0, comm:COM3, mmio:0xfe000000); Console one of the run's standard streams (in |
+          out | err); Secret the secret_uuid (the class rides `class_uuid`); External the plugin
+          system's own resource id.
       - name: namespace
         type: string
         description: Optional namespace qualifier (null when not applicable).
@@ -2904,8 +3140,11 @@ types:
       - name: class_uuid
         type: string
         description: >-
-          The target secret's class UUID — lets a Secret rule match class_pattern / assignable_to
-          distinctly from the name-carried secret_uuid. Null for bus/fs targets.
+          The target secret's class UUID — a LIVE fact about the thing being accessed, which is why
+          it stays a uuid while a stored rule references a class by FQID. The Secret evaluator
+          resolves it to the class's FQID to match `class_pattern`, and uses the uuid directly for
+          `assignable_to`'s class-graph test; either way it keeps both distinct from the
+          name-carried `secret_uuid`. Null for bus/fs targets.
         optional: true
       - name: verb
         type: string
@@ -3039,6 +3278,64 @@ types:
           changing its name). Overwritten unconditionally by the host; nothing an author writes
           survives. APPENDED -- positional MessagePack; serde-default absent.
         optional: true
+      - name: identity_provider
+        type: bool
+        description: >-
+          Does this layer claim to be the node's IDENTITY PROVIDER — the one layer allowed to patch
+          the PROVIDER-DECIDED headers (authenticated and the identity. keys; see MessageHeaders)?
+          Absent or false: it may not, and the host refuses such a patch from it. AUTHOR-DECLARED
+          AND OPERATOR-APPROVED, never host-stamped: unlike owner it is a claim the package makes,
+          and consent is what decides it.
+
+
+          AT MOST ONE PER NODE. A declaration carrying the marker that arrives while a DIFFERENT
+          marked layer is registered — WHOEVER OWNS IT, so one package cannot seat two marked
+          declarations of its own — is REFUSED WHERE A LAYER JOINS THE CHAIN (register_middleware),
+          naming both. That is the door that holds because only there, under the chain's lock, is
+          every registration seen at once: a boot install re-registers layers without passing
+          through enable, and two concurrent enables would both pass a check made there. Enable may
+          refuse earlier, for the operator's sake, with the same check. The same layer registering
+          again is not a second provider. This is architectural, not a preference, and must not be
+          'fixed' into a list: two marked layers would both patch authenticated and the identity.
+          keys, could disagree about who the user is, and the disagreement would be settled by the
+          order patches accumulate in — silently, and differently depending on registration order.
+          The need that seems to want several — users arriving through different issuers (an
+          external SSO, a local identity server) — is served INSIDE the one provider, which trusts
+          several issuers: one provider, many issuers.
+
+
+          IN THE CONSENT DIGEST, and that is the half that makes the marker worth having: outside
+          the fold it could change on an update without re-review, and the host would go on
+          enforcing the provider-only restriction for a package the operator never approved as the
+          identity authority — the restriction would hold while its beneficiary was silently
+          swapped. So the marker and its fold are one change; either alone is worth nothing. FOLDED
+          ONLY WHEN TRUE, after kind and behind the same separator. That is correct, not merely
+          cheaper: absent and false MEAN the same thing (serde-default false), and the digest is a
+          function of what was approved, not of how it is encoded — so a declaration that does not
+          claim the marker keeps exactly the digest it was approved under and no approval reopens
+          for a field it never set, while a move between unmarked and marked in EITHER direction
+          changes the digest and asks again. The approval preview shows it beside the scope, because
+          a digest that binds something the reviewer was never shown is a consent record for a
+          decision nobody made. APPENDED — positional MessagePack, field order is contract;
+          serde-default false.
+
+
+          BREAKING FOR FULL-RECORD READERS, SO READERS SHIP FIRST. A reader built before this field
+          decodes a declaration as a positional array of at most eleven elements and refuses the
+          twelfth; the wire-abi gate measures it, and the waffler_ui decoder and the marketplace
+          (through InstalledPackage.middleware) are such readers. The opposite direction is safe: a
+          new reader of an old declaration decodes it as unmarked, because absent means false. (The
+          operational sequence — which readers, which rebuild, which snapshot — is kept in
+          plans/b1-how-a-user-token-reaches-identity.md §4-bis; the rule stands here without it.)
+
+
+          THE PRODUCER SIDE OF THIS TYPE WAS UNPINNED ACROSS TWO EARLIER APPENDS (8 -> 11: required,
+          kind, consent_digest): no producer-side test decoded a pre-append declaration, and only a
+          reader-side test in waffler_ui covered the direction that mattered. The pinned
+          eleven-field decode added with this field
+          (an_eleven_field_declaration_from_before_the_marker_decodes_as_not_the_provider, literal
+          pre-append bytes) is this type's FIRST producer-side pin; the next append extends it.
+        optional: true
   - id: middleware-kind
     name: MiddlewareKind
     kind: value-object
@@ -3052,14 +3349,24 @@ types:
     fields:
       - name: kind
         type: string
-        description: Continue | ShortCircuit.
+        description: >-
+          MIDDLEWARE_NEXT (proceed unchanged), MIDDLEWARE_NEXT_WITH_UPDATE (proceed and apply
+          `patch`) or MIDDLEWARE_REJECT (refuse; the broker returns AccessDenied carrying `response`
+          as the reason). Produced from the constants, never a literal; an unrecognised kind is read
+          as described on the type.
       - name: patch
         type: header-patch
-        description: Header mutations applied on Continue.
+        description: >-
+          Header mutations, applied only on MIDDLEWARE_NEXT_WITH_UPDATE. Patches from every layer
+          accumulate and are applied after the chain, so no layer sees another's; a patch naming a
+          reserved key is stripped by the header manager.
         optional: true
       - name: response
         type: any
-        description: The short-circuit response payload.
+        description: >-
+          The reason, on MIDDLEWARE_REJECT: the broker carries it into the AccessDenied it returns.
+          It is not a substitute response delivered to the caller — a layer cannot answer a call in
+          the target's place.
         optional: true
   - id: middleware-review
     name: MiddlewareReview
@@ -3205,7 +3512,7 @@ types:
         type: string
         description: registered | deleted | updated | moved.
       - name: uuid
-        type: any
+        type: uuid-value
         description: The affected segment's uuid.
       - name: detail
         type: any
@@ -3522,7 +3829,7 @@ types:
         description: Raw output value.
         optional: true
       - name: execution_id
-        type: any
+        type: uuid-value
         description: >-
           The execution (run) this record belongs to — added so .logs records are filterable
           per-execution (list/replay/get_node_execution_trace key on { blueprint_uuid, execution_id
@@ -3581,7 +3888,7 @@ types:
     kind: value-object
     fields:
       - name: execution_id
-        type: any
+        type: uuid-value
         description: The execution this step belongs to.
       - name: node_id
         type: string
@@ -3644,10 +3951,10 @@ types:
     kind: value-object
     fields:
       - name: owner_class_uuid
-        type: any
+        type: uuid-value
         description: The owning class/interface uuid.
       - name: blueprint_uuid
-        type: any
+        type: uuid-value
         description: The implementing blueprint's uuid.
   - id: pack-options
     name: PackOptions
@@ -3802,6 +4109,20 @@ types:
           What was decided about each declared interceptor. Unreadable reads NEVER REVIEWED, and
           absence from the list is itself a state: a declaration never presented has no record,
           which is not the same as one presented and refused.
+      - name: token_relay_review
+        type: review-state
+        description: >-
+          The operator's decision about the package's token_relay claim
+          (InstalledPackage.token_relay) — the authoritative, SEALED copy.
+          InstalledPackage.token_relay_review is the record's projection of it: at hydration the
+          sealed decision wins over anything the manifest carries, as middleware_reviews does.
+          ABSENT (None) MEANS NEVER PRESENTED, never Rejected, and it is denied()'s value: a denial
+          of the PACKAGE is not a presented-and-rejected relay CLAIM, and collapsing the two is the
+          three-state distinction this field exists to keep. serde-default None — the one default
+          this type carries, admissible under the rule above because it IS denied()'s value; without
+          it every row stored before this field fails to decode at upgrade. Written only through
+          ConsentChange::TokenRelayReview. APPENDED — positional at rest, field order is contract.
+        optional: true
   - id: package-dependency
     name: PackageDependency
     kind: value-object
@@ -3944,7 +4265,7 @@ types:
           The declared group the refusal is about — always set, because every refusal is reached
           through an adjustment and an adjustment always names a group.
       - name: rule_index
-        type: float
+        type: int
         description: >-
           The 0-based index of the declared rule the refusal is about, when the refusal is about one
           rule (NotANarrowing, RuleIndexOutOfRange, DuplicateNarrowing). Null when the refusal is
@@ -4124,7 +4445,7 @@ types:
           was last transferred.
         optional: true
       - name: rotations_seen
-        type: float
+        type: int
         description: >-
           How many rotations this node has accepted for this package, ever. CUMULATIVE ACROSS
           BUNDLES: a node several rotations behind catches up in a single bundle and this counts all
@@ -4456,7 +4777,7 @@ types:
     kind: value-object
     fields:
       - name: task_id
-        type: any
+        type: uuid-value
         description: The task's unique id.
       - name: trigger
         type: task-trigger
@@ -4534,10 +4855,10 @@ types:
           node-local so it cannot travel in a portable blueprint. Both the compiler and the vault
           refuse a fingerprint-shaped target by name.
       - name: secret_uuid
-        type: any
+        type: uuid-value
         description: The granted secret.
       - name: run_id
-        type: any
+        type: uuid-value
         description: >-
           The run the lease is bound to (run-scoped). The storage key's third component and the
           run-end teardown key — never supplied by the redeemer.
@@ -4583,7 +4904,7 @@ types:
         type: string
         description: The lease id.
       - name: secret_uuid
-        type: any
+        type: uuid-value
         description: The leased secret.
       - name: scope
         type: lease-scope
@@ -4642,15 +4963,19 @@ types:
           when a human changes it; present = a DYNAMIC secret/connection whose value has an
           issuer-imposed lifetime and which the authority must refresh before expiry. Copied from
           the StoredSecret.refresh_policy the vault already parses on persist, so this projection
-          introduces no new parsing and no new source of truth. Non-sensitive by construction — it
-          names WHICH owned method refreshes and WHEN, never any credential material — so it
-          survives the sensitive-prop stripping that defines this projection. Projected as a TYPED
-          field rather than left inside non_sensitive_props precisely so consumers (the transpiler's
-          secret-manifest pass and its target-capability guard) can read the mark without digging
-          through an opaque Json blob; a mark that decides whether a build is legal must not be
-          reachable only by string-keying a map. ORDERING: the encoding is a POSITIONAL ARRAY on the
-          MessagePack lane, so every field added after this one must be APPENDED and optional —
-          appending keeps pre-field records decodable, reordering silently misaligns every consumer.
+          introduces no new parsing and no new source of truth. It names WHICH owned method
+          refreshes and WHEN, and survives the sensitive-prop stripping that defines this projection
+          — but it is NOT non-sensitive by construction: method and property_name are free-text
+          strings chosen by the secret class's author, and nothing in this shape bounds them. What
+          keeps credential material out of them is trust in that author, not the type; the
+          projection's bounds stop accidental pass-through to a lower-privileged reader, never a
+          deliberate author. Projected as a TYPED field rather than left inside non_sensitive_props
+          precisely so consumers (the transpiler's secret-manifest pass and its target-capability
+          guard) can read the mark without digging through an opaque Json blob; a mark that decides
+          whether a build is legal must not be reachable only by string-keying a map. ORDERING: the
+          encoding is a POSITIONAL ARRAY on the MessagePack lane, so every field added after this
+          one must be APPENDED and optional — appending keeps pre-field records decodable,
+          reordering silently misaligns every consumer.
         optional: true
       - name: parent_secret_uuid
         type: string
@@ -4680,15 +5005,16 @@ types:
       - name: last_error
         type: secret-error-mark
         description: >-
-          THE HEALTH SIGNAL: a bounded mark describing the last owned-method run that FAILED —
-          category, code, and when — cleared by a succeeding run, absent when the last run succeeded
-          or none has run. See SecretErrorMark for why this is a mark and deliberately carries no
-          message: this is the one secret read that promises sensitive material has been stripped,
-          and an error message from a user-authored refresh method or an issuer response is free
-          text that can contain credential material outright. Without this field a failed rotation
-          is invisible to every reader — the vault persists the error, re-arms, and the secret goes
-          on rendering as healthy while its value expires. APPENDED per the positional-array
-          ordering rule above.
+          THE HEALTH SIGNAL: a mark describing the last owned-method run that FAILED — category,
+          code, and when — cleared by a succeeding run, absent when the last run succeeded or none
+          has run. SecretErrorMark does not bound category or code, so the producer of this
+          projection bounds both before it builds the mark. See SecretErrorMark for why this is a
+          mark and deliberately carries no message: this is the one secret read that promises
+          sensitive material has been stripped, and an error message from a user-authored refresh
+          method or an issuer response is free text that can contain credential material outright.
+          Without this field a failed rotation is invisible to every reader — the vault persists the
+          error, re-arms, and the secret goes on rendering as healthy while its value expires.
+          APPENDED per the positional-array ordering rule above.
         optional: true
   - id: secret-method-outcome
     name: SecretMethodOutcome
@@ -4696,13 +5022,31 @@ types:
     fields:
       - name: status
         type: string
-        description: The run disposition — succeeded | failed.
+        description: >-
+          The run disposition — succeeded | failed, and OPEN: every value other than exactly
+          "succeeded" reads as a failure, and "succeeded" itself reads as one when an error is
+          present (the two-legged rule above).
       - name: updated_properties
         type: any
         description: >-
-          The persisted-data projection of the live instance's property state after the run —
-          present on BOTH outcomes (on a failed run it is the latest known state), so vault persists
-          from the response even on failure.
+          The persisted-data projection of the live instance's property state after a SUCCEEDED run;
+          absent on a failed one. Read only on a succeeded run: vault applies the keys whose values
+          differ from the state it read before the run, and removes the keys the run removed. On a
+          failed run vault ignores it whatever it holds, so a producer that still sends the pre-run
+          state there is discarded exactly as before.
+
+          THIS IS A PROSE RULE, NOT A STRUCTURAL ONE. Of the four combinations only two carry
+          meaning: succeeded with a value (applied) and failed without one (the error recorded).
+          Failed with a value is ignored. Succeeded without one is legal and meaningless: it changes
+          no property and is WARN-logged, the same path as a succeeded run whose value is not an
+          object.
+
+          ABSENT AND NULL ARE THE SAME BYTES. The record is positional MessagePack, so absent is a
+          nil in this slot — the slot is never omitted — and an explicit JSON null is the same nil;
+          a reader cannot tell them apart. That is harmless only because both take the same path:
+          the non-object WARN on a succeeded run, ignored on a failed one. It is not a guarantee
+          that the distinction will never be needed.
+        optional: true
       - name: result_value
         type: any
         description: >-
@@ -4711,7 +5055,9 @@ types:
         optional: true
       - name: error
         type: waffler-error
-        description: The captured run error (present when status is failed).
+        description: >-
+          The captured run error, when the run carried one. Its presence alone makes the run a
+          failure, whatever status says.
         optional: true
       - name: spawn_children
         type: list<secret-spawn-child>
@@ -4728,7 +5074,7 @@ types:
     kind: value-object
     fields:
       - name: secret_uuid
-        type: any
+        type: uuid-value
         description: The resolved secret's id.
       - name: value
         type: bytes
@@ -4962,7 +5308,7 @@ types:
     kind: value-object
     fields:
       - name: blueprint_uuid
-        type: any
+        type: uuid-value
         description: The blueprint (or sub-blueprint) of this frame.
       - name: instruction_index
         type: int
@@ -5008,7 +5354,18 @@ types:
         description: true for builtin groups (UI hides edit/delete; re-seeded each boot).
       - name: default_bindings_locked
         type: bool
-        description: true when the builtin's default bindings cannot be redirected.
+        description: >-
+          true when this group's default bindings may not be REDIRECTED: `add_binding` refuses a NEW
+          binding to it, so the bindings it ships with are the only ones that flatten. Set for
+          builtins, and for HOST-DERIVED groups in the reserved `host.` namespace, whose bindings
+          the installer synthesizes and whose grant follows an operator review of ONE package — a
+          second binding would carry that consent onto a principal the operator never reviewed.
+          REMOVAL is deliberately NOT gated by this flag: `remove_package_catalog` tears an
+          uninstalled package's scope down through the binding-removal path, and a flag that blocked
+          it there is how one locked row aborts a whole teardown — the mistake `system` already
+          made, and the reason `ingest_package_permissions` stomps it. That ingest stomps THIS field
+          to false for an author-declared group and preserves it only for a reserved `host.` id,
+          which an author cannot hold because the install door refuses one.
       - name: override_acknowledgments
         type: list<any>
         description: Admin acknowledgments of shadowing overrides accepted at save time.
@@ -5020,21 +5377,34 @@ types:
         description: >-
           Is `id` a group id an AUTHOR may not declare — anything in the reserved `host.` namespace?
           A PREFIX test: `host.` followed by anything is reserved; `host_x`, `hosting` and
-          `myhost.x` are an author's to use. The rule the CLI refuses a pack on and core refuses an
-          install on (InvalidManifest), from this one definition.
+          `myhost.x` are an author's to use. FOUR doors read this one definition: the CLI refuses a
+          pack on it, the registry refuses a PUBLISH on it (an id no node would install), core
+          refuses an install on it (InvalidManifest), and core refuses a `save_group` on it
+          (ReservedNamespace) — because a host-derived group's content is derived from a package's
+          declaration plus the operator's review, not authored, so no client's view model may
+          rewrite the record. Only those four. The host's own writes reach the catalog through
+          `ingest_package_permissions` and `set_group_review`, and the teardown through the delete
+          path; none of them consult this, so reserving the namespace never blocks the host or an
+          uninstall.
   - id: stored-secret
     name: StoredSecret
     kind: value-object
     fields:
       - name: secret_uuid
-        type: any
+        type: uuid-value
         description: The secret's id.
       - name: class_uuid
-        type: any
+        type: uuid-value
         description: The secret's class (for policy matching).
       - name: wrapped
         type: bytes
-        description: The wrapped (encrypted) secret material.
+        description: >-
+          `wrapped` is the instance props MsgPack-packed IN THE CLEAR — no key and no AEAD at this
+          layer, so the name does not describe its contents: the wrapping happens at the store, not
+          here. The secret store seals the WHOLE serialized record under a fresh per-record data
+          key, itself wrapped under the vault KEK. So this record — and `wrapped` above all — holds
+          secret plaintext, and must never be handled outside that seal: not in a log line, an event
+          payload, a diagnostic dump or a metadata projection.
       - name: metadata
         type: any
         description: Non-sensitive metadata (name, created_at, tags).
@@ -5083,14 +5453,17 @@ types:
       - name: enabled
         type: bool
         description: >-
-          Whether this system instance is enabled (boots). This is what 'running' means when the
-          crates surface counts running systems. Wire slot 3.
+          The operator's INTENT that this instance boots, replayed on every node restart. It is not
+          evidence that the instance is alive: activation returns once the entrypoint run has
+          STARTED, so a run that started and then failed leaves this true with nothing running, and
+          the reason is in that run's logs. Current liveness is a question for the runtime, never an
+          inference from this flag. Wire slot 3.
       - name: crate_uuid
         type: string
         description: >-
           The owning crate's UUID — partitions .systems records per crate (C-MED1).
           Optional/defaulted for records persisted before the field existed (legacy decode ->
-          absent). Wire slot 4, and the TAIL slot: min arity 4, max 5.
+          absent). Wire slot 4.
         optional: true
       - name: permissions
         type: list<declared-permission-group>
@@ -5109,20 +5482,44 @@ types:
 
 
           Empty means no instantiated grants — what a crate that declares nothing gets, and what
-          every .systems/ record persisted before this field decodes as. TRAILING + serde-default:
-          the record is positional rmp, so an older one loads unchanged.
+          every .systems/ record persisted before this field decodes as. Wire slot 5. TRAILING +
+          serde-default: the record is positional rmp, so an older one loads unchanged.
 
 
           The element type was named CratePermissionGroup until 2026-10-02; it is
           DeclaredPermissionGroup now, because a package declares the same five-field shape.
           Wire-neutral.
         optional: true
+      - name: last_activation
+        type: activation-failure
+        description: >-
+          The last activation attempt that FAILED TO START, or absent.
+
+
+          ABSENT IS NOT A SUCCESS CLAIM. Three different things decode as absent: a record persisted
+          before this field existed, an instance that was never booted, and an instance whose run
+          started and then died at run time — that failure is in the run's logs, not here, because
+          activation returns once the run has started. A reader that treats absent as 'the last boot
+          was fine' is reading a negative fact off a channel that never promised one.
+
+
+          Nothing gates a boot on this field. It is what an operator reads after a boot that did not
+          take.
+
+
+          NEW TAIL SLOT, wire slot 6: positional rmp + serde default, so every older record loads
+          unchanged. Arity is now min 4, max 7 — measured, not assumed: the persisted decoder is
+          rmp_serde::from_slice (crates systems_registry), and the existing legacy test decodes a
+          four-element record. AT REST that is the whole story; ON THE BUS it is not: this record
+          crosses as the crates:list_systems reply, and a reader with a strict maximum of six
+          refuses a seven-element record, so its readers update before the producer ships the slot.
+        optional: true
   - id: system-metadata
     name: SystemMetadata
     kind: value-object
     fields:
       - name: system_uuid
-        type: any
+        type: uuid-value
         description: The system instance uuid.
       - name: name
         type: string
@@ -5172,7 +5569,7 @@ types:
         type: string
         description: The action variant — RunBlueprint | RunSecretMethod.
       - name: blueprint_uuid
-        type: any
+        type: uuid-value
         description: The blueprint to execute (RunBlueprint variant).
         optional: true
       - name: inputs
@@ -5180,7 +5577,7 @@ types:
         description: The inputs payload passed to the action (RunBlueprint variant).
         optional: true
       - name: secret_uuid
-        type: any
+        type: uuid-value
         description: >-
           The secret/connection instance whose method runs (RunSecretMethod variant; a reference
           only — never a value).
@@ -5194,7 +5591,7 @@ types:
     kind: value-object
     fields:
       - name: task_id
-        type: any
+        type: uuid-value
         description: The scheduled task's id.
   - id: task-trigger
     name: TaskTrigger
@@ -5214,24 +5611,24 @@ types:
         type: string
         description: The ITestClass display name (rides each TestResult).
       - name: tests
-        type: vec<(string, uuid)>
+        type: list<test-method-entry>
         description: >-
           The test methods: (test_name, owned method blueprint uuid) pairs — every non-hook
           blueprint-kind method on the test class.
       - name: before_all
-        type: any
+        type: uuid-value
         description: The before_all reserved-hook blueprint uuid, when the class declares one.
         optional: true
       - name: before_each
-        type: any
+        type: uuid-value
         description: The before_each reserved-hook blueprint uuid, when the class declares one.
         optional: true
       - name: after_each
-        type: any
+        type: uuid-value
         description: The after_each reserved-hook blueprint uuid, when the class declares one.
         optional: true
       - name: after_all
-        type: any
+        type: uuid-value
         description: The after_all reserved-hook blueprint uuid, when the class declares one.
         optional: true
   - id: test-suite-report
@@ -5450,7 +5847,9 @@ types:
       - name: kind
         type: string
         description: >-
-          null|bool|int|float|string|char|bytes|object|array|class_instance|error|promise|secret|connection|native|function.
+          null|bool|int|float|string|bytes|object|array|class_instance|error|promise|secret|connection|native|function.
+          There is no char kind: a Char value reports kind=int, because its wire form is a codepoint
+          number.
       - name: data
         type: >-
           bool | i64 | f64 | char | string | bytes-buffer | map<string,value> | vec<value> |
@@ -5986,6 +6385,746 @@ types:
       - name: is_dir
         type: bool
         description: True when the entry is a directory.
+  - id: uuid-value
+    name: Uuid
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: The uuid, canonical lowercase hyphenated text.
+    formerly:
+      - uuid
+  - id: test-method-entry
+    name: TestMethodEntry
+    kind: value-object
+    fields:
+      - name: test_name
+        type: string
+        description: The test method's name (rides each TestResult).
+      - name: blueprint_uuid
+        type: uuid-value
+        description: The uuid of the owned method blueprint that runs this test.
+  - id: rule-verdict
+    name: RuleVerdict
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: Matches | DoesNotMatch | Unevaluable.
+  - id: direct-hosting-override
+    name: DirectHostingOverride
+    kind: value-object
+    fields:
+      - name: fqid
+        type: string
+        description: >-
+          The package this arm is for -- the half of the key the row is stored under
+          (`host_direct:{fqid}`), and what the operator surface lists it by.
+      - name: expected_artifact_digest
+        type: string
+        description: >-
+          The sha256 of the package's primary Dll artifact's BYTES -- the code that would run in
+          core's address space. Bound to the CODE, not the bundle: a re-zip or re-sign of identical
+          bytes is the same code and the same risk, so it keeps the arm, while a rebuilt binary has
+          no arm and installs HOSTED by itself. COMPUTED BY CORE FROM THE STAGED FILE, never read
+          from the manifest's declared artifact hash: the derivation runs before the staged install
+          validates artifact_hashes, so at that moment the declared hash is still an author's
+          number, and this is the one decision that must not rest on a check that happens later.
+          NAMED A DIGEST, NOT A FINGERPRINT, deliberately: this package system already has two
+          fingerprints -- the fqid-bound package identity and key_fingerprint of a publisher key --
+          and NEITHER changes when the code is rebuilt; a third meaning of the word would invite
+          exactly that confusion at the operator surface, the one place a person retypes it.
+          RENDERED as lowercase hex, 64 characters -- literally hex::encode(Sha256::digest(bytes)),
+          the expression the artifact materializer and VFS's staged-package reader already use, so
+          the arm's digest and the hash VFS verifies against the bytes are the same rendering of the
+          same thing. Settled here for key_fingerprint's reason: this is the one value a person
+          retypes, and a comparison between two renderings silently means nothing. Validated for
+          that shape on the way in, because a typo does not fail loudly: it arms a digest no code
+          will ever match.
+      - name: reason
+        type: string
+        description: >-
+          The operator's own words: why this package's code may run in core's address space.
+          REQUIRED and stored, for PublisherPinOverride.reason's argument: an isolation decision
+          nobody wrote down is one nobody can audit.
+      - name: armed_by
+        type: string
+        description: >-
+          Who armed it -- the calling principal's id, taken from the message envelope and never from
+          a payload field. A caller-supplied value would be a caller-CHOSEN one; the request type
+          carries no such slot, so on the positional msgpack wire a caller who appends one is
+          refused at the decode rather than believed.
+      - name: armed_at
+        type: string
+        description: >-
+          When it was armed. Same shape as PublisherPin.first_seen_at (chrono to_rfc3339: nanosecond
+          precision, numeric offset, never Z), including the lexical-ordering hazard documented
+          there.
+      - name: consumed_at
+        type: string
+        description: >-
+          When the install that used it consumed it, or absent while it is still armed. The row is
+          KEPT after consumption rather than deleted, because 'this code was allowed into core's
+          address space, on this date, for this stated reason' is the record the mechanism owes an
+          auditor -- deleting it on use would leave the package in-process and the reason gone. A
+          consumed row is restored AS CONSUMED at boot; restoring one as armed would re-open a spent
+          decision on every restart.
+        optional: true
+    methods:
+      - name: is_armed
+        signature: is_armed() -> Boolean
+        returns: bool
+        description: >-
+          Whether this override is still available to let an install run in-process: true while
+          consumed_at is absent. Asked rather than testing the field at each call site, because 'may
+          this still put code in core's address space' has exactly one answer and it must not come
+          to have two.
+  - id: package-hosting
+    name: PackageHosting
+    kind: value-object
+    fields:
+      - name: mode
+        type: string
+        description: >-
+          DIRECT | HOSTED -- the SAME vocabulary as InstalledPackage.hosting_mode, deliberately: one
+          fact, one vocabulary, and a second spelling of it would be a conversion that can fail. ANY
+          OTHER VALUE READS HOSTED, as an unreadable row does.
+      - name: basis
+        type: string
+        description: >-
+          REQUIRED: the node's own words for which clause decided it -- an operator's armed
+          DirectHostingOverride, or the anchor that verified the bundle with the publisher pin
+          un-moved, or why neither applied. Mirrors PackageSupervision.reason, which exists for
+          exactly this: 'why is this package running in core's address space' is the question this
+          row owes an auditor, and a bare mode cannot answer it.
+      - name: derived_at
+        type: string
+        description: >-
+          When the derivation ran. Same shape as PublisherPin.first_seen_at (chrono to_rfc3339:
+          nanosecond precision, numeric offset, never Z), including the lexical-ordering hazard
+          documented there.
+    methods:
+      - name: isolated
+        signature: isolated() -> PackageHosting
+        returns: package-hosting
+        description: >-
+          The restrictive reading: mode HOSTED, with a basis saying no derivation could be read.
+          Mirrors PackageConsent::denied() -- the ONE place an absent, undecodable or
+          out-of-vocabulary row resolves to, so no caller assembles its own idea of 'empty' and gets
+          DIRECT.
+  - id: disabled-by-failures
+    name: DisabledByFailures
+    kind: value-object
+    fields:
+      - name: unit_uuid
+        type: string
+        description: >-
+          The disabled unit's uuid: on `blueprint.disabled_by_failures`, the blueprint's. Its kind
+          is the topic's, never a field.
+      - name: category
+        type: string
+        description: >-
+          The failure's category as the producer states it, stamped by the producer when the failure
+          carries none. Not a discriminator: a consumer cannot tell producers apart by it. This type
+          does not bound it: a producer projecting the payload to a lower-privileged reader bounds
+          it itself.
+      - name: code
+        type: string
+        description: >-
+          The tripping failure's code, when it carried one, copied verbatim. Free text from whatever
+          threw and NOT bounded by this type: a producer projecting the payload to a
+          lower-privileged reader bounds it itself.
+        optional: true
+      - name: at_ms
+        type: int
+        description: When the unit was disabled, ms since epoch, by the host clock.
+  - id: reenabled-after-failures
+    name: ReenabledAfterFailures
+    kind: value-object
+    fields:
+      - name: unit_uuid
+        type: string
+        description: >-
+          The re-enabled unit's uuid: on `blueprint.reenabled_after_failures`, the blueprint's. Its
+          kind is the topic's, never a field.
+      - name: at_ms
+        type: int
+        description: When the unit was re-enabled, ms since epoch, by the host clock.
+  - id: artifact-kind
+    name: ArtifactKind
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: Dll | Wasm | NativeLib | CompatTranslator | UiBundle | BlueprintBundle.
+  - id: artifact-ref
+    name: ArtifactRef
+    kind: value-object
+    fields:
+      - name: name
+        type: string
+        description: The artifact file name within the package's /artifact/ part.
+      - name: kind
+        type: artifact-kind
+        description: >-
+          How the host loads it (ArtifactKind — Dll | Wasm | NativeLib | CompatTranslator | UiBundle
+          | BlueprintBundle).
+      - name: hash
+        type: string
+        description: >-
+          The artifact's content hash (must align with the manifest artifact_hashes verified at
+          staged install).
+      - name: entry_point
+        type: string
+        description: >-
+          Optional load entry the host binds — the C-ABI symbol for a Dll/NativeLib, the export name
+          for a Wasm module, or the mount entry for a UiBundle. Absent when the whole artifact is
+          the unit.
+        optional: true
+  - id: bus-handle
+    name: BusHandle
+    kind: value-object
+    fields:
+      - name: service
+        type: string
+        description: The owning service/package name this bus handle is stamped with (its bus identity).
+      - name: id
+        type: string
+        description: The opaque handle id issued at attach.
+  - id: capability-kind
+    name: CapabilityKind
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: >-
+          TranspileBackend | AuthoringNode | RuntimePrimitive | UiPlugin | Middleware |
+          TriggerProvider | ValidationHook.
+  - id: capability-metadata
+    name: CapabilityMetadata
+    kind: value-object
+    fields:
+      - name: display_name
+        type: string
+        description: Human label for the capability in palettes/menus.
+        optional: true
+      - name: category
+        type: string
+        description: Grouping category for the designer palette (e.g. quantum/gates, quantum/measure).
+        optional: true
+      - name: icon
+        type: string
+        description: Icon id / asset reference for the palette entry.
+        optional: true
+      - name: form_fields
+        type: list<form-field>
+        description: Typed parameter descriptors (FormField) for the capability's configurable inputs.
+        optional: true
+      - name: node_descriptor
+        type: any
+        description: >-
+          The authoring node's structural shape (pins/ports/typed params) the editor instantiates
+          for an AuthoringNode capability. Absent for non-node capabilities.
+        optional: true
+      - name: docs_url
+        type: string
+        description: Optional documentation link surfaced in the marketplace/editor.
+        optional: true
+  - id: capability-name
+    name: CapabilityName
+    kind: value-object
+    fields:
+      - name: service
+        type: string
+        description: The wire name of the service that serves this capability, e.g. `fs`.
+      - name: name
+        type: string
+        description: The bare verb as it travels in the frame and as the Portal matches it, e.g. `delete_dir`.
+    methods:
+      - name: as_str
+        signature: as_str() -> String
+        returns: string
+        description: The bare verb, as it travels in the frame and as the Portal matches it.
+      - name: service
+        signature: service() -> String
+        returns: string
+        description: The service that serves this capability.
+      - name: qualified
+        signature: qualified() -> String
+        returns: string
+        description: The qualified `service:verb` spelling used in docs, specs and error messages.
+  - id: closure-binding
+    name: ClosureBinding
+    kind: value-object
+    fields:
+      - name: program
+        type: program-ref
+        description: >-
+          The opaque in-process reference to the owner's LOADED program — the instruction vector,
+          trap table, node-boundary map and load-resolved primitive table that a frame push needs,
+          i.e. exactly the bundle of things an in-bundle member push resolves today. Resolved at
+          LoadFunction from the frame the fiber is currently executing, so it is correct by
+          construction for ANY owner (member or entry) and needs no index, table or membership test.
+          Held behind a reference-count so the program outlives every closure value that can still
+          enter it.
+      - name: captures
+        type: list<value>
+        description: >-
+          The captured environment: the values lifted out of the enclosing scope, ORDERED to match
+          the handle's capture_slots positionally, so frame push seeds captures[i] ->
+          frame[capture_slots[i]] with no name lookup. SNAPSHOTTED at closure-creation time — an
+          OWNED value is copied, while a SHARED instance's snapshot is its heap_ref HANDLE, so the
+          closure and the enclosing scope keep addressing one cell (snapshot the slot, share the
+          box). A captured value may itself carry any side-channel, including another closure's
+          binding, so environments CHAIN. EMPTY for a capture-free lambda — which still has a
+          binding, because it still needs its program.
+  - id: credential-accept
+    name: CredentialAccept
+    kind: value-object
+    fields:
+      - name: entity_kind
+        type: string
+        description: '''Secret'' or ''Connection''.'
+      - name: type_id
+        type: string
+        description: Class FQID; picker accepts entities whose class extends this.
+  - id: entity-config
+    name: EntityConfig
+    kind: value-object
+    fields:
+      - name: type_id
+        type: string
+        description: Entity type id.
+      - name: target_module
+        type: string
+        description: Service module.
+      - name: list_command
+        type: string
+        description: List capability.
+      - name: get_command
+        type: string
+        description: Get capability.
+      - name: create_command
+        type: string
+        description: Create capability.
+      - name: update_command
+        type: string
+        description: Update capability.
+      - name: delete_command
+        type: string
+        description: Delete capability.
+        optional: true
+      - name: id_field
+        type: string
+        description: Field holding the entity id.
+  - id: entity-kind-hint
+    name: EntityKindHint
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: Type | Class | Interface | Enum | Signature.
+  - id: field-constraints
+    name: FieldConstraints
+    kind: value-object
+    fields:
+      - name: required
+        type: bool
+        optional: true
+      - name: mappable
+        type: bool
+        description: Whether the input accepts an expression/variable mapping.
+        optional: true
+      - name: readonly
+        type: bool
+        optional: true
+      - name: validation
+        type: list<any>
+        description: Validation rules.
+        optional: true
+      - name: show_if
+        type: any
+        description: Conditional visibility.
+        optional: true
+      - name: sensitive
+        type: bool
+        description: Strip from metadata responses (vault).
+        optional: true
+  - id: field-style
+    name: FieldStyle
+    kind: value-object
+    fields:
+      - name: indent
+        type: bool
+        description: Indent the field.
+        optional: true
+      - name: margin_top
+        type: string
+        description: Top margin.
+        optional: true
+      - name: divider_before
+        type: bool
+        description: Render a divider before.
+        optional: true
+  - id: field-type
+    name: FieldType
+    kind: value-object
+    fields:
+      - name: kind
+        type: waffler-data-type
+        description: The data-type kind.
+      - name: fields
+        type: list<form-field>
+        description: Nested fields (Object kind).
+        optional: true
+      - name: item_type
+        type: field-type
+        description: Element type (Array kind; boxed).
+        optional: true
+      - name: type_id
+        type: string
+        description: Referenced entity FQID/uuid (Reference kind) — the relation.
+        optional: true
+      - name: connection_type_id
+        type: string
+        description: Required Connection class FQID (Connection kind).
+        optional: true
+      - name: credential_accepts
+        type: list<credential-accept>
+        description: Accepted lineages (Credential kind).
+        optional: true
+      - name: entity_kind
+        type: entity-kind-hint
+        description: Reference entity-family hint.
+        optional: true
+      - name: original_reference
+        type: string
+        optional: true
+      - name: action
+        type: any
+        optional: true
+      - name: options
+        type: any
+        description: SelectOption[] | DataSourceConfig.
+        optional: true
+      - name: connector_generation
+        type: any
+        optional: true
+      - name: generic_args
+        type: map<string, field-type>
+        optional: true
+      - name: generic_id
+        type: string
+        optional: true
+      - name: signature_inputs
+        type: list<form-field>
+        optional: true
+      - name: signature_return
+        type: field-type
+        description: Callable return type (boxed).
+        optional: true
+      - name: implementation
+        type: method-impl
+        description: Legacy method dispatch binding (dropped per §17.19 A).
+        optional: true
+  - id: field-ui
+    name: FieldUi
+    kind: value-object
+    fields:
+      - name: render_as
+        type: string
+        description: Renderer override (e.g. 'code').
+        optional: true
+      - name: placeholder
+        type: string
+        optional: true
+      - name: description
+        type: string
+        optional: true
+      - name: group
+        type: string
+        optional: true
+      - name: rows
+        type: int
+        optional: true
+      - name: hidden
+        type: bool
+        optional: true
+      - name: min
+        type: float
+        optional: true
+      - name: max
+        type: float
+        optional: true
+      - name: step
+        type: float
+        optional: true
+      - name: min_length
+        type: int
+        optional: true
+      - name: max_length
+        type: int
+        optional: true
+      - name: pattern
+        type: string
+        optional: true
+      - name: language
+        type: string
+        description: Monaco language for render_as='code'.
+        optional: true
+      - name: height
+        type: int
+        optional: true
+      - name: multiline
+        type: bool
+        optional: true
+      - name: style
+        type: field-style
+        optional: true
+      - name: inherited_from
+        type: string
+        optional: true
+      - name: entity_config
+        type: entity-config
+        optional: true
+  - id: lifecycle-event-payload
+    name: LifecycleEventPayload
+    kind: value-object
+    fields:
+      - name: service_name
+        type: string
+        description: The transitioning service's name/FQID.
+      - name: state
+        type: health-status
+        description: The new HealthStatus (Online | Degraded | Offline).
+      - name: reason
+        type: string
+        description: Optional cause for a Degraded/Offline transition.
+        optional: true
+  - id: method-impl
+    name: MethodImpl
+    kind: value-object
+    fields:
+      - name: kind
+        type: string
+        description: blueprint | primitive | command.
+      - name: blueprint_uuid
+        type: string
+        description: >-
+          blueprint kind: the owned method blueprint implementing this declaration (must exist; its
+          slim BlueprintOwnership must claim the declaring class — coherence-validated both ways).
+        optional: true
+      - name: function_name
+        type: string
+        description: >-
+          primitive kind: the Wack built-in intrinsic id (the authoritative id set = the
+          runtime-wack intrinsics catalog / expression built-ins, e.g. abs, concat, substring,
+          toLowerCase, Object.keys, GetField, typeof).
+        optional: true
+      - name: service
+        type: string
+        description: 'command kind: target bus service.'
+        optional: true
+      - name: command
+        type: string
+        description: 'command kind: target command on the service.'
+        optional: true
+      - name: timeout_ms
+        type: int
+        description: 'command kind: optional dispatch timeout.'
+        optional: true
+  - id: open-stream
+    name: OpenStream
+    kind: value-object
+    fields:
+      - name: hint_size
+        type: int
+        description: >-
+          The sender's expected total, when it knows one. ADVISORY: the receiver may refuse early on
+          it, and must NOT trust it as a limit -- the enforced bound is the receiver's own, applied
+          per chunk and in total. A sender that under-declares is stopped when it actually exceeds,
+          not when it announced.
+        optional: true
+      - name: meta
+        type: any
+        description: >-
+          Receiver-defined open parameters -- a destination path, a URL, a mode. Opaque to the
+          protocol, which carries streams and knows nothing about what is being streamed. fs reads
+          `meta.path` (tokens like `<sandbox>` resolve against the caller); syw.network.http reads
+          `meta.url`.
+        optional: true
+  - id: principal-type
+    name: PrincipalType
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: >-
+          Service | Blueprint | System | Run | Package | User | AuthRole | AuthGroup. The wire token
+          is the variant name verbatim (as_token / from_token round-trip with serde's tag).
+    methods:
+      - name: pattern_covers
+        signature: 'pattern_covers(principal: PrincipalType) -> Boolean'
+        returns: bool
+        description: >-
+          Whether a rule SOURCE PATTERN of this type covers a concrete PRINCIPAL of that type. THE
+          ONE ANSWER — shared::rule_match::principal_matches, security's group_index and the vault's
+          secret_policy_evaluator all call it, because a second copy of the legacy-coverage rule is
+          how two matchers come to disagree about what a stored rule covers. Only Blueprint is loose
+          (it covers System and Run as well as itself, for pre-split rows); every other type is
+          exact equality.
+      - name: as_token
+        signature: as_token() -> String
+        returns: string
+        description: >-
+          The wire token for this type — the same string serde writes for the variant. Exists
+          because the relayed-run subject discriminator travels as a plain string in the
+          message-header `extra` bag (HEADER_SUBJECT_TYPE), and the writer and the reader must spell
+          it identically.
+      - name: from_token
+        signature: 'from_token(token: String) -> Optional<PrincipalType>'
+        returns: principal-type?
+        description: Parse a wire token back to its variant; an unknown token yields nothing, never a guess.
+  - id: program-ref
+    name: ProgramRef
+    kind: value-object
+    fields:
+      - name: program
+        type: any
+        description: >-
+          The opaque loaded-program payload (instructions + trap table + node map + resolved
+          primitive table), reference-counted. `Json` is the spec's shape-abstraction for a live
+          in-process handle — the same convention native-handle and the callback repository's live
+          submission port already use; it is never encoded as Json and never leaves the process.
+  - id: read-grant
+    name: ReadGrant
+    kind: value-object
+    fields:
+      - name: stream_id
+        type: string
+        description: >-
+          Source-minted, carried on every subsequent read. NOT a bearer token: every read re-checks
+          the opener.
+      - name: max_chunk
+        type: int
+        description: >-
+          Largest chunk the source will hand back. THE SOURCE'S to grant, not the reader's to demand
+          -- a caller-chosen size would let a reader ask for an unbounded one.
+      - name: deadline_ms
+        type: int
+        description: >-
+          How long the source holds the stream without a read before abandoning it. A reader that
+          dies must not hold an origin's socket open indefinitely.
+      - name: total_size
+        type: int
+        description: >-
+          What the source expects to produce, when it knows (a Content-Length, a file size).
+          ADVISORY exactly as `hint_size` is in the other direction: absent for a chunked response,
+          and ABSENCE IS NOT ZERO. A source that turns out to be wrong is caught by the digest at
+          the far end, not by trusting this.
+        optional: true
+      - name: meta
+        type: any
+        description: >-
+          Source-defined open results -- an HTTP status and response headers, a content type. A
+          status the caller cannot see is a status it cannot act on: a 404 body streamed as though
+          it were the artifact is what this prevents.
+        optional: true
+  - id: service-extension-action
+    name: ServiceExtensionAction
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: Attach | Detach.
+  - id: stream-close
+    name: StreamClose
+    kind: value-object
+    fields:
+      - name: total_bytes
+        type: int
+        description: >-
+          Total payload bytes the sender believes it sent. Compared against what the receiver
+          actually accepted; a mismatch refuses the commit.
+      - name: sha256
+        type: string
+        description: >-
+          Lowercase-hex SHA-256 over the whole payload, when the caller knows one (a registry's
+          content_address). When present the receiver MUST verify it and refuse on a mismatch.
+          VERIFIED WHERE THE BYTES LAND, not where they passed through -- a pump that hashed in
+          transit would attest what it saw rather than what was stored.
+        optional: true
+  - id: stream-grant
+    name: StreamGrant
+    kind: value-object
+    fields:
+      - name: stream_id
+        type: string
+        description: Receiver-minted, carried in the `stream.id` header on every subsequent message.
+      - name: max_chunk
+        type: int
+        description: >-
+          Largest chunk the receiver will accept. Enforced, and inclusive at the boundary -- an
+          off-by-one here breaks precisely the senders that sized themselves correctly.
+      - name: deadline_ms
+        type: int
+        description: >-
+          How long the receiver holds the stream without progress before aborting it. A sender that
+          dies mid-transfer must not leak the receiver's state indefinitely.
+  - id: subroutine-kind
+    name: SubroutineKind
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: Inline | Isolated | Closure.
+  - id: topic
+    name: Topic
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: >-
+          The topic name as it travels on the bus - dot-separated lowercase snake, e.g.
+          `namespace.deleted`.
+    methods:
+      - name: as_str
+        signature: as_str() -> String
+        returns: string
+        description: The topic name as it travels on the bus.
+      - name: is_known
+        signature: is_known() -> Boolean
+        returns: bool
+        description: >-
+          Whether this name is a declared catalogue entry. Compares by NAME, not provenance - the
+          string is the only thing the broker sees, so a dynamic topic spelling a catalogued name is
+          known.
+  - id: waffler-data-type
+    name: WafflerDataType
+    kind: value-object
+    fields:
+      - name: value
+        type: string
+        description: >-
+          One of the WafflerDataType variants (String, Int, Float, Byte, Bytes, Char, Boolean,
+          Object, Array, Reference, Secret, Connection, Credential, Dynamic, ...).
+  - id: stream-op
+    name: StreamOp
+    kind: enum
+    fields: []
+    values:
+      - name: open
+        description: Request a stream; the receiver accepts (with a [`StreamGrant`]) or refuses.
+      - name: chunk
+        description: One ordered chunk of payload bytes, SENT by the sender (push).
+      - name: read
+        description: >-
+          A request for the next ordered chunk, made by the RECEIVER (pull). The bytes come back in
+          the reply payload; [`STREAM_EOF_HEADER`] on that reply marks the final one.
+      - name: close
+        description: The sender is done; carries the totals for the receiver to verify.
+      - name: abort
+        description: The sender is abandoning the transfer; the receiver discards partial state.
   - id: principal-pattern
     name: PrincipalPattern
     kind: value-object
@@ -6086,38 +7225,6 @@ types:
       - name: keywords
         type: list<string>
         description: Extra search keywords / aliases for discovery.
-        optional: true
-  - id: method-impl
-    name: MethodImpl
-    kind: value-object
-    fields:
-      - name: kind
-        type: string
-        description: blueprint | primitive | command.
-      - name: blueprint_uuid
-        type: string
-        description: >-
-          blueprint kind: the owned method blueprint implementing this declaration (must exist; its
-          slim BlueprintOwnership must claim the declaring class — coherence-validated both ways).
-        optional: true
-      - name: function_name
-        type: string
-        description: >-
-          primitive kind: the Wack built-in intrinsic id (the authoritative id set = the
-          runtime-wack intrinsics catalog / expression built-ins, e.g. abs, concat, substring,
-          toLowerCase, Object.keys, GetField, typeof).
-        optional: true
-      - name: service
-        type: string
-        description: 'command kind: target bus service.'
-        optional: true
-      - name: command
-        type: string
-        description: 'command kind: target command on the service.'
-        optional: true
-      - name: timeout_ms
-        type: int
-        description: 'command kind: optional dispatch timeout.'
         optional: true
   - id: closure-capture
     name: ClosureCapture
@@ -6311,16 +7418,6 @@ types:
         type: type-ref
         description: Declared return type (None = no value).
         optional: true
-  - id: bus-handle
-    name: BusHandle
-    kind: value-object
-    fields:
-      - name: service
-        type: string
-        description: The owning service/package name this bus handle is stamped with (its bus identity).
-      - name: id
-        type: string
-        description: The opaque handle id issued at attach.
   - id: rule-pattern
     name: RulePattern
     kind: value-object
@@ -6328,9 +7425,13 @@ types:
       - name: kind
         type: string
         description: >-
-          The variant tag — Bus | Filesystem | Network | Process | Device | Console | Secret |
-          External. It selects the EVALUATOR and its target grammar, and a rule never answers about
-          a class that is not its own.
+          The OPEN string discriminator — one of the named kinds Bus | Filesystem | Network |
+          Process | Device | Console | Secret | External, though any string decodes. It selects the
+          EVALUATOR and its target grammar, and it bounds which target kinds (`MessageTarget.kind`)
+          the rule may answer about at all: a Filesystem, Network, Process, Device, Console or
+          Secret rule only a target of that same kind; a Bus rule only a target of none of those
+          kinds, such as a Command or an Event; and an External rule a target of any kind, because
+          its plugin's own evaluator owns the question.
       - name: target_kind
         type: string
         description: Bus only — Command | Event | Any.
@@ -6364,11 +7465,23 @@ types:
         optional: true
       - name: class_pattern
         type: string
-        description: Secret only — class-FQID glob (optional match dimension).
+        description: >-
+          Secret only — a glob over the target class's FQID (its namespace path), NOT its uuid, and
+          the evaluator resolves `MessageTarget.class_uuid` to that FQID before matching. An FQID is
+          referenced because it is PORTABLE: a builtin class's uuid is derived deterministically
+          from its path, but a user or package class's is minted per node (`Uuid::now_v7`) and
+          re-minted on reinstall, so a stored rule naming one would be node-local. Optional match
+          dimension.
         optional: true
       - name: assignable_to
         type: string
-        description: Secret only — a base-class UUID (classes:is_assignable match).
+        description: >-
+          Secret only — a base-class UUID, resolved through the class graph
+          (`classes:is_assignable`). A UUID is sound here for the base classes this dimension is for
+          — `Secret` and `Connection` are BUILTINS, whose uuids are derived deterministically from
+          their paths and are therefore portable. It is NOT sound for a package-defined base class,
+          whose uuid is per-node: such a rule is node-local and breaks on reinstall. Name a builtin
+          base class, or use `class_pattern` to reach a family by portable FQID.
         optional: true
       - name: secret_uuid
         type: string
@@ -6391,160 +7504,6 @@ types:
         type: any
         description: External only — evaluator-defined opaque body.
         optional: true
-  - id: subroutine-kind
-    name: SubroutineKind
-    kind: value-object
-    fields:
-      - name: value
-        type: string
-        description: Inline | Isolated | Closure.
-  - id: field-type
-    name: FieldType
-    kind: value-object
-    fields:
-      - name: kind
-        type: waffler-data-type
-        description: The data-type kind.
-      - name: fields
-        type: list<form-field>
-        description: Nested fields (Object kind).
-        optional: true
-      - name: item_type
-        type: field-type
-        description: Element type (Array kind; boxed).
-        optional: true
-      - name: type_id
-        type: string
-        description: Referenced entity FQID/uuid (Reference kind) — the relation.
-        optional: true
-      - name: connection_type_id
-        type: string
-        description: Required Connection class FQID (Connection kind).
-        optional: true
-      - name: credential_accepts
-        type: list<credential-accept>
-        description: Accepted lineages (Credential kind).
-        optional: true
-      - name: entity_kind
-        type: entity-kind-hint
-        description: Reference entity-family hint.
-        optional: true
-      - name: original_reference
-        type: string
-        optional: true
-      - name: action
-        type: any
-        optional: true
-      - name: options
-        type: any
-        description: SelectOption[] | DataSourceConfig.
-        optional: true
-      - name: connector_generation
-        type: any
-        optional: true
-      - name: generic_args
-        type: map<string, field-type>
-        optional: true
-      - name: generic_id
-        type: string
-        optional: true
-      - name: signature_inputs
-        type: list<form-field>
-        optional: true
-      - name: signature_return
-        type: field-type
-        description: Callable return type (boxed).
-        optional: true
-      - name: implementation
-        type: method-impl
-        description: Legacy method dispatch binding (dropped per §17.19 A).
-        optional: true
-  - id: field-ui
-    name: FieldUi
-    kind: value-object
-    fields:
-      - name: render_as
-        type: string
-        description: Renderer override (e.g. 'code').
-        optional: true
-      - name: placeholder
-        type: string
-        optional: true
-      - name: description
-        type: string
-        optional: true
-      - name: group
-        type: string
-        optional: true
-      - name: rows
-        type: int
-        optional: true
-      - name: hidden
-        type: bool
-        optional: true
-      - name: min
-        type: float
-        optional: true
-      - name: max
-        type: float
-        optional: true
-      - name: step
-        type: float
-        optional: true
-      - name: min_length
-        type: int
-        optional: true
-      - name: max_length
-        type: int
-        optional: true
-      - name: pattern
-        type: string
-        optional: true
-      - name: language
-        type: string
-        description: Monaco language for render_as='code'.
-        optional: true
-      - name: height
-        type: int
-        optional: true
-      - name: multiline
-        type: bool
-        optional: true
-      - name: style
-        type: field-style
-        optional: true
-      - name: inherited_from
-        type: string
-        optional: true
-      - name: entity_config
-        type: entity-config
-        optional: true
-  - id: field-constraints
-    name: FieldConstraints
-    kind: value-object
-    fields:
-      - name: required
-        type: bool
-        optional: true
-      - name: mappable
-        type: bool
-        description: Whether the input accepts an expression/variable mapping.
-        optional: true
-      - name: readonly
-        type: bool
-        optional: true
-      - name: validation
-        type: list<any>
-        description: Validation rules.
-        optional: true
-      - name: show_if
-        type: any
-        description: Conditional visibility.
-        optional: true
-      - name: sensitive
-        type: bool
-        description: Strip from metadata responses (vault).
-        optional: true
   - id: type-ref
     name: TypeRef
     kind: value-object
@@ -6558,30 +7517,6 @@ types:
       - name: generic_args
         type: list<generic-arg-binding>
         description: Generic argument bindings on the referenced entity (default empty).
-  - id: artifact-ref
-    name: ArtifactRef
-    kind: value-object
-    fields:
-      - name: name
-        type: string
-        description: The artifact file name within the package's /artifact/ part.
-      - name: kind
-        type: artifact-kind
-        description: >-
-          How the host loads it (ArtifactKind — Dll | Wasm | NativeLib | CompatTranslator | UiBundle
-          | BlueprintBundle).
-      - name: hash
-        type: string
-        description: >-
-          The artifact's content hash (must align with the manifest artifact_hashes verified at
-          staged install).
-      - name: entry_point
-        type: string
-        description: >-
-          Optional load entry the host binds — the C-ABI symbol for a Dll/NativeLib, the export name
-          for a Wasm module, or the mount entry for a UiBundle. Absent when the whole artifact is
-          the unit.
-        optional: true
   - id: fast-lane-request
     name: FastLaneRequest
     kind: value-object
@@ -6622,7 +7557,40 @@ types:
           before this type.
       - name: sources
         type: scope-match
-        description: Who is calling.
+        description: >-
+          Who is calling: the RESOLVED caller principal's id — a package's FQID, a core Service's
+          own id — on BOTH chains. Never the envelope's source: for a package that is the
+          host-stamped FINGERPRINT, f(node_seed, fqid), non-forgeable but node-specific and
+          re-issued per install, so a pattern naming it means a different package, or none, on every
+          other node. A scope is AUTHOR-DECLARED in a portable manifest, and an authorization record
+          names what it authorizes by FQID (SecretGrant.target gives the same reason): a fingerprint
+          is no thing to key a rule on.
+
+
+          THIS RESOLVES THE KNOWN DEFECT previously recorded here, where the global chain matched
+          the fingerprint and the per-package chain (chain_for) the FQID, so one sources list was
+          silently inert on one of them. Both chains now match the one spelling chain_for already
+          used: the global chain matches the principal the broker resolves for the message, and a
+          fingerprint-shaped source that resolves to no registered package is REFUSED before any
+          layer runs, so it never reaches a scope with its fingerprint standing in for an FQID.
+
+
+          A FINGERPRINT-SHAPED PATTERN IS INADMISSIBLE, in any_of AND none_of: validate refuses it,
+          at the enable and again at the chain, like every other inadmissible scope. THE test is
+          is_fingerprint_shaped (shared, security/fingerprint.rs) — the predicate the key index and
+          the principal-pattern proof already rest on — never a second spelling of it. Refusing it
+          in none_of is the point, not tidiness: under resolved matching an exclusion naming a
+          fingerprint excludes nothing, so it would read as a promise and keep none, and a layer
+          would see what its reviewer was told it excludes.
+
+
+          THE REFUSAL RESTS ON ONE ASSUMPTION, written here rather than inherited: no legitimate
+          principal id is fingerprint-shaped. For a package it is ENFORCED — security refuses to
+          mint an identity for a fingerprint-shaped FQID at registration. For a core Service it
+          holds by construction: their ids are the node's own fixed names (NODE_BUS_SOURCE is
+          'bootstrap'). Glob patterns are unaffected: a pattern containing '*' is not
+          fingerprint-shaped, and since the subject is never a fingerprint, no pattern can match
+          one.
   - id: event-scope
     name: EventScope
     kind: value-object
@@ -6635,7 +7603,21 @@ types:
         description: The topics.
       - name: sources
         type: scope-match
-        description: Who is publishing.
+        description: >-
+          Who is publishing: the RESOLVED publisher principal's id, under exactly the rules of
+          CommandScope.sources — one spelling, a fingerprint-shaped pattern refused in any_of and
+          none_of by the same predicate, resting on the same assumption. For a package publisher it
+          is the FQID the broker resolves from the fingerprint publish_event stamps at ingress. For
+          a core Service it is the id its events carry, which today is NODE_BUS_SOURCE for every
+          in-process service, because they publish through one handle
+          (MiddlewareDeclaration.withholding_reasons matches both readings for that reason).
+
+
+          THIS RESOLVES the sibling KNOWN DEFECT previously recorded here: an event scope is
+          evaluated by the global chain only, which matched the fingerprint, so a sources pattern
+          naming a package by FQID matched no package's events, silently. It is ONE change with
+          CommandScope.sources, not two: fixing the command side alone would leave the per-topic
+          exclusions here with the fail-open the other closes.
   - id: header-predicate
     name: HeaderPredicate
     kind: value-object
@@ -6689,7 +7671,7 @@ types:
     methods:
       - name: as_str
         signature: as_str(&self) -> &str
-        returns: '&str'
+        returns: string
         description: The canonical lowercase string used in .ns files + JSON.
       - name: from_str
         signature: 'from_str(s: &str) -> NamespaceEntityType'
@@ -6850,45 +7832,6 @@ types:
       - name: error
         type: string
         description: Error message if the node Failed (Option<String> on the record).
-        optional: true
-  - id: capability-kind
-    name: CapabilityKind
-    kind: value-object
-    fields:
-      - name: value
-        type: string
-        description: >-
-          TranspileBackend | AuthoringNode | RuntimePrimitive | UiPlugin | Middleware |
-          TriggerProvider | ValidationHook.
-  - id: capability-metadata
-    name: CapabilityMetadata
-    kind: value-object
-    fields:
-      - name: display_name
-        type: string
-        description: Human label for the capability in palettes/menus.
-        optional: true
-      - name: category
-        type: string
-        description: Grouping category for the designer palette (e.g. quantum/gates, quantum/measure).
-        optional: true
-      - name: icon
-        type: string
-        description: Icon id / asset reference for the palette entry.
-        optional: true
-      - name: form_fields
-        type: list<form-field>
-        description: Typed parameter descriptors (FormField) for the capability's configurable inputs.
-        optional: true
-      - name: node_descriptor
-        type: any
-        description: >-
-          The authoring node's structural shape (pins/ports/typed params) the editor instantiates
-          for an AuthoringNode capability. Absent for non-node capabilities.
-        optional: true
-      - name: docs_url
-        type: string
-        description: Optional documentation link surfaced in the marketplace/editor.
         optional: true
   - id: expression-token
     name: ExpressionToken
@@ -7157,7 +8100,9 @@ types:
     fields:
       - name: category
         type: string
-        description: The failing error's category (e.g. vault, runtime) — a bounded token, never free text.
+        description: >-
+          The failing error's category (e.g. vault, runtime), copied verbatim. This type does not
+          bound it: a producer projecting the mark to a lower-privileged reader bounds it itself.
       - name: code
         type: string
         description: The failing error's code (e.g. AccessDenied, ValidationFailed), when it carried one.
@@ -7173,7 +8118,7 @@ types:
     kind: value-object
     fields:
       - name: class_uuid
-        type: any
+        type: uuid-value
         description: The child secret's class.
       - name: properties
         type: any
@@ -7182,45 +8127,21 @@ types:
         type: string
         description: An optional display name for the minted child. Serde-default.
         optional: true
-  - id: principal-type
-    name: PrincipalType
+  - id: activation-failure
+    name: ActivationFailure
     kind: value-object
     fields:
-      - name: value
+      - name: code
         type: string
         description: >-
-          Service | Blueprint | System | Run | Package | User | AuthRole | AuthGroup. The wire token
-          is the variant name verbatim (as_token / from_token round-trip with serde's tag).
-    methods:
-      - name: pattern_covers
-        signature: 'pattern_covers(principal: PrincipalType) -> Boolean'
-        returns: bool
-        description: >-
-          Whether a rule SOURCE PATTERN of this type covers a concrete PRINCIPAL of that type. THE
-          ONE ANSWER — shared::rule_match::principal_matches, security's group_index and the vault's
-          secret_policy_evaluator all call it, because a second copy of the legacy-coverage rule is
-          how two matchers come to disagree about what a stored rule covers. Only Blueprint is loose
-          (it covers System and Run as well as itself, for pre-split rows); every other type is
-          exact equality.
-      - name: as_token
-        signature: as_token() -> String
-        returns: string
-        description: >-
-          The wire token for this type — the same string serde writes for the variant. Exists
-          because the relayed-run subject discriminator travels as a plain string in the
-          message-header `extra` bag (HEADER_SUBJECT_TYPE), and the writer and the reader must spell
-          it identically.
-      - name: from_token
-        signature: 'from_token(token: String) -> Optional<PrincipalType>'
-        returns: principal-type?
-        description: Parse a wire token back to its variant; an unknown token yields nothing, never a guess.
-  - id: service-extension-action
-    name: ServiceExtensionAction
-    kind: value-object
-    fields:
-      - name: value
+          The activation's own error code, VERBATIM — copied from the failed activation, never
+          re-derived or mapped onto a vocabulary of this type's own. Wire slot 0.
+      - name: message
         type: string
-        description: Attach | Detach.
+        description: The activation's own error message, VERBATIM, for the same reason. Wire slot 1.
+      - name: at_ms
+        type: int
+        description: When the attempt failed, ms since epoch, by the host clock. Wire slot 2.
   - id: rule-narrowing
     name: RuleNarrowing
     kind: value-object
@@ -7366,31 +8287,6 @@ types:
           behind a refcount with copy-on-write, so an owned copy is a pointer bump rather than a
           byte-for-byte clone. Length is the collection's own, not a separate field — a stored
           length that can disagree with the buffer is a second source of truth.
-  - id: closure-binding
-    name: ClosureBinding
-    kind: value-object
-    fields:
-      - name: program
-        type: program-ref
-        description: >-
-          The opaque in-process reference to the owner's LOADED program — the instruction vector,
-          trap table, node-boundary map and load-resolved primitive table that a frame push needs,
-          i.e. exactly the bundle of things an in-bundle member push resolves today. Resolved at
-          LoadFunction from the frame the fiber is currently executing, so it is correct by
-          construction for ANY owner (member or entry) and needs no index, table or membership test.
-          Held behind a reference-count so the program outlives every closure value that can still
-          enter it.
-      - name: captures
-        type: list<value>
-        description: >-
-          The captured environment: the values lifted out of the enclosing scope, ORDERED to match
-          the handle's capture_slots positionally, so frame push seeds captures[i] ->
-          frame[capture_slots[i]] with no name lookup. SNAPSHOTTED at closure-creation time — an
-          OWNED value is copied, while a SHARED instance's snapshot is its heap_ref HANDLE, so the
-          closure and the enclosing scope keep addressing one cell (snapshot the slot, share the
-          box). A captured value may itself carry any side-channel, including another closure's
-          binding, so environments CHAIN. EMPTY for a capture-free lambda — which still has a
-          binding, because it still needs its program.
   - id: generic-parameter
     name: GenericParameter
     kind: value-object
@@ -7662,77 +8558,6 @@ types:
           The value that stands in when the caller omits this parameter. None = genuinely required.
           serde(default), so an artifact written before the field existed decodes with None.
         optional: true
-  - id: waffler-data-type
-    name: WafflerDataType
-    kind: value-object
-    fields:
-      - name: value
-        type: string
-        description: >-
-          One of the WafflerDataType variants (String, Int, Float, Byte, Bytes, Char, Boolean,
-          Object, Array, Reference, Secret, Connection, Credential, Dynamic, ...).
-  - id: credential-accept
-    name: CredentialAccept
-    kind: value-object
-    fields:
-      - name: entity_kind
-        type: string
-        description: '''Secret'' or ''Connection''.'
-      - name: type_id
-        type: string
-        description: Class FQID; picker accepts entities whose class extends this.
-  - id: entity-kind-hint
-    name: EntityKindHint
-    kind: value-object
-    fields:
-      - name: value
-        type: string
-        description: Type | Class | Interface | Enum | Signature.
-  - id: field-style
-    name: FieldStyle
-    kind: value-object
-    fields:
-      - name: indent
-        type: bool
-        description: Indent the field.
-        optional: true
-      - name: margin_top
-        type: string
-        description: Top margin.
-        optional: true
-      - name: divider_before
-        type: bool
-        description: Render a divider before.
-        optional: true
-  - id: entity-config
-    name: EntityConfig
-    kind: value-object
-    fields:
-      - name: type_id
-        type: string
-        description: Entity type id.
-      - name: target_module
-        type: string
-        description: Service module.
-      - name: list_command
-        type: string
-        description: List capability.
-      - name: get_command
-        type: string
-        description: Get capability.
-      - name: create_command
-        type: string
-        description: Create capability.
-      - name: update_command
-        type: string
-        description: Update capability.
-      - name: delete_command
-        type: string
-        description: Delete capability.
-        optional: true
-      - name: id_field
-        type: string
-        description: Field holding the entity id.
   - id: generic-arg-binding
     name: GenericArgBinding
     kind: value-object
@@ -7743,13 +8568,6 @@ types:
       - name: bound_to
         type: type-ref-or-param
         description: A concrete TypeRef or a pass-through generic param name.
-  - id: artifact-kind
-    name: ArtifactKind
-    kind: value-object
-    fields:
-      - name: value
-        type: string
-        description: Dll | Wasm | NativeLib | CompatTranslator | UiBundle | BlueprintBundle.
   - id: scope-match
     name: ScopeMatch
     kind: value-object
@@ -7850,7 +8668,7 @@ types:
         type: permission-sensitivity-cause
         description: The closed cause tag — what a client filters and groups by.
       - name: rule_index
-        type: float
+        type: int
         description: >-
           The index of the rule in the group's `rules` that produced this reason, or absent when the
           reason came from something that is not a rule (a declared fast-lane request). Rule INDEX
@@ -7921,17 +8739,6 @@ types:
           The concrete target string, or none for BOTH targetless states. DELIBERATELY LOSSY, and
           only for a caller that has already consulted is_settled: it collapses exactly the
           distinction this type exists to keep. A client rendering a rule form must read `kind`.
-  - id: program-ref
-    name: ProgramRef
-    kind: value-object
-    fields:
-      - name: program
-        type: any
-        description: >-
-          The opaque loaded-program payload (instructions + trap table + node map + resolved
-          primitive table), reference-counted. `Json` is the spec's shape-abstraction for a live
-          in-process handle — the same convention native-handle and the callback repository's live
-          submission port already use; it is never encoded as Json and never leaves the process.
   - id: context-tag
     name: ContextTag
     kind: value-object
@@ -7970,9 +8777,10 @@ types:
       - name: value
         type: string
         description: >-
-          VaultFastLane | OffBrokerFastLane | SystemControlVerb | UnconstrainedBus |
-          UnconstrainedSecret | SecretUnwrap | SecretInvokeMethod | SecretMetadataRead |
-          UnconstrainedFilesystem | UnconstrainedNetwork | UnconstrainedProcess.
+          VaultFastLane | OffBrokerFastLane | SystemControlVerb | SecurityAuthorityVerb |
+          UnconstrainedBus | UnconstrainedSecret | SecretUnwrap | SecretInvokeMethod |
+          SecretMetadataRead | UnconstrainedFilesystem | UnconstrainedNetwork | UnconstrainedProcess
+          | ProcessSpawn.
 projectId: shared
 exportedTypes:
   - id: access-decision
@@ -7986,7 +8794,7 @@ exportedTypes:
     audience: project
   - id: activate-hook
     type: activate-hook
-    audience: project
+    audience: external
   - id: actor-handle
     type: actor-handle
     audience: project
@@ -8022,7 +8830,7 @@ exportedTypes:
     audience: project
   - id: callback-token
     type: callback-token
-    audience: project
+    audience: external
   - id: capability-availability
     type: capability-availability
     audience: project
@@ -8034,7 +8842,7 @@ exportedTypes:
     audience: project
   - id: capability-key
     type: capability-key
-    audience: project
+    audience: external
   - id: capability-ref
     type: capability-ref
     audience: project
@@ -8070,7 +8878,7 @@ exportedTypes:
     audience: project
   - id: compat-module
     type: compat-module
-    audience: project
+    audience: external
   - id: compat-placement
     type: compat-placement
     audience: project
@@ -8118,7 +8926,7 @@ exportedTypes:
     audience: project
   - id: deactivate-hook
     type: deactivate-hook
-    audience: project
+    audience: external
   - id: debug-fiber
     type: debug-fiber
     audience: project
@@ -8142,13 +8950,13 @@ exportedTypes:
     audience: project
   - id: dependency-decl
     type: dependency-decl
-    audience: project
+    audience: external
   - id: dir-entry
     type: dir-entry
     audience: project
   - id: direction
     type: direction
-    audience: project
+    audience: external
   - id: discovered-segment
     type: discovered-segment
     audience: project
@@ -8160,7 +8968,7 @@ exportedTypes:
     audience: project
   - id: endpoint
     type: endpoint
-    audience: project
+    audience: external
   - id: engine-capabilities
     type: engine-capabilities
     audience: project
@@ -8199,7 +9007,7 @@ exportedTypes:
     audience: project
   - id: event-gap
     type: event-gap
-    audience: project
+    audience: external
   - id: event-handler
     type: event-handler
     audience: project
@@ -8232,10 +9040,10 @@ exportedTypes:
     audience: project
   - id: extension-context
     type: extension-context
-    audience: project
+    audience: external
   - id: extension-module
     type: extension-module
-    audience: project
+    audience: external
   - id: external-system-registration
     type: external-system-registration
     audience: project
@@ -8247,7 +9055,7 @@ exportedTypes:
     audience: project
   - id: fast-lane-handle
     type: fast-lane-handle
-    audience: project
+    audience: external
   - id: fiber-ref
     type: fiber-ref
     audience: project
@@ -8265,7 +9073,7 @@ exportedTypes:
     audience: project
   - id: fingerprint
     type: fingerprint
-    audience: project
+    audience: external
   - id: firewall-rule
     type: firewall-rule
     audience: project
@@ -8274,16 +9082,16 @@ exportedTypes:
     audience: project
   - id: fn-handle
     type: fn-handle
-    audience: project
+    audience: external
   - id: folder-part-ref
     type: folder-part-ref
     audience: project
   - id: form-field
     type: form-field
-    audience: project
+    audience: external
   - id: fqid
     type: fqid
-    audience: project
+    audience: external
   - id: frame
     type: frame
     audience: project
@@ -8328,13 +9136,13 @@ exportedTypes:
     audience: project
   - id: handshake-role
     type: handshake-role
-    audience: project
+    audience: external
   - id: hash
     type: hash
     audience: project
   - id: header-patch
     type: header-patch
-    audience: project
+    audience: external
   - id: header-set
     type: header-set
     audience: project
@@ -8343,19 +9151,19 @@ exportedTypes:
     audience: project
   - id: health-status
     type: health-status
-    audience: project
+    audience: external
   - id: heap-handle
     type: heap-handle
-    audience: project
+    audience: external
   - id: host-handle
     type: host-handle
-    audience: project
+    audience: external
   - id: host-path
     type: host-path
     audience: project
   - id: host-posture
     type: host-posture
-    audience: project
+    audience: external
   - id: host-var-values
     type: host-var-values
     audience: project
@@ -8391,10 +9199,10 @@ exportedTypes:
     audience: project
   - id: interceptor-handle
     type: interceptor-handle
-    audience: project
+    audience: external
   - id: interceptor-spec
     type: interceptor-spec
-    audience: project
+    audience: external
   - id: job-handle
     type: job-handle
     audience: project
@@ -8403,10 +9211,10 @@ exportedTypes:
     audience: project
   - id: journal-ack
     type: journal-ack
-    audience: project
+    audience: external
   - id: journal-entry
     type: journal-entry
-    audience: project
+    audience: external
   - id: journal-level
     type: journal-level
     audience: project
@@ -8415,10 +9223,10 @@ exportedTypes:
     audience: project
   - id: lane-tier
     type: lane-tier
-    audience: project
+    audience: external
   - id: lane-tier-requirement
     type: lane-tier-requirement
-    audience: project
+    audience: external
   - id: limit-decision
     type: limit-decision
     audience: project
@@ -8466,10 +9274,10 @@ exportedTypes:
     audience: project
   - id: message-envelope
     type: message-envelope
-    audience: project
+    audience: external
   - id: message-headers
     type: message-headers
-    audience: project
+    audience: external
   - id: message-target
     type: message-target
     audience: project
@@ -8481,7 +9289,7 @@ exportedTypes:
     audience: project
   - id: middleware-outcome
     type: middleware-outcome
-    audience: project
+    audience: external
   - id: middleware-review
     type: middleware-review
     audience: project
@@ -8508,16 +9316,16 @@ exportedTypes:
     audience: project
   - id: native-access-kind
     type: native-access-kind
-    audience: project
+    audience: external
   - id: native-access-request
     type: native-access-request
     audience: project
   - id: native-capability-class
     type: native-capability-class
-    audience: project
+    audience: external
   - id: native-handle
     type: native-handle
-    audience: project
+    audience: external
   - id: native-primitive
     type: native-primitive
     audience: project
@@ -8562,7 +9370,7 @@ exportedTypes:
     audience: project
   - id: package-capability
     type: package-capability
-    audience: project
+    audience: external
   - id: package-consent
     type: package-consent
     audience: project
@@ -8592,7 +9400,7 @@ exportedTypes:
     audience: project
   - id: peer-identity
     type: peer-identity
-    audience: project
+    audience: external
   - id: permission-adjustment-check
     type: permission-adjustment-check
     audience: project
@@ -8652,7 +9460,7 @@ exportedTypes:
     audience: project
   - id: registration-ref
     type: registration-ref
-    audience: project
+    audience: external
   - id: replay-handle
     type: replay-handle
     audience: project
@@ -8676,7 +9484,7 @@ exportedTypes:
     audience: project
   - id: response
     type: response
-    audience: project
+    audience: external
   - id: review-state
     type: review-state
     audience: project
@@ -8724,22 +9532,22 @@ exportedTypes:
     audience: project
   - id: security-principal
     type: security-principal
-    audience: project
+    audience: external
   - id: segment-manifest
     type: segment-manifest
     audience: project
   - id: sem-ver
     type: sem-ver
-    audience: project
+    audience: external
   - id: sensitivity
     type: sensitivity
-    audience: project
+    audience: external
   - id: service-extension-announced
     type: service-extension-announced
-    audience: project
+    audience: external
   - id: service-name
     type: service-name
-    audience: project
+    audience: external
   - id: shadow-report
     type: shadow-report
     audience: project
@@ -8778,7 +9586,7 @@ exportedTypes:
     audience: project
   - id: subscription-handle
     type: subscription-handle
-    audience: project
+    audience: external
   - id: swept-bindings
     type: swept-bindings
     audience: project
@@ -8841,7 +9649,7 @@ exportedTypes:
     audience: project
   - id: value
     type: value
-    audience: project
+    audience: external
   - id: vm-limits
     type: vm-limits
     audience: project
@@ -8856,7 +9664,7 @@ exportedTypes:
     audience: project
   - id: waffler-error
     type: waffler-error
-    audience: project
+    audience: external
   - id: waffler-interface
     type: waffler-interface
     audience: project
@@ -8881,5 +9689,107 @@ exportedTypes:
   - id: zip-entry-info
     type: zip-entry-info
     audience: project
+  - id: uuid-value
+    type: uuid-value
+    audience: project
+  - id: test-method-entry
+    type: test-method-entry
+    audience: project
+  - id: rule-verdict
+    type: rule-verdict
+    audience: project
+  - id: direct-hosting-override
+    type: direct-hosting-override
+    audience: project
+  - id: package-hosting
+    type: package-hosting
+    audience: project
+  - id: disabled-by-failures
+    type: disabled-by-failures
+    audience: project
+  - id: reenabled-after-failures
+    type: reenabled-after-failures
+    audience: project
+  - id: artifact-kind
+    type: artifact-kind
+    audience: external
+  - id: artifact-ref
+    type: artifact-ref
+    audience: external
+  - id: bus-handle
+    type: bus-handle
+    audience: external
+  - id: capability-kind
+    type: capability-kind
+    audience: external
+  - id: capability-metadata
+    type: capability-metadata
+    audience: external
+  - id: capability-name
+    type: capability-name
+    audience: external
+  - id: closure-binding
+    type: closure-binding
+    audience: external
+  - id: credential-accept
+    type: credential-accept
+    audience: external
+  - id: entity-config
+    type: entity-config
+    audience: external
+  - id: entity-kind-hint
+    type: entity-kind-hint
+    audience: external
+  - id: field-constraints
+    type: field-constraints
+    audience: external
+  - id: field-style
+    type: field-style
+    audience: external
+  - id: field-type
+    type: field-type
+    audience: external
+  - id: field-ui
+    type: field-ui
+    audience: external
+  - id: lifecycle-event-payload
+    type: lifecycle-event-payload
+    audience: external
+  - id: method-impl
+    type: method-impl
+    audience: external
+  - id: open-stream
+    type: open-stream
+    audience: external
+  - id: principal-type
+    type: principal-type
+    audience: external
+  - id: program-ref
+    type: program-ref
+    audience: external
+  - id: read-grant
+    type: read-grant
+    audience: external
+  - id: service-extension-action
+    type: service-extension-action
+    audience: external
+  - id: stream-close
+    type: stream-close
+    audience: external
+  - id: stream-grant
+    type: stream-grant
+    audience: external
+  - id: subroutine-kind
+    type: subroutine-kind
+    audience: external
+  - id: topic
+    type: topic
+    audience: external
+  - id: waffler-data-type
+    type: waffler-data-type
+    audience: external
+  - id: stream-op
+    type: stream-op
+    audience: external
 audience: project
 targetLanguage: rust

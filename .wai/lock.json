@@ -2,9 +2,9 @@
   "format": 3,
   "stateId": {
     "algorithm": "sha256+design-2+doctrine+inputs+members",
-    "digest": "1ca710e830ff5b566ac031b0b93941a77eed0a25c897e22c9a213ca15227367e"
+    "digest": "dc9e1d1a31e606e2bcc36688d15b81cb9a3ab768503677e0f95b304898f28697"
   },
-  "lockedAt": "2026-11-24T19:15:17.799Z",
+  "lockedAt": "2026-11-24T20:45:48.786Z",
   "lockedBy": {
     "id": "Robbe-Vr <robbe.vrijenhoek@kpnmail.nl>",
     "source": "git"
@@ -108,7 +108,7 @@
     "rules": "43cfe6d38257bec2e42ffe6373ef015dced356ed125dba4fbe9d8a275d4eaa42",
     "packs": "e58a07166d3239b3e4dddbc10594d72ee7e7e564bb94b2b08d9eadfc80279119",
     "composition": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
-    "contracts": "30ae64ebf6fb351bb8b08e94e77d2681032349e8150e9e0ef1d260dfc3388de3",
+    "contracts": "29f8882a0b761848f994f049fa51336e28113f1a75528c954bf30c74d9d1dff5",
     "members": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
   },
   "members": {},

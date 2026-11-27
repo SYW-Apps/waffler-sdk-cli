@@ -1,0 +1,2 @@
+# The spec tree's write lock: held for the moment of a write, never committed.
+.spec-write.lock*
